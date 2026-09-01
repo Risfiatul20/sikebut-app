@@ -51,10 +51,16 @@ export async function GET(req: Request, { params }: { params: Promise<{ type: st
   }
 
   const { searchParams } = new URL(req.url)
+  const finalParams = new URLSearchParams(searchParams)
+
+  // Jika kode_skpd belum dikirim via query param, otomatis ambil dari session user login
+  if (!finalParams.get("kode_skpd") && session.user.kodeSkpd) {
+    finalParams.set("kode_skpd", session.user.kodeSkpd)
+  }
 
   // Meneruskan request ke backend Laravel: /api/v1/ref-program | ref-kegiatan | ref-sub-kegiatan
   try {
-    const backendUrl = `${process.env.API_URL || "http://127.0.0.1:8000"}/api/v1/ref-${type}?${searchParams.toString()}`
+    const backendUrl = `${process.env.API_URL || "http://127.0.0.1:8000"}/api/v1/ref-${type}?${finalParams.toString()}`
     const backendRes = await fetch(backendUrl, {
       headers: {
         Accept: "application/json",
@@ -70,7 +76,7 @@ export async function GET(req: Request, { params }: { params: Promise<{ type: st
     // Backend offline: fallback ke data mock
   }
 
-  const data = filterMock(type as RefType, searchParams)
+  const data = filterMock(type as RefType, finalParams)
 
   return NextResponse.json(
     { data },

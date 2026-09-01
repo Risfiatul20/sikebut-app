@@ -1,13 +1,21 @@
 "use client"
 
-import { CheckCircle2, AlertTriangle, FileText, Layers, Building2, DollarSign } from "lucide-react"
+import { AlertTriangle, FileText, Layers, Building2, DollarSign } from "lucide-react"
 
 interface Props {
-  identitas: { nama_program: string; kode_program: string; nama_kegiatan: string; kode_kegiatan: string; nama_sub_kegiatan: string; kode_sub_kegiatan: string; cara_pengadaan: string; jenis_pengadaan: string; nama_skpd: string }
+  identitas: {
+    nama_program: string
+    kode_program: string
+    nama_kegiatan: string
+    kode_kegiatan: string
+    nama_sub_kegiatan: string
+    kode_sub_kegiatan: string
+    cara_pengadaan: string
+    jenis_pengadaan: string
+    nama_skpd: string
+  }
   anggaran: PaguPaketItem[]
   formData: unknown
-  onSubmit: () => void
-  isSaving: boolean
 }
 
 type PaguPaketItem = {
@@ -18,9 +26,10 @@ type PaguPaketItem = {
   rencana_pagu_paket: number
 }
 
-export function StepReview({ identitas, anggaran, formData, onSubmit, isSaving }: Props) {
+export function StepReview({ identitas, anggaran, formData }: Props) {
   const totalPagu = anggaran.reduce((s, a) => s + a.rencana_pagu_paket, 0)
-  const fmt = (v: number) => new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", minimumFractionDigits: 0 }).format(v)
+  const fmt = (v: number) =>
+    new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", minimumFractionDigits: 0 }).format(v)
 
   return (
     <div className="space-y-6">
@@ -86,22 +95,15 @@ export function StepReview({ identitas, anggaran, formData, onSubmit, isSaving }
         </div>
       )}
 
-      {/* Confirmation */}
+      {/* Confirmation Note */}
       <div className="flex items-start gap-3 p-4 rounded-xl border border-amber-200 dark:border-amber-800/50 bg-amber-50/50 dark:bg-amber-950/20">
         <AlertTriangle className="h-5 w-5 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
         <div>
           <p className="text-xs font-semibold text-amber-800 dark:text-amber-200">Konfirmasi Simpan</p>
           <p className="text-[11px] text-amber-700 dark:text-amber-300 mt-0.5">
-            Data akan disimpan dengan status <b>Draft</b>. Anda dapat mengubahnya kembali setelah disimpan.
+            Data akan disimpan dengan status <b>Draft</b>. Anda dapat menekan tombol Simpan sebagai Draft di bawah untuk memeriksa payload dan mengonfirmasi penyimpanan.
           </p>
         </div>
-      </div>
-
-      <div className="flex justify-end">
-        <button onClick={onSubmit} disabled={isSaving || totalPagu === 0} className="h-9 px-6 inline-flex items-center gap-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed text-white text-xs font-semibold shadow-sm transition-colors">
-          <CheckCircle2 className="h-4 w-4" />
-          {isSaving ? "Menyimpan..." : "Simpan Identifikasi Kebutuhan"}
-        </button>
       </div>
     </div>
   )

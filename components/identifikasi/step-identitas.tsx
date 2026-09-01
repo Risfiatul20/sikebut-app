@@ -1,6 +1,9 @@
 "use client"
 
+import { useMemo, useEffect } from "react"
+import { useSession } from "next-auth/react"
 import { FormIdentitas, CaraPengadaan, JenisPengadaan } from "@/types/identifikasi"
+import { ProgramRef, SubKegiatanRef } from "@/types/referensi"
 import { SearchableSelect } from "@/components/ui/searchable-select"
 import { useSkpd } from "@/hooks/useSkpd"
 import { useRefProgram, useRefKegiatan, useRefSubKegiatan } from "@/hooks/useReferensi"
@@ -14,10 +17,57 @@ interface Props {
 }
 
 export function StepIdentitas({ data, onChange, userData, isAdmin = false }: Props) {
-  // Data referensi dari API (docs/program.md) — cukup kode_skpd saja
-  const { data: programList, isLoading: loadingProgram } = useRefProgram(data.kode_skpd)
-  const { data: kegiatanList, isLoading: loadingKegiatan } = useRefKegiatan(data.kode_skpd, data.kode_program || undefined)
-  const { data: subKegiatanList, isLoading: loadingSubKegiatan } = useRefSubKegiatan(data.kode_skpd, data.kode_kegiatan || undefined)
+  const { data: session } = useSession()
+
+  // Selesaikan kode SKPD efektif (prioritas: pilihan admin di form > userData > session)
+  const effectiveKodeSkpd = data.kode_skpd || userData.kode_skpd || session?.user?.kodeSkpd || ""
+
+  // Data referensi dari API (docs/program.md)
+  const { data: apiProgramList, isLoading: loadingProgram } = useRefProgram(effectiveKodeSkpd)
+  const { data: apiKegiatanList, isLoading: loadingKegiatan } = useRefKegiatan(effectiveKodeSkpd, data.kode_program || undefined)
+  const { data: apiSubKegiatanList, isLoading: loadingSubKegiatan } = useRefSubKegiatan(effectiveKodeSkpd, data.kode_kegiatan || undefined)
+
+  // Ambil programs & subkegiatans dari session (terutama untuk peran PPK)
+  const sessionPrograms = useMemo(() => {
+    return (session?.user?.programs || []) as ProgramRef[]
+  }, [session?.user?.programs])
+
+  const sessionSubKegiatan = useMemo(() => {
+    return (session?.user?.subkegiatans || session?.user?.subKegiatan || []) as SubKegiatanRef[]
+  }, [session?.user?.subkegiatans, session?.user?.subKegiatan])
+
+  // Gabungkan list program: gunakan API jika ada, fallback ke session jika role PPK
+  const programList = useMemo(() => {
+    if (apiProgramList.length > 0) return apiProgramList
+    if (sessionPrograms.length > 0) return sessionPrograms
+    return []
+  }, [apiProgramList, sessionPrograms])
+
+  const kegiatanList = apiKegiatanList
+
+  // Gabungkan list sub kegiatan: gunakan API jika ada, fallback ke session jika role PPK
+  const subKegiatanList = useMemo(() => {
+    if (apiSubKegiatanList.length > 0) return apiSubKegiatanList
+    if (sessionSubKegiatan.length > 0) {
+      if (data.kode_kegiatan) {
+        return sessionSubKegiatan.filter((s) => !s.kode_kegiatan || s.kode_kegiatan === data.kode_kegiatan)
+      }
+      return sessionSubKegiatan
+    }
+    return []
+  }, [apiSubKegiatanList, sessionSubKegiatan, data.kode_kegiatan])
+
+  // Sinkronkan kode_skpd dan nama_skpd ke state data jika belum terisi saat pertama kali render
+  useEffect(() => {
+    if (effectiveKodeSkpd && !data.kode_skpd) {
+      onChange({
+        ...data,
+        kode_skpd: effectiveKodeSkpd,
+        nama_skpd: (userData.nama_skpd && userData.nama_skpd !== "-") ? userData.nama_skpd : (session?.user?.namaSkpd || data.nama_skpd || "-"),
+      })
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [effectiveKodeSkpd, data.kode_skpd])
 
   // Daftar SKPD dari API (untuk admin yang boleh ganti SKPD)
   const { skpdList, isLoading: isSkpdLoading } = useSkpd()
@@ -67,8 +117,16 @@ export function StepIdentitas({ data, onChange, userData, isAdmin = false }: Pro
     onChange(next)
   }
 
-  const isValid = data.kode_program && data.kode_kegiatan && data.kode_sub_kegiatan && data.cara_pengadaan &&
+  const isValid = Boolean(
+    data.kode_program &&
+    data.kode_kegiatan &&
+    data.kode_sub_kegiatan &&
+    data.cara_pengadaan &&
     (data.cara_pengadaan === "Swakelola" || data.jenis_pengadaan)
+  )
+
+  const displayedSkpdNama = data.nama_skpd && data.nama_skpd !== "-" ? data.nama_skpd : (userData.nama_skpd !== "-" ? userData.nama_skpd : session?.user?.namaSkpd || "-")
+  const displayedSkpdKode = data.kode_skpd || userData.kode_skpd || session?.user?.kodeSkpd || ""
 
   return (
     <div className="space-y-6">
@@ -77,7 +135,7 @@ export function StepIdentitas({ data, onChange, userData, isAdmin = false }: Pro
         <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Tentukan unit kerja, program, dan jenis pengadaan.</p>
       </div>
 
-      {/* Read-only Identity */}
+      {/* Read-only / Admin Editable Identity */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
         <div className={`p-3 rounded-lg border bg-slate-50/50 dark:bg-slate-950/40 ${isAdmin ? "border-amber-200 dark:border-amber-500/40" : "border-slate-200 dark:border-slate-800"}`}>
           <div className="flex items-center gap-1.5 mb-1">
@@ -93,22 +151,22 @@ export function StepIdentitas({ data, onChange, userData, isAdmin = false }: Pro
             <div className="space-y-1.5">
               <SearchableSelect
                 options={skpdOptions}
-                value={data.kode_skpd || userData.kode_skpd}
+                value={displayedSkpdKode}
                 onChange={handleSkpdChange}
                 placeholder="-- Pilih SKPD / Sub Unit --"
                 searchPlaceholder="Cari nama atau kode SKPD..."
                 loading={isSkpdLoading}
               />
-              {data.nama_skpd && (
-                <p className="text-[10px] font-mono text-amber-600 dark:text-amber-400 truncate" title={data.nama_skpd}>
-                  {data.nama_skpd}
+              {displayedSkpdNama && displayedSkpdNama !== "-" && (
+                <p className="text-[10px] font-mono text-amber-600 dark:text-amber-400 truncate" title={displayedSkpdNama}>
+                  {displayedSkpdNama}
                 </p>
               )}
             </div>
           ) : (
             <>
-              <p className="text-xs font-semibold text-slate-900 dark:text-white">{userData.nama_skpd}</p>
-              <p className="text-[10px] font-mono text-slate-400 mt-0.5">{userData.kode_skpd}</p>
+              <p className="text-xs font-semibold text-slate-900 dark:text-white">{displayedSkpdNama}</p>
+              <p className="text-[10px] font-mono text-slate-400 mt-0.5">{displayedSkpdKode || "-"}</p>
             </>
           )}
         </div>
@@ -130,7 +188,7 @@ export function StepIdentitas({ data, onChange, userData, isAdmin = false }: Pro
         </div>
       </div>
 
-      {/* Dropdowns */}
+      {/* Dropdowns Nomenklatur Perencanaan SIPD */}
       <div className="space-y-4">
         <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500 flex items-center gap-1.5">
           Nomenklatur Perencanaan SIPD
@@ -141,13 +199,14 @@ export function StepIdentitas({ data, onChange, userData, isAdmin = false }: Pro
             <SearchableSelect
               options={programList.map((p) => ({
                 value: p.kode_program,
-                label: `${p.nama_program}`,
+                label: p.nama_program,
                 group: p.nama_bidang_urusan || "Program",
               }))}
               value={data.kode_program}
               onChange={(val) => update("kode_program", val)}
-              placeholder="-- Pilih Program --"
+              placeholder={loadingProgram ? "Memuat program..." : "-- Pilih Program --"}
               loading={loadingProgram}
+              disabled={loadingProgram || (!displayedSkpdKode && !isAdmin)}
             />
           </div>
           <div>
@@ -159,7 +218,7 @@ export function StepIdentitas({ data, onChange, userData, isAdmin = false }: Pro
               }))}
               value={data.kode_kegiatan}
               onChange={(val) => update("kode_kegiatan", val)}
-              placeholder="-- Pilih Kegiatan --"
+              placeholder={loadingKegiatan ? "Memuat kegiatan..." : "-- Pilih Kegiatan --"}
               disabled={!data.kode_program || loadingKegiatan}
               loading={loadingKegiatan}
             />
@@ -173,7 +232,7 @@ export function StepIdentitas({ data, onChange, userData, isAdmin = false }: Pro
               }))}
               value={data.kode_sub_kegiatan}
               onChange={(val) => update("kode_sub_kegiatan", val)}
-              placeholder="-- Pilih Sub Kegiatan --"
+              placeholder={loadingSubKegiatan ? "Memuat sub kegiatan..." : "-- Pilih Sub Kegiatan --"}
               disabled={!data.kode_kegiatan || loadingSubKegiatan}
               loading={loadingSubKegiatan}
             />

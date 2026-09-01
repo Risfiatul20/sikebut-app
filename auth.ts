@@ -1,6 +1,7 @@
 import NextAuth from "next-auth"
 import Credentials from "next-auth/providers/credentials"
 import { sanctumLogin, sanctumLogout, SanctumUserData } from "@/lib/sanctum"
+import { AuthProgram, AuthKegiatan, AuthSubKegiatan, AuthUserInfo } from "@/types/next-auth"
 
 /**
  * Backend mengirim role lowercase ("admin", "ppk", dst).
@@ -41,14 +42,19 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         try {
           const json = await sanctumLogin(usernameStr, passwordStr)
 
-          // Format response sesuai API login asli:
-          // { message, token_type, access_token, user: { ..., skpd: {...}|null, sub_kegiatan: [...] } }
+          // Format response sesuai API login:
+          // { message, token_type, access_token, user: { ..., skpd: {...}|null, programs: [...], subkegiatans: [...] } }
           const user = (json.user ?? {}) as SanctumUserData
-          const apiToken = json.access_token ?? ""
+          const apiToken = String(json.access_token || json.token || "")
 
           // Relasi SKPD: nama diambil dari objek skpd; tanpa relasi -> "-"
-          const kodeSkpd = user.kode_skpd ?? user.skpd?.kode_skpd ?? ""
-          const namaSkpd = user.skpd?.nama_skpd ?? "-"
+          const kodeSkpd = String(user.kode_skpd || user.skpd?.kode_skpd || "")
+          const namaSkpd = String(user.skpd?.nama_skpd || user.nama_skpd || "-")
+
+          // Ambil data programs & subkegiatans dari response login (terutama saat role PPK)
+          const subkegiatanData = (user.sub_kegiatan || []) as AuthSubKegiatan[]
+          const kegiatanData = (user.kegiatans || []) as AuthKegiatan[]
+          const programsData = (user.programs || []) as AuthProgram[]
 
           return {
             id: String(user.id ?? ""),
@@ -57,10 +63,12 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
             email: user.username || usernameStr,
             apiToken: apiToken,
             role: normalizeRole(user.role),
-            kodeSkpd,
+            kodeSkpd: kodeSkpd || "",
             namaSkpd: namaSkpd || "-",
-            info: user.info ?? {},
-            subKegiatan: user.sub_kegiatan ?? [],
+            info: (user.info || {}) as AuthUserInfo,
+            subKegiatan: subkegiatanData,
+            kegiatans: kegiatanData,
+            programs: programsData,
           }
         } catch (error) {
           console.error("Backend login error:", error)
@@ -83,6 +91,8 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         token.namaSkpd = user.namaSkpd
         token.info = user.info
         token.subKegiatan = user.subKegiatan
+        token.kegiatans = user.kegiatans
+        token.programs = user.programs
       }
       return token
     },
@@ -95,6 +105,8 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       if (token.namaSkpd) session.user.namaSkpd = token.namaSkpd as string
       if (token.info) session.user.info = token.info
       if (token.subKegiatan) session.user.subKegiatan = token.subKegiatan
+      if (token.kegiatans) session.user.kegiatans = token.kegiatans
+      if (token.programs) session.user.programs = token.programs
       return session
     },
   },

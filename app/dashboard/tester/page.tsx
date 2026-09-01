@@ -119,9 +119,9 @@ export default function ApiTesterPage() {
               placeholder="1.01.02.1.01.0036"
               className="w-full rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-950 px-3 py-2 text-xs font-mono focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500 transition-colors"
             />
-            {(session?.user?.subKegiatan ?? []).length > 0 && (
+            {(session?.user?.subkegiatans ?? session?.user?.subKegiatan ?? []).length > 0 && (
               <div className="mt-1.5 flex flex-wrap gap-1">
-                {(session?.user?.subKegiatan ?? []).slice(0, 3).map((s) => (
+                {(session?.user?.subkegiatans ?? session?.user?.subKegiatan ?? []).slice(0, 3).map((s) => (
                   <button
                     key={s.kode_sub_kegiatan}
                     type="button"

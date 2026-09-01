@@ -6,10 +6,26 @@ export interface SanctumSkpd {
   parent_kode_skpd?: string | null
 }
 
+export interface SanctumProgram {
+  kode_program: string
+  nama_program: string
+  kode_bidang_urusan?: string
+  nama_bidang_urusan?: string
+  [key: string]: unknown
+}
+
+export interface SanctumKegiatan {
+  kode_kegiatan: string
+  nama_kegiatan: string
+  kode_program?: string
+  [key: string]: unknown
+}
+
 export interface SanctumSubKegiatan {
   kode_sub_kegiatan: string
-  kode_kegiatan: string
   nama_sub_kegiatan: string
+  kode_kegiatan?: string
+  [key: string]: unknown
 }
 
 export interface SanctumUserData {
@@ -23,6 +39,8 @@ export interface SanctumUserData {
   created_at?: string
   skpd?: SanctumSkpd | null
   sub_kegiatan?: SanctumSubKegiatan[] | null
+  kegiatans?: SanctumKegiatan[] | null
+  programs?: SanctumProgram[] | null
   [key: string]: unknown
 }
 

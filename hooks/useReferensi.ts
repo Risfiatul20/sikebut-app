@@ -23,7 +23,6 @@ function useReferensi<T>(
   const [refreshTrigger, setRefreshTrigger] = useState(0)
 
   const paramsKey = JSON.stringify(params)
-  const hasSkpd = Boolean(params.kode_skpd)
 
   useEffect(() => {
     let cancel = false
@@ -36,16 +35,6 @@ function useReferensi<T>(
     const url = `/api/referensi/${endpoint}?${qs.toString()}`
 
     async function load() {
-      // kode_skpd wajib: tanpa ini, data tidak diambil
-      if (!hasSkpd) {
-        if (!cancel) {
-          setData([])
-          setIsLoading(false)
-          setError(null)
-        }
-        return
-      }
-
       setIsLoading(true)
       setError(null)
 
@@ -85,14 +74,14 @@ function useReferensi<T>(
   return { data, isLoading, error, reload }
 }
 
-export function useRefProgram(kodeSkpd: string) {
+export function useRefProgram(kodeSkpd?: string) {
   return useReferensi<ProgramRef>("program", { kode_skpd: kodeSkpd })
 }
 
-export function useRefKegiatan(kodeSkpd: string, kodeProgram?: string) {
+export function useRefKegiatan(kodeSkpd?: string, kodeProgram?: string) {
   return useReferensi<KegiatanRef>("kegiatan", { kode_skpd: kodeSkpd, kode_program: kodeProgram })
 }
 
-export function useRefSubKegiatan(kodeSkpd: string, kodeKegiatan?: string) {
+export function useRefSubKegiatan(kodeSkpd?: string, kodeKegiatan?: string) {
   return useReferensi<SubKegiatanRef>("sub-kegiatan", { kode_skpd: kodeSkpd, kode_kegiatan: kodeKegiatan })
 }

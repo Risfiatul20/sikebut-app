@@ -19,12 +19,18 @@ import { FileText, CheckCircle2, AlertTriangle } from "lucide-react"
 export default function IdentifikasiPage() {
   const { data: session } = useSession()
   const [currentStep, setCurrentStep] = useState(0)
-  const [identitas, setIdentitas] = useState<FormIdentitas>({
-    kode_skpd: session?.user?.kodeSkpd || "",
-    nama_skpd: session?.user?.namaSkpd || "-",
-    kode_program: "", nama_program: "", kode_kegiatan: "", nama_kegiatan: "",
-    kode_sub_kegiatan: "", nama_sub_kegiatan: "", cara_pengadaan: "Penyedia", jenis_pengadaan: "",
-  })
+  const [identitas, setIdentitas] = useState<FormIdentitas>(() => ({
+    kode_skpd: "",
+    nama_skpd: "-",
+    kode_program: "",
+    nama_program: "",
+    kode_kegiatan: "",
+    nama_kegiatan: "",
+    kode_sub_kegiatan: "",
+    nama_sub_kegiatan: "",
+    cara_pengadaan: "Penyedia",
+    jenis_pengadaan: "",
+  }))
   const [formData, setFormData] = useState<unknown>({})
   const [anggaran, setAnggaran] = useState<PaguPaketItem[]>([])
   const [isPaguOpen, setIsPaguOpen] = useState(false)
@@ -39,10 +45,17 @@ export default function IdentifikasiPage() {
     role: session?.user?.role || "-",
   }), [session])
 
+  // Hitung data identitas efektif dengan sinkronisasi session instan ketika reload
+  const effectiveIdentitas = useMemo<FormIdentitas>(() => ({
+    ...identitas,
+    kode_skpd: identitas.kode_skpd || session?.user?.kodeSkpd || "",
+    nama_skpd: identitas.nama_skpd && identitas.nama_skpd !== "-" ? identitas.nama_skpd : (session?.user?.namaSkpd || "-"),
+  }), [identitas, session?.user?.kodeSkpd, session?.user?.namaSkpd])
+
   // Admin boleh mengganti SKPD; selain admin terkunci ke SKPD session
   const isAdmin = (session?.user?.role || "").toLowerCase() === "admin"
 
-  const tipeForm = identitas.cara_pengadaan === "Swakelola" ? "Swakelola" : identitas.jenis_pengadaan
+  const tipeForm = effectiveIdentitas.cara_pengadaan === "Swakelola" ? "Swakelola" : effectiveIdentitas.jenis_pengadaan
 
   const getFormSteps = (): WizardStep[] => {
     const steps: WizardStep[] = [
@@ -83,7 +96,7 @@ export default function IdentifikasiPage() {
 
   // Payload yang disesuaikan persis dengan StoreIdentifikasiKebutuhanRequest (docs/api-identifikasi.md)
   const payload = useMemo(() => {
-    const isSwakelola = identitas.cara_pengadaan === "Swakelola"
+    const isSwakelola = effectiveIdentitas.cara_pengadaan === "Swakelola"
     const fd = (formData || {}) as Record<string, unknown>
 
     let waktuAwalPekerjaan = normalizeStartDate(fd.waktu_pelaksanaan_pekerjaan_awal)
@@ -103,17 +116,17 @@ export default function IdentifikasiPage() {
 
     const namaPaket = (typeof fd.nama_paket === "string" && fd.nama_paket.trim())
       ? fd.nama_paket.trim()
-      : identitas.nama_sub_kegiatan || "Usulan Kebutuhan Pengadaan"
+      : effectiveIdentitas.nama_sub_kegiatan || "Usulan Kebutuhan Pengadaan"
 
     return {
       nama_paket: namaPaket,
-      cara_pengadaan: identitas.cara_pengadaan,
-      jenis_pengadaan: isSwakelola ? null : (identitas.jenis_pengadaan || null),
-      kode_skpd: identitas.kode_skpd || userData.kode_skpd || null,
+      cara_pengadaan: effectiveIdentitas.cara_pengadaan,
+      jenis_pengadaan: isSwakelola ? null : (effectiveIdentitas.jenis_pengadaan || null),
+      kode_skpd: effectiveIdentitas.kode_skpd || userData.kode_skpd || null,
       kode_klpd: null,
-      kode_program: identitas.kode_program || null,
-      kode_kegiatan: identitas.kode_kegiatan || null,
-      kode_sub_kegiatan: identitas.kode_sub_kegiatan || null,
+      kode_program: effectiveIdentitas.kode_program || null,
+      kode_kegiatan: effectiveIdentitas.kode_kegiatan || null,
+      kode_sub_kegiatan: effectiveIdentitas.kode_sub_kegiatan || null,
       status_review: "Draft",
       waktu_pemanfaatan_awal: normalizeStartDate(fd.waktu_pemanfaatan_awal),
       waktu_pemanfaatan_akhir: normalizeEndDate(fd.waktu_pemanfaatan_akhir),
@@ -128,7 +141,7 @@ export default function IdentifikasiPage() {
       catatan_reviewer_detail: null,
       anggaran: anggaranPayload,
     }
-  }, [identitas, formData, anggaran, userData])
+  }, [effectiveIdentitas, formData, anggaran, userData])
 
   const handleIdentitasChange = (data: FormIdentitas) => {
     setIdentitas(data)
@@ -188,7 +201,14 @@ export default function IdentifikasiPage() {
   const renderCurrentStep = () => {
     switch (currentStep) {
       case 0:
-        return <StepIdentitas data={identitas} onChange={handleIdentitasChange} userData={userData} isAdmin={isAdmin} />
+        return (
+          <StepIdentitas
+            data={effectiveIdentitas}
+            onChange={handleIdentitasChange}
+            userData={userData}
+            isAdmin={isAdmin}
+          />
+        )
       case 1:
         if (tipeForm === "Barang") return <StepFormBarang data={formData as unknown as FormBarang} onChange={(d) => setFormData(d)} onOpenPagu={() => setIsPaguOpen(true)} totalPagu={totalPagu} />
         if (tipeForm === "Konstruksi") return <StepFormKonstruksi data={formData as unknown as FormKonstruksi} onChange={(d) => setFormData(d)} onOpenPagu={() => setIsPaguOpen(true)} totalPagu={totalPagu} />
@@ -206,7 +226,7 @@ export default function IdentifikasiPage() {
             <div className="flex items-center justify-between p-4 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-950/40">
               <div>
                 <p className="text-[10px] text-slate-400 uppercase font-semibold">Sub Kegiatan Aktif</p>
-                <p className="text-xs font-semibold text-slate-900 dark:text-white mt-0.5">{identitas.nama_sub_kegiatan || "Belum dipilih"}</p>
+                <p className="text-xs font-semibold text-slate-900 dark:text-white mt-0.5">{effectiveIdentitas.nama_sub_kegiatan || "Belum dipilih"}</p>
               </div>
               <button onClick={() => setIsPaguOpen(true)} className="h-9 px-4 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold shadow-xs transition-colors">
                 {anggaran.length > 0 ? `Ubah Pemilihan (${anggaran.length} item)` : "Pilih Standar Harga & Input Pagu"}
@@ -256,7 +276,7 @@ export default function IdentifikasiPage() {
           </div>
         )
       case 3:
-        return <StepReview identitas={{ ...identitas }} anggaran={anggaran} formData={formData} onSubmit={handleSaveClick} isSaving={isSaving} />
+        return <StepReview identitas={effectiveIdentitas} anggaran={anggaran} formData={formData} />
       default:
         return null
     }
@@ -287,7 +307,14 @@ export default function IdentifikasiPage() {
         {renderCurrentStep()}
       </WizardLayout>
 
-      <ModalPagu isOpen={isPaguOpen} onClose={() => setIsPaguOpen(false)} onSelect={setAnggaran} currentSelections={anggaran} kodeSubKegiatan={identitas.kode_sub_kegiatan} kodeSkpd={identitas.kode_skpd} />
+      <ModalPagu
+        isOpen={isPaguOpen}
+        onClose={() => setIsPaguOpen(false)}
+        onSelect={setAnggaran}
+        currentSelections={anggaran}
+        kodeSubKegiatan={effectiveIdentitas.kode_sub_kegiatan}
+        kodeSkpd={effectiveIdentitas.kode_skpd}
+      />
 
       <PayloadPreviewModal
         isOpen={previewOpen}

@@ -58,17 +58,19 @@ export function ModalPagu({ isOpen, onClose, onSelect, currentSelections, kodeSu
       if (next.has(item.id_sipd_penetapan)) {
         next.delete(item.id_sipd_penetapan)
       } else {
-        const sisa = Number(item.sisa_pagu)
-        next.set(item.id_sipd_penetapan, sisa > 0 ? sisa : Number(item.pagu))
+        next.set(item.id_sipd_penetapan, 0)
       }
       return next
     })
   }
 
   const updatePagu = (id: number, val: number) => {
+    const item = standarHarga.find((s) => s.id_sipd_penetapan === id)
+    const maxVal = item ? Number(item.sisa_pagu) : Infinity
+    const clamped = Math.max(0, Math.min(val, maxVal))
     setSelected((prev) => {
       const next = new Map(prev)
-      next.set(id, val)
+      next.set(id, isNaN(clamped) ? 0 : clamped)
       return next
     })
   }
@@ -128,7 +130,7 @@ export function ModalPagu({ isOpen, onClose, onSelect, currentSelections, kodeSu
               <h2 className="font-display text-base font-semibold text-slate-900 dark:text-white">Pagu Paket & Pilih Standar Harga (RKA SIPD)</h2>
               <p className="text-[11px] text-slate-500 dark:text-slate-400">
                 Sub Kegiatan: <span className="font-mono text-[11px] text-blue-600 dark:text-blue-400">{kodeSubKegiatan || "-"}</span>
-                {modal?.sub_kegiatan.nama_sub_kegiatan && <span className="text-slate-400"> — {modal.sub_kegiatan.nama_sub_kegiatan}</span>}
+                {modal?.sub_kegiatan.nama_sub_kegiatan && <span className="text-slate-400"> â€” {modal.sub_kegiatan.nama_sub_kegiatan}</span>}
               </p>
             </div>
           </div>
@@ -202,7 +204,7 @@ export function ModalPagu({ isOpen, onClose, onSelect, currentSelections, kodeSu
                   <table className="w-full text-xs">
                     <thead className="bg-slate-50/80 dark:bg-slate-800/50 border-b border-slate-100 dark:border-slate-800">
                       <tr className="text-[10px] uppercase text-slate-400">
-                        <th className="font-semibold px-3 py-2 text-center w-10">✓</th>
+                        <th className="font-semibold px-3 py-2 text-center w-10">âœ“</th>
                         <th className="font-semibold px-3 py-2 text-left">Rekening</th>
                         <th className="font-semibold px-3 py-2 text-left">Nama Standar Harga</th>
                         <th className="font-semibold px-3 py-2 text-right">Pagu SIPD</th>
@@ -242,7 +244,7 @@ export function ModalPagu({ isOpen, onClose, onSelect, currentSelections, kodeSu
                                 {isSelected ? (
                                   <input type="number" value={selected.get(item.id_sipd_penetapan) || 0} onChange={(e) => updatePagu(item.id_sipd_penetapan, Number(e.target.value))} min={0} max={Number(item.sisa_pagu)} className="w-36 rounded-lg border border-blue-300 dark:border-blue-700 bg-white dark:bg-slate-950 px-2 py-1.5 text-[11px] font-mono text-right focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500" />
                                 ) : (
-                                  <span className="text-slate-300 dark:text-slate-700">—</span>
+                                  <span className="text-slate-300 dark:text-slate-700">â€”</span>
                                 )}
                               </td>
                             </tr>
@@ -261,7 +263,7 @@ export function ModalPagu({ isOpen, onClose, onSelect, currentSelections, kodeSu
         <div className="shrink-0 px-6 py-3.5 border-t border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/50 flex items-center justify-between">
           <div className="flex items-center gap-2 text-[11px] text-slate-500">
             <AlertTriangle className="h-3.5 w-3.5" />
-            <span>{selected.size} item dipilih • Total: <span className="font-mono font-semibold text-blue-700 dark:text-blue-300">{fmt(totalPagu)}</span></span>
+            <span>{selected.size} item dipilih â€¢ Total: <span className="font-mono font-semibold text-blue-700 dark:text-blue-300">{fmt(totalPagu)}</span></span>
           </div>
           <div className="flex items-center gap-2">
             <button onClick={onClose} className="px-4 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-50 transition-colors">Batal</button>

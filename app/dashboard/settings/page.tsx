@@ -2,7 +2,7 @@
 
 import { useState } from "react"
 import { useSession } from "next-auth/react"
-import { Settings, User, Bell, Shield, Database, Server, CheckCircle2, RefreshCw } from "lucide-react"
+import { Settings, User, Bell, Shield, Database, Server, CheckCircle2, RefreshCw, Layers, FolderTree } from "lucide-react"
 
 export default function SettingsPage() {
   const [activeTab, setActiveTab] = useState<"akun" | "notifikasi" | "sistem">("akun")
@@ -20,6 +20,8 @@ export default function SettingsPage() {
   const userSkpd = session?.user?.namaSkpd || "-"
   const userKodeSkpd = session?.user?.kodeSkpd || ""
   const userInfo = session?.user?.info || {}
+  const userPrograms = session?.user?.programs || []
+  const userSubKegiatan = session?.user?.subkegiatans || session?.user?.subKegiatan || []
 
   return (
     <div className="space-y-6 animate-in fade-in duration-300">
@@ -70,6 +72,51 @@ export default function SettingsPage() {
                   </div>
                 ))}
               </div>
+
+              {/* Data Programs & Sub Kegiatan dari Session (Khusus PPK) */}
+              {(userPrograms.length > 0 || userSubKegiatan.length > 0) && (
+                <div className="space-y-4 pt-2">
+                  {userPrograms.length > 0 && (
+                    <div className="p-4 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50/40 dark:bg-slate-900/40 space-y-2">
+                      <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500 flex items-center gap-1.5">
+                        <FolderTree className="h-3.5 w-3.5 text-blue-500" /> Program yang Dikelola ({userPrograms.length})
+                      </p>
+                      <div className="space-y-1.5">
+                        {userPrograms.map((prog, idx) => (
+                          <div key={idx} className="p-2.5 rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 flex items-start justify-between gap-2 text-xs">
+                            <div>
+                              <p className="font-semibold text-slate-900 dark:text-white">{prog.nama_program}</p>
+                              <p className="font-mono text-[10px] text-blue-600 dark:text-blue-400 mt-0.5">Kode: {prog.kode_program}</p>
+                            </div>
+                            {prog.nama_bidang_urusan && (
+                              <span className="text-[10px] text-slate-400 shrink-0">{prog.nama_bidang_urusan}</span>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {userSubKegiatan.length > 0 && (
+                    <div className="p-4 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50/40 dark:bg-slate-900/40 space-y-2">
+                      <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500 flex items-center gap-1.5">
+                        <Layers className="h-3.5 w-3.5 text-amber-500" /> Sub Kegiatan yang Dipetakan ({userSubKegiatan.length})
+                      </p>
+                      <div className="space-y-1.5">
+                        {userSubKegiatan.map((sub, idx) => (
+                          <div key={idx} className="p-2.5 rounded-lg border border-amber-200/70 dark:border-amber-500/20 bg-amber-50/50 dark:bg-amber-500/5 flex items-start justify-between gap-2 text-xs">
+                            <div>
+                              <p className="font-semibold text-slate-900 dark:text-white">{sub.nama_sub_kegiatan}</p>
+                              <p className="font-mono text-[10px] text-amber-700 dark:text-amber-400 mt-0.5">Kode: {sub.kode_sub_kegiatan}</p>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+
               <div className="p-4 rounded-xl border border-slate-200 dark:border-slate-800 space-y-3">
                 <h3 className="text-xs font-semibold text-slate-800 dark:text-slate-200">Ubah Kata Sandi</h3>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
