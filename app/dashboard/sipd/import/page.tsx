@@ -2,7 +2,8 @@
 
 import { useState } from "react"
 import { SipdItem, SipdVersionInfo } from "@/types/sipd"
-import { INITIAL_SIPD_ITEMS, MOCK_SIPD_VERSIONS } from "@/lib/mock-sipd"
+import { MOCK_SIPD_VERSIONS } from "@/lib/mock-sipd"
+import { useSipdList } from "@/hooks/useSipdList"
 import { SipdImportDropzone } from "@/components/sipd/sipd-import-dropzone"
 import { SipdDataTable } from "@/components/sipd/sipd-data-table"
 import {
@@ -15,15 +16,26 @@ import {
   Database,
   ChevronDown,
   ChevronUp,
+  RotateCcw,
+  Loader2,
 } from "lucide-react"
 
 export default function SipdImportPage() {
-  const [items, setItems] = useState<SipdItem[]>(INITIAL_SIPD_ITEMS)
+  // Daftar rincian dari API (point 4.2 SUMMARY-API.md) — versi dummy karena backend belum sediakan
   const [versions, setVersions] = useState<SipdVersionInfo[]>(MOCK_SIPD_VERSIONS)
+  const [extraItems, setExtraItems] = useState<SipdItem[]>([])
   const [activeYear, setActiveYear] = useState<number>(2026)
   const [activeVersion, setActiveVersion] = useState<number>(2) // Default to latest version 2
   const [isImportPanelOpen, setIsImportPanelOpen] = useState<boolean>(true)
   const [toastMessage, setToastMessage] = useState<string | null>(null)
+
+  const { data: apiItems, isLoading: isLoadingItems, reload: reloadItems } = useSipdList({
+    tahun: activeYear,
+    versi: activeVersion,
+  })
+
+  // Gabungkan item dari API + hasil import demo/Excel yang diunggah
+  const items: SipdItem[] = [...extraItems, ...apiItems]
 
   const showToast = (msg: string) => {
     setToastMessage(msg)
@@ -34,7 +46,7 @@ export default function SipdImportPage() {
 
   const handleImportSuccess = (newItems: SipdItem[], newVersion: SipdVersionInfo) => {
     setVersions((prev) => [newVersion, ...prev])
-    setItems((prev) => [...newItems, ...prev])
+    setExtraItems((prev) => [...newItems, ...prev])
     setActiveYear(newVersion.tahun)
     setActiveVersion(newVersion.versi)
     setIsImportPanelOpen(false) // collapse form after success to show table immediately
@@ -185,7 +197,26 @@ export default function SipdImportPage() {
           <p className="text-xs font-bold text-slate-800 dark:text-slate-200">
             Daftar Penetapan APBD (Tabel dev.sipd_penetapan_apbd)
           </p>
+          <button
+            type="button"
+            onClick={() => {
+              reloadItems()
+              setExtraItems([])
+              showToast("Data disinkronkan ulang dari API SIPD-RI")
+            }}
+            className="h-7 px-2.5 inline-flex items-center gap-1 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-[11px] font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
+          >
+            <RotateCcw className={`h-3 w-3 ${isLoadingItems ? "animate-spin text-blue-500" : "text-slate-400"}`} />
+            Sinkronkan
+          </button>
         </div>
+
+        {isLoadingItems && (
+          <div className="flex items-center gap-2 px-3 py-2 rounded-lg border border-blue-200 dark:border-blue-800 bg-blue-50/50 dark:bg-blue-950/20 text-xs text-blue-700 dark:text-blue-300">
+            <Loader2 className="h-3.5 w-3.5 animate-spin shrink-0" />
+            <span>Memuat rincian Penetapan APBD dari API SIPD-RI...</span>
+          </div>
+        )}
 
         <SipdDataTable
           items={items}

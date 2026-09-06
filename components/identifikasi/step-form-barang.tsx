@@ -1,6 +1,6 @@
 "use client"
 
-import { useMemo } from "react"
+import { useMemo, useEffect } from "react"
 import {
   FormBarang,
   LokasiItem,
@@ -9,6 +9,7 @@ import {
   MetodePengadaan,
   MetodeOperasi,
 } from "@/types/identifikasi"
+import { FieldCatatanBadge } from "@/components/identifikasi/field-catatan-badge"
 import { useWilayah } from "@/hooks/useWilayah"
 import { SearchableSelect, SearchableSelectOption } from "@/components/ui/searchable-select"
 import {
@@ -26,6 +27,7 @@ import {
 } from "lucide-react"
 
 interface Props {
+  catatanReviewerDetail?: Record<string, string> | null
   data: FormBarang
   onChange: (data: FormBarang) => void
   onOpenPagu: () => void
@@ -119,6 +121,17 @@ function LokasiRow({
     loadKabupaten,
     loadKecamatan,
   } = useWilayah()
+
+  
+  // Pre-load kabupaten & kecamatan saat mount untuk mode edit
+  useEffect(() => {
+    if (lokasi.provinsiCode) {
+      loadKabupaten(lokasi.provinsiCode)
+      if (lokasi.kabupatenCode) {
+        loadKecamatan(lokasi.kabupatenCode)
+      }
+    }
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleProvinsiChange = (code: string) => {
     const prov = provinsiList.find((p) => p.code === code)
@@ -261,7 +274,7 @@ function LokasiRow({
   )
 }
 
-export function StepFormBarang({ data, onChange, onOpenPagu, totalPagu }: Props) {
+export function StepFormBarang({ data, onChange, onOpenPagu, totalPagu, catatanReviewerDetail }: Props) {
   const sumberDanaOptions: SearchableSelectOption[] = [
     { value: "DAU", label: "Dana Alokasi Umum (DAU)" },
     { value: "DAK-FISIK", label: "Dana Alokasi Khusus (DAK) Fisik" },
@@ -321,7 +334,7 @@ export function StepFormBarang({ data, onChange, onOpenPagu, totalPagu }: Props)
 
   return (
     <div className="space-y-6">
-      {/* ── Informasi Paket ── */}
+      {/* ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ Informasi Paket ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ */}
       <section className="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-4">
         <SectionHeader icon={Package} title="Informasi Paket" />
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -334,8 +347,9 @@ export function StepFormBarang({ data, onChange, onOpenPagu, totalPagu }: Props)
               value={data.nama_paket}
               onChange={(e) => update("nama_paket", e.target.value)}
               placeholder="Contoh: Pengadaan Laptop Operasional"
-              className={inputCls}
+                            className={inputCls}
             />
+            <FieldCatatanBadge note={catatanReviewerDetail?.["nama_paket"]} />
           </div>
           <div>
             <label className={labelCls}>Fungsi / Kegunaan</label>
@@ -393,7 +407,7 @@ export function StepFormBarang({ data, onChange, onOpenPagu, totalPagu }: Props)
         </div>
       </section>
 
-      {/* ── Volume & Persyaratan Dasar ── */}
+      {/* ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ Volume & Persyaratan Dasar ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ */}
       <section className="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-4">
         <SectionHeader icon={Layers} title="Volume & Persyaratan Dasar" />
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
@@ -403,7 +417,7 @@ export function StepFormBarang({ data, onChange, onOpenPagu, totalPagu }: Props)
         </div>
       </section>
 
-      {/* ── SPP (Sustainable Public Procurement) ── */}
+      {/* ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ SPP (Sustainable Public Procurement) ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ */}
       <section className="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-4">
         <SectionHeader icon={FileCheck} title="SPP (Sustainable Public Procurement)" />
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
@@ -425,7 +439,7 @@ export function StepFormBarang({ data, onChange, onOpenPagu, totalPagu }: Props)
         </div>
       </section>
 
-      {/* ── Lokasi (Multi-Lokasi) ── */}
+      {/* ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ Lokasi (Multi-Lokasi) ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ */}
       <section className="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-4">
         <SectionHeader icon={MapPin} title="Lokasi (Multi-Lokasi)" />
         <div className="space-y-3">
@@ -448,7 +462,7 @@ export function StepFormBarang({ data, onChange, onOpenPagu, totalPagu }: Props)
         </div>
       </section>
 
-      {/* ── Waktu ── */}
+      {/* ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ Waktu ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ */}
       <section className="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-4">
         <SectionHeader icon={Calendar} title="Waktu" />
         <div className="space-y-3">
@@ -487,7 +501,7 @@ export function StepFormBarang({ data, onChange, onOpenPagu, totalPagu }: Props)
         </div>
       </section>
 
-      {/* ── Metode & e-Katalog ── */}
+      {/* ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ Metode & e-Katalog ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ */}
       <section className="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-4">
         <SectionHeader icon={Search} title="Metode & e-Katalog" />
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -508,7 +522,7 @@ export function StepFormBarang({ data, onChange, onOpenPagu, totalPagu }: Props)
         </div>
       </section>
 
-      {/* ── Pagu & Anggaran ── */}
+      {/* ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ Pagu & Anggaran ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ */}
       <section className="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-4">
         <SectionHeader icon={Banknote} title="Pagu & Anggaran" />
         <div className="space-y-3">
@@ -543,7 +557,7 @@ export function StepFormBarang({ data, onChange, onOpenPagu, totalPagu }: Props)
         </div>
       </section>
 
-      {/* ── Identifikasi Barang Tersedia (RKBMD) ── */}
+      {/* ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ Identifikasi Barang Tersedia (RKBMD) ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ */}
       <section className="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-4">
         <SectionHeader icon={ClipboardList} title="Identifikasi Barang Tersedia (RKBMD)" />
         <div className="space-y-3">
@@ -557,6 +571,8 @@ export function StepFormBarang({ data, onChange, onOpenPagu, totalPagu }: Props)
                 onChange={(e) => update("jumlah_dibutuhkan", Number(e.target.value))}
                 className={inputCls}
               />
+            <FieldCatatanBadge note={catatanReviewerDetail?.["spesifikasi"]} />
+            <FieldCatatanBadge note={catatanReviewerDetail?.["uraian"]} />
             </div>
             <div>
               <label className={labelCls}>Jumlah Sejenis</label>
@@ -625,7 +641,7 @@ export function StepFormBarang({ data, onChange, onOpenPagu, totalPagu }: Props)
         </div>
       </section>
 
-      {/* ── Kriteria & TKDN ── */}
+      {/* ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ Kriteria & TKDN ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ */}
       <section className="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-4">
         <SectionHeader icon={FileCheck} title="Kriteria & TKDN" />
         <div className="space-y-3">
@@ -690,7 +706,7 @@ export function StepFormBarang({ data, onChange, onOpenPagu, totalPagu }: Props)
         </div>
       </section>
 
-      {/* ── Persyaratan Lain ── */}
+      {/* ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ Persyaratan Lain ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ */}
       <section className="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-4">
         <SectionHeader icon={ClipboardList} title="Persyaratan Lain" />
         <div className="space-y-3">

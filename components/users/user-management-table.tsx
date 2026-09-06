@@ -4,6 +4,7 @@ import { useState, useEffect } from "react"
 import { User, UserRole, UserListResponse, CreateUserPayload, UpdateUserPayload } from "@/types/user"
 import { INITIAL_USERS } from "@/lib/mock-users"
 import { useSkpd } from "@/hooks/useSkpd"
+import { usePermission } from "@/hooks/usePermission"
 import { SearchableSelect, SearchableSelectOption } from "@/components/ui/searchable-select"
 import {
   ColumnVisibilityDropdown,
@@ -31,6 +32,9 @@ import {
 } from "lucide-react"
 
 export function UserManagementTable() {
+  const { can, canCreate, creatableRoles } = usePermission()
+  const canCreateAnyUser = creatableRoles().length > 0
+
   const [users, setUsers] = useState<User[]>(INITIAL_USERS)
   const [isLoading, setIsLoading] = useState<boolean>(false)
   const [search, setSearch] = useState("")
@@ -434,14 +438,16 @@ export function UserManagementTable() {
               <span className="hidden sm:inline">Ekspor CSV</span>
             </button>
 
-            <button
-              type="button"
-              onClick={handleOpenCreate}
-              className="h-8 px-3 inline-flex items-center gap-1.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold shadow-xs transition-colors"
-            >
-              <Plus className="h-3.5 w-3.5" />
-              <span>Tambah Pengguna</span>
-            </button>
+            {canCreateAnyUser && (
+              <button
+                type="button"
+                onClick={handleOpenCreate}
+                className="h-8 px-3 inline-flex items-center gap-1.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold shadow-xs transition-colors"
+              >
+                <Plus className="h-3.5 w-3.5" />
+                <span>Tambah Pengguna</span>
+              </button>
+            )}
           </div>
         </div>
 
@@ -755,25 +761,29 @@ export function UserManagementTable() {
                             </button>
 
                             {/* Edit Button */}
-                            <button
-                              type="button"
-                              onClick={() => handleOpenEdit(user)}
-                              className="h-7 px-2 inline-flex items-center gap-1 rounded bg-slate-100 hover:bg-amber-50 text-slate-600 hover:text-amber-700 dark:bg-slate-800 dark:hover:bg-amber-900/30 dark:text-slate-300 dark:hover:text-amber-300 text-[11px] font-medium transition-colors"
-                              title="Edit Data Pengguna"
-                            >
-                              <Pencil className="h-3.5 w-3.5" />
-                              <span className="hidden sm:inline">Edit</span>
-                            </button>
+                            {canCreate(user.role) && (
+                              <button
+                                type="button"
+                                onClick={() => handleOpenEdit(user)}
+                                className="h-7 px-2 inline-flex items-center gap-1 rounded bg-slate-100 hover:bg-amber-50 text-slate-600 hover:text-amber-700 dark:bg-slate-800 dark:hover:bg-amber-900/30 dark:text-slate-300 dark:hover:text-amber-300 text-[11px] font-medium transition-colors"
+                                title="Edit Data Pengguna"
+                              >
+                                <Pencil className="h-3.5 w-3.5" />
+                                <span className="hidden sm:inline">Edit</span>
+                              </button>
+                            )}
 
                             {/* Delete Button */}
-                            <button
-                              type="button"
-                              onClick={() => handleDeleteUser(user.id)}
-                              className="h-7 w-7 inline-flex items-center justify-center rounded text-slate-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-500/10 transition-colors"
-                              title="Hapus Pengguna"
-                            >
-                              <Trash2 className="h-3.5 w-3.5" />
-                            </button>
+                            {can("user:delete") && (
+                              <button
+                                type="button"
+                                onClick={() => handleDeleteUser(user.id)}
+                                className="h-7 w-7 inline-flex items-center justify-center rounded text-slate-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-500/10 transition-colors"
+                                title="Hapus Pengguna"
+                              >
+                                <Trash2 className="h-3.5 w-3.5" />
+                              </button>
+                            )}
                           </div>
                         </td>
                       )}

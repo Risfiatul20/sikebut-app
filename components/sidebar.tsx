@@ -18,6 +18,7 @@ import {
   Map
 } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { usePermission } from "@/hooks/usePermission"
 
 type MenuItem = {
   title: string
@@ -42,8 +43,11 @@ const menuCategories: MenuCategory[] = [
       },
       {
         title: "Identifikasi Kebutuhan",
-        href: "/dashboard/identifikasi",
         icon: FileText,
+        subItems: [
+          { title: "Daftar Usulan", href: "/dashboard/identifikasi/data" },
+          { title: "Buat Usulan Baru", href: "/dashboard/identifikasi" },
+          ],
       },
     ],
   },
@@ -62,8 +66,8 @@ const menuCategories: MenuCategory[] = [
         title: "Referensi RKBMD",
         icon: Database,
         subItems: [
-          { title: "Import Data", href: "/dashboard/rkbmd/import" },
-          { title: "Data RKBMD", href: "/dashboard/rkbmd/data" },
+          { title: "RKBMD Pengadaan", href: "/dashboard/rkbmd/pengadaan" },
+          { title: "RKBMD Pemeliharaan", href: "/dashboard/rkbmd/pemeliharaan" },
         ],
       },
       {
@@ -102,6 +106,7 @@ const menuCategories: MenuCategory[] = [
 
 export function Sidebar() {
   const pathname = usePathname()
+  const { can } = usePermission()
   const [isCollapsed, setIsCollapsed] = useState(false)
   const [expandedMenus, setExpandedMenus] = useState<string[]>(["Identifikasi Kebutuhan"])
 
@@ -120,7 +125,7 @@ export function Sidebar() {
     <motion.aside
       initial={false}
       animate={{ width: isCollapsed ? 64 : 256 }}
-      className="relative flex flex-col h-full bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-slate-800 z-20 shrink-0"
+      className="relative flex flex-col h-full bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-slate-800 z-10 shrink-0"
     >
       {/* Brand Header */}
       <div className="flex items-center h-14 px-4 border-b border-slate-200 dark:border-slate-800 overflow-hidden shrink-0">
@@ -157,7 +162,13 @@ export function Sidebar() {
               
               <div className="space-y-1">
                 {category.items.map((item) => {
-                  const isActive = item.href === pathname || item.subItems?.some(sub => sub.href === pathname)
+                  if (item.title === "Manajemen Pengguna" && !can("user:manage")) {
+                    return null
+                  }
+                  const visibleSubItems = item.subItems?.filter(
+                    (sub) => sub.title !== "Buat Usulan Baru" || can("paket:create")
+                  )
+                  const isActive = item.href === pathname || visibleSubItems?.some(sub => sub.href === pathname)
                   const isExpanded = expandedMenus.includes(item.title)
                   
                   return (
@@ -198,7 +209,7 @@ export function Sidebar() {
                           </button>
                           
                           <AnimatePresence initial={false}>
-                            {isExpanded && !isCollapsed && item.subItems && (
+                            {isExpanded && !isCollapsed && visibleSubItems && visibleSubItems.length > 0 && (
                               <motion.div
                                 initial={{ height: 0, opacity: 0 }}
                                 animate={{ height: "auto", opacity: 1 }}
@@ -207,7 +218,7 @@ export function Sidebar() {
                                 className="overflow-hidden"
                               >
                                 <div className="pt-1 pb-1 pl-9 pr-2 space-y-1">
-                                  {item.subItems.map(sub => {
+                                  {visibleSubItems.map(sub => {
                                     const isSubActive = pathname === sub.href
                                     return (
                                       <Link

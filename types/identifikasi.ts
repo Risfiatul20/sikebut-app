@@ -232,18 +232,52 @@ export type FormDataFields =
   | FormKonsultansi
   | FormSwakelola
 
+export interface PembuatUser {
+  id: number
+  nama: string
+  username: string
+}
+
+export interface AnggaranItem {
+  id: number
+  identifikasi_kebutuhan_id: number
+  id_sipd_penetapan: number
+  kode_standar_harga: string
+  nama_standar_harga?: string
+  kode_rekening?: string
+  nama_rekening?: string
+  pagu: number | string
+  perubahan_standar?: Record<string, unknown> | null
+  standar_harga?: {
+    kode_standar_harga: string
+    nama_standar_harga: string
+  }
+  sipd_penetapan?: {
+    kode_sub_unit: string
+    kode_sub_kegiatan: string
+    kode_rekening: string
+    kode_sumber_dana: string
+    nama_sumber_dana: string
+    tahun: number
+    pagu_sipd: string | number
+  }
+  created_at?: string
+}
+
 export interface IdentifikasiKebutuhan {
   id: number
   user_id: number
-  nama_user: string
+  pembuat?: PembuatUser
+  nama_user?: string
+  kode_klpd?: string | null
   kode_skpd: string
-  nama_skpd: string
+  nama_skpd?: string
   kode_program: string
-  nama_program: string
+  nama_program?: string
   kode_kegiatan: string
-  nama_kegiatan: string
+  nama_kegiatan?: string
   kode_sub_kegiatan: string
-  nama_sub_kegiatan: string
+  nama_sub_kegiatan?: string
   cara_pengadaan: CaraPengadaan
   jenis_pengadaan: JenisPengadaan | null
   nama_paket: string
@@ -256,21 +290,34 @@ export interface IdentifikasiKebutuhan {
   waktu_pelaksanaan_pekerjaan_awal: string | null
   waktu_pelaksanaan_pekerjaan_akhir: string | null
   status_review: StatusReview
-  form_data: FormDataFields
+  form_data: FormDataFields | Record<string, unknown>
   catatan_reviewer: string | null
+  catatan_reviewer_detail?: Record<string, unknown> | null
+  total_pagu?: string | number
+  jumlah_anggaran?: number
   created_at: string
   updated_at: string
   anggaran: AnggaranItem[]
 }
 
-export interface AnggaranItem {
-  id: number
-  identifikasi_kebutuhan_id: number
-  id_sipd_penetapan: number
-  kode_standar_harga: string
-  nama_standar_harga: string
-  kode_rekening: string
-  nama_rekening: string
-  pagu: number
-  created_at: string
+export interface IdentifikasiPaginationMeta {
+  current_page: number
+  from: number
+  last_page: number
+  per_page: number
+  to: number
+  total: number
+}
+
+export interface IdentifikasiPaginationLinks {
+  first: string | null
+  last: string | null
+  prev: string | null
+  next: string | null
+}
+
+export interface IdentifikasiListResponse {
+  data: IdentifikasiKebutuhan[]
+  links?: IdentifikasiPaginationLinks
+  meta?: IdentifikasiPaginationMeta
 }

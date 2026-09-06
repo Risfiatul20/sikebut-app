@@ -1,6 +1,6 @@
 "use client"
 
-import { useMemo } from "react"
+import { useMemo, useEffect } from "react"
 import {
   FormKonstruksi,
   LokasiItem,
@@ -28,6 +28,7 @@ import {
 } from "lucide-react"
 
 interface Props {
+  catatanReviewerDetail?: Record<string, string> | null
   data: FormKonstruksi
   onChange: (data: FormKonstruksi) => void
   onOpenPagu: () => void
@@ -125,6 +126,17 @@ function LokasiRow({
     loadKabupaten,
     loadKecamatan,
   } = useWilayah()
+
+  
+  // Pre-load kabupaten & kecamatan saat mount untuk mode edit
+  useEffect(() => {
+    if (lokasi.provinsiCode) {
+      loadKabupaten(lokasi.provinsiCode)
+      if (lokasi.kabupatenCode) {
+        loadKecamatan(lokasi.kabupatenCode)
+      }
+    }
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleProvinsiChange = (code: string) => {
     const prov = provinsiList.find((p) => p.code === code)
@@ -267,7 +279,7 @@ function LokasiRow({
   )
 }
 
-export function StepFormKonstruksi({ data, onChange, onOpenPagu, totalPagu }: Props) {
+export function StepFormKonstruksi({ data, onChange, onOpenPagu, totalPagu, catatanReviewerDetail }: Props) {
   const sumberDanaOptions: SearchableSelectOption[] = [
     { value: "DAU", label: "Dana Alokasi Umum (DAU)" },
     { value: "DAK-FISIK", label: "Dana Alokasi Khusus (DAK) Fisik" },
@@ -327,7 +339,7 @@ export function StepFormKonstruksi({ data, onChange, onOpenPagu, totalPagu }: Pr
 
   return (
     <div className="space-y-6">
-      {/* ── Informasi Paket ── */}
+      {/* Ã¢â€â‚¬Ã¢â€â‚¬ Informasi Paket Ã¢â€â‚¬Ã¢â€â‚¬ */}
       <section className="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-4">
         <SectionHeader icon={Building2} title="Informasi Paket" />
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -386,7 +398,7 @@ export function StepFormKonstruksi({ data, onChange, onOpenPagu, totalPagu }: Pr
         </div>
       </section>
 
-      {/* ── Volume & Persyaratan ── */}
+      {/* Ã¢â€â‚¬Ã¢â€â‚¬ Volume & Persyaratan Ã¢â€â‚¬Ã¢â€â‚¬ */}
       <section className="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-4">
         <SectionHeader icon={Layers} title="Volume & Persyaratan" />
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -434,7 +446,7 @@ export function StepFormKonstruksi({ data, onChange, onOpenPagu, totalPagu }: Pr
         </div>
       </section>
 
-      {/* ── SPP (Sustainable Public Procurement) ── */}
+      {/* Ã¢â€â‚¬Ã¢â€â‚¬ SPP (Sustainable Public Procurement) Ã¢â€â‚¬Ã¢â€â‚¬ */}
       <section className="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-4">
         <SectionHeader icon={FileCheck} title="SPP (Sustainable Public Procurement)" />
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
@@ -456,7 +468,7 @@ export function StepFormKonstruksi({ data, onChange, onOpenPagu, totalPagu }: Pr
         </div>
       </section>
 
-      {/* ── Lokasi (Multi-Lokasi) ── */}
+      {/* Ã¢â€â‚¬Ã¢â€â‚¬ Lokasi (Multi-Lokasi) Ã¢â€â‚¬Ã¢â€â‚¬ */}
       <section className="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-4">
         <SectionHeader icon={MapPin} title="Lokasi (Multi-Lokasi)" />
         <div className="space-y-3">
@@ -479,7 +491,7 @@ export function StepFormKonstruksi({ data, onChange, onOpenPagu, totalPagu }: Pr
         </div>
       </section>
 
-      {/* ── Waktu ── */}
+      {/* Ã¢â€â‚¬Ã¢â€â‚¬ Waktu Ã¢â€â‚¬Ã¢â€â‚¬ */}
       <section className="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-4">
         <SectionHeader icon={Calendar} title="Waktu" />
         <div className="space-y-3">
@@ -542,7 +554,7 @@ export function StepFormKonstruksi({ data, onChange, onOpenPagu, totalPagu }: Pr
         </div>
       </section>
 
-      {/* ── Metode & e-Katalog ── */}
+      {/* Ã¢â€â‚¬Ã¢â€â‚¬ Metode & e-Katalog Ã¢â€â‚¬Ã¢â€â‚¬ */}
       <section className="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-4">
         <SectionHeader icon={Search} title="Metode & e-Katalog" />
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -591,7 +603,7 @@ export function StepFormKonstruksi({ data, onChange, onOpenPagu, totalPagu }: Pr
         </div>
       </section>
 
-      {/* ── Perencanaan Konstruksi ── */}
+      {/* Ã¢â€â‚¬Ã¢â€â‚¬ Perencanaan Konstruksi Ã¢â€â‚¬Ã¢â€â‚¬ */}
       <section className="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-4">
         <SectionHeader icon={ClipboardList} title="Perencanaan Konstruksi" />
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -677,7 +689,7 @@ export function StepFormKonstruksi({ data, onChange, onOpenPagu, totalPagu }: Pr
         </div>
       </section>
 
-      {/* ── Pagu & Anggaran ── */}
+      {/* Ã¢â€â‚¬Ã¢â€â‚¬ Pagu & Anggaran Ã¢â€â‚¬Ã¢â€â‚¬ */}
       <section className="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-4">
         <SectionHeader icon={Banknote} title="Pagu & Anggaran" />
         <div className="space-y-3">
@@ -712,7 +724,7 @@ export function StepFormKonstruksi({ data, onChange, onOpenPagu, totalPagu }: Pr
         </div>
       </section>
 
-      {/* ── Pembebasan Lahan ── */}
+      {/* Ã¢â€â‚¬Ã¢â€â‚¬ Pembebasan Lahan Ã¢â€â‚¬Ã¢â€â‚¬ */}
       <section className="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-4">
         <SectionHeader icon={TreePine} title="Pembebasan Lahan" />
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -723,7 +735,7 @@ export function StepFormKonstruksi({ data, onChange, onOpenPagu, totalPagu }: Pr
           />
           {data.pembebasan_lahan === "Ya" && (
             <div>
-              <label className={labelCls}>Luas Lahan (m²)</label>
+              <label className={labelCls}>Luas Lahan (mÃ‚Â²)</label>
               <input
                 type="number"
                 min={0}
@@ -756,7 +768,7 @@ export function StepFormKonstruksi({ data, onChange, onOpenPagu, totalPagu }: Pr
         </div>
       </section>
 
-      {/* ── Konsolidasi ── */}
+      {/* Ã¢â€â‚¬Ã¢â€â‚¬ Konsolidasi Ã¢â€â‚¬Ã¢â€â‚¬ */}
       <section className="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-4">
         <SectionHeader icon={Link} title="Konsolidasi" />
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">

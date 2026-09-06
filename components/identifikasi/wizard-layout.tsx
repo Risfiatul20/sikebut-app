@@ -19,9 +19,10 @@ interface WizardLayoutProps {
   children: ReactNode
   isLastStep: boolean
   totalPagu: number
+  isDisabled?: boolean
 }
 
-export function WizardLayout({ steps, currentStep, onPrev, onNext, onSubmit, children, isLastStep, totalPagu }: WizardLayoutProps) {
+export function WizardLayout({ steps, currentStep, onPrev, onNext, onSubmit, children, isLastStep, totalPagu, isDisabled = false }: WizardLayoutProps) {
   const progress = ((currentStep + 1) / steps.length) * 100
   const formatRupiah = (v: number) => new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", minimumFractionDigits: 0 }).format(v)
 
@@ -76,16 +77,16 @@ export function WizardLayout({ steps, currentStep, onPrev, onNext, onSubmit, chi
         </div>
         {/* Navigation Footer */}
         <div className="shrink-0 border-t border-slate-200 dark:border-slate-800 px-5 py-3 bg-slate-50/50 dark:bg-slate-900/50 flex items-center justify-between">
-          <button type="button" onClick={onPrev} disabled={currentStep === 0} className="h-8 px-3 inline-flex items-center gap-1.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors">
+          <button type="button" onClick={onPrev} disabled={currentStep === 0 || isDisabled} className="h-8 px-3 inline-flex items-center gap-1.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors">
             <ChevronLeft className="h-3.5 w-3.5" /> Sebelumnya
           </button>
           <div className="text-[10px] font-mono text-slate-400">Langkah {currentStep + 1} / {steps.length}</div>
           {isLastStep ? (
-            <button type="button" onClick={onSubmit} className="h-8 px-4 inline-flex items-center gap-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold shadow-xs transition-colors">
+            <button type="button" onClick={onSubmit} disabled={isDisabled} className="h-8 px-4 inline-flex items-center gap-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 disabled:opacity-40 disabled:cursor-not-allowed text-white text-xs font-semibold shadow-xs transition-colors">
               <Save className="h-3.5 w-3.5" /> Simpan sebagai Draft
             </button>
           ) : (
-            <button type="button" onClick={onNext} className="h-8 px-4 inline-flex items-center gap-1.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold shadow-xs transition-colors">
+            <button type="button" onClick={onNext} disabled={isDisabled} className="h-8 px-4 inline-flex items-center gap-1.5 rounded-lg bg-blue-600 hover:bg-blue-700 disabled:opacity-40 disabled:cursor-not-allowed text-white text-xs font-semibold shadow-xs transition-colors">
               Langkah Berikutnya <ChevronRight className="h-3.5 w-3.5" />
             </button>
           )}

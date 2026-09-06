@@ -1,6 +1,6 @@
 "use client"
 
-import { useMemo } from "react"
+import { useMemo, useEffect } from "react"
 import { FormSwakelola, LokasiItem, TipeSwakelola } from "@/types/identifikasi"
 import { useWilayah } from "@/hooks/useWilayah"
 import { SearchableSelect, SearchableSelectOption } from "@/components/ui/searchable-select"
@@ -16,6 +16,7 @@ import {
 } from "lucide-react"
 
 interface Props {
+  catatanReviewerDetail?: Record<string, string> | null
   data: FormSwakelola
   onChange: (data: FormSwakelola) => void
   onOpenPagu: () => void
@@ -82,6 +83,17 @@ function LokasiRow({
     loadKabupaten,
     loadKecamatan,
   } = useWilayah()
+
+  
+  // Pre-load kabupaten & kecamatan saat mount untuk mode edit
+  useEffect(() => {
+    if (lokasi.provinsiCode) {
+      loadKabupaten(lokasi.provinsiCode)
+      if (lokasi.kabupatenCode) {
+        loadKecamatan(lokasi.kabupatenCode)
+      }
+    }
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleProvinsiChange = (code: string) => {
     const prov = provinsiList.find((p) => p.code === code)
@@ -224,7 +236,7 @@ function LokasiRow({
   )
 }
 
-export function StepFormSwakelola({ data, onChange, onOpenPagu, totalPagu }: Props) {
+export function StepFormSwakelola({ data, onChange, onOpenPagu, totalPagu, catatanReviewerDetail }: Props) {
   const sumberDanaOptions: SearchableSelectOption[] = [
     { value: "DAU", label: "Dana Alokasi Umum (DAU)" },
     { value: "DAK-FISIK", label: "Dana Alokasi Khusus (DAK) Fisik" },
@@ -273,7 +285,7 @@ export function StepFormSwakelola({ data, onChange, onOpenPagu, totalPagu }: Pro
 
   return (
     <div className="space-y-6">
-      {/* ── Informasi Paket ── */}
+      {/* Ã¢â€â‚¬Ã¢â€â‚¬ Informasi Paket Ã¢â€â‚¬Ã¢â€â‚¬ */}
       <section className="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-4">
         <SectionHeader icon={HardHat} title="Informasi Paket" />
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -312,7 +324,7 @@ export function StepFormSwakelola({ data, onChange, onOpenPagu, totalPagu }: Pro
         </div>
       </section>
 
-      {/* ── Tipe Swakelola ── */}
+      {/* Ã¢â€â‚¬Ã¢â€â‚¬ Tipe Swakelola Ã¢â€â‚¬Ã¢â€â‚¬ */}
       <section className="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-4">
         <SectionHeader icon={Info} title="Tipe Swakelola" />
         <div className="space-y-3">
@@ -349,7 +361,7 @@ export function StepFormSwakelola({ data, onChange, onOpenPagu, totalPagu }: Pro
         </div>
       </section>
 
-      {/* ── Lokasi (Multi-Lokasi) ── */}
+      {/* Ã¢â€â‚¬Ã¢â€â‚¬ Lokasi (Multi-Lokasi) Ã¢â€â‚¬Ã¢â€â‚¬ */}
       <section className="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-4">
         <SectionHeader icon={MapPin} title="Lokasi (Multi-Lokasi)" />
         <div className="space-y-3">
@@ -372,7 +384,7 @@ export function StepFormSwakelola({ data, onChange, onOpenPagu, totalPagu }: Pro
         </div>
       </section>
 
-      {/* ── Waktu Pelaksanaan ── */}
+      {/* Ã¢â€â‚¬Ã¢â€â‚¬ Waktu Pelaksanaan Ã¢â€â‚¬Ã¢â€â‚¬ */}
       <section className="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-4">
         <SectionHeader icon={Calendar} title="Waktu Pelaksanaan" />
         <div className="grid grid-cols-2 gap-3">
@@ -397,7 +409,7 @@ export function StepFormSwakelola({ data, onChange, onOpenPagu, totalPagu }: Pro
         </div>
       </section>
 
-      {/* ── Anggaran ── */}
+      {/* Ã¢â€â‚¬Ã¢â€â‚¬ Anggaran Ã¢â€â‚¬Ã¢â€â‚¬ */}
       <section className="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-4">
         <SectionHeader icon={Banknote} title="Anggaran" />
         <div className="space-y-3">

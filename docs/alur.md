@@ -1,0 +1,5 @@
+User Admin Membuatkan akun user Kepala OPD, Verifikator
+User Kepala OPD membuatkan akun user Kepala Sub Unit
+User Kepala Sub Unit membuatkan akun PPK dan mapping ke sub kegiatan
+PPK melakukan entri identifikasi kebutuhan (selanjutnya saya sebut paket) sesuai dengan data sub kegiatan yang di pilih. Saat entri paket, PPK juga perlu entri anggaran yang diambil dari standar harga di sub kegiatan yang dipilih. Pagu anggaran tidak boleh melebihi sisa anggaran yang tersedia di standar harga di rekening di sub unit opd tersebut.
+Setelah isian paket di dikirim/simpan sebagai draft, akan dilakukan verifikasi oleh verifikator. Jika perlu perbaikan, verifikator bisa memberikan komentar global per paket dan juga komentar per masing-masing detail isian dan akan dikembalikan ke pembuat paket. Jika paket sudah tidak perlu perbaikan, maka akan ditandai sebagai final/selesai.

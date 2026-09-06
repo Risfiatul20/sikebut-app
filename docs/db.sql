@@ -337,3 +337,87 @@ CREATE TABLE dev.identifikasi_kebutuhan_anggaran (
 	CONSTRAINT fk_pivot_identifikasi FOREIGN KEY (identifikasi_kebutuhan_id) REFERENCES dev.identifikasi_kebutuhan(id) ON DELETE CASCADE,
 	CONSTRAINT fk_ref_standar_harga FOREIGN KEY (kode_standar_harga) REFERENCES dev.ref_standar_harga(kode_standar_harga)
 );
+
+
+CREATE TABLE IF NOT EXISTS dev.rkbmd_pengadaan(
+    id_pengadaan BIGINT PRIMARY KEY,
+    id_instansi BIGINT,
+    id_renja BIGINT,
+    kode_fikasi VARCHAR(50),
+    nama_barang TEXT,
+    jumlah_barang INTEGER,
+    satuan VARCHAR(50),
+    jumlah_maksimum INTEGER,
+    keterangan TEXT,
+    id_status INTEGER,
+    periode INTEGER,
+    nm_status VARCHAR(50),
+    cara_pemenuhan VARCHAR(100),
+    target VARCHAR(50),
+    nama_giat_nama_giat TEXT,
+    nama_sub_giat_nama_sub_giat TEXT,
+    id_kebutuhan BIGINT,
+    id_sub BIGINT,
+    nomekelatur VARCHAR(50),
+    outputbaru VARCHAR(50),
+    id_status_kebutuhan INTEGER,
+    catatan_notulen TEXT,
+    kode_program VARCHAR(50),
+    kode_giat VARCHAR(50),
+    kode_sub_giat VARCHAR(50),
+    status_barang_ds INTEGER,
+    status_barang_pp INTEGER,
+    nama_program TEXT,
+    nama_skpd TEXT,
+    nama_sub_skpd TEXT,
+    kode_skpd VARCHAR(50),
+    kode_sub_skpd VARCHAR(50),
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- 3. Tambahkan index untuk kolom yang sering digunakan pada kueri/filter
+CREATE INDEX IF NOT EXISTS idx_rkbmd_id_instansi ON dev.rkbmd_pengadaan(id_instansi);
+CREATE INDEX IF NOT EXISTS idx_rkbmd_kode_skpd ON dev.rkbmd_pengadaan(kode_skpd);
+CREATE INDEX IF NOT EXISTS idx_rkbmd_periode ON dev.rkbmd_pengadaan(periode);
+
+
+-- 2. Buat tabel 'rkbmd_pemeliharaan' di dalam schema 'dev'
+CREATE TABLE IF NOT EXISTS dev.rkbmd_pemeliharaan (
+    id_pemeliharaan BIGINT PRIMARY KEY,
+    id_instansi BIGINT,
+    id_renja BIGINT,
+    kode_fikasi VARCHAR(50),
+    nama_barang TEXT,
+    jumlah_barang INTEGER,
+    status_barang INTEGER,
+    satuan VARCHAR(50),
+    kondisi_b INTEGER,
+    kondisi_rr INTEGER,
+    kondisi_rb INTEGER,
+    nama_pemeliharaan TEXT,
+    jumlah_pemeliharaan INTEGER,
+    satuan_pemeliharaan VARCHAR(50),
+    keterangan TEXT,
+    id_status INTEGER,
+    periode INTEGER,
+    nm_status VARCHAR(50),
+    target VARCHAR(50),
+    nama_giat_nama_giat TEXT,
+    id_kebutuhan BIGINT,
+    id_status_kebutuhan INTEGER,
+    catatan_notulen TEXT,
+    kode_program VARCHAR(50),
+    kode_kegiatan VARCHAR(50),
+    kode_sub_kegiatan VARCHAR(50),
+    id_sub_update BIGINT,
+    nomekelatur_update VARCHAR(50),
+    nama_sub_giat_nama_sub_giat TEXT,
+    status_barang_ds INTEGER,
+    status_barang_pp INTEGER,
+    nama_program TEXT,
+    nama_skpd TEXT,
+    kode_skpd VARCHAR(50),
+    nama_sub_skpd TEXT,
+    kode_sub_skpd VARCHAR(50),
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
