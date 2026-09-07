@@ -80,11 +80,13 @@ const menuCategories: MenuCategory[] = [
   {
     label: "Laporan",
     items: [
-      {
-        title: "Laporan Kebutuhan",
-        href: "/dashboard/laporan/kebutuhan",
-        icon: PieChart,
-      },
+      { title: "Rekap", href: "/dashboard/laporan/rekap", icon: PieChart },
+      { title: "Penyedia", href: "/dashboard/laporan/penyedia", icon: FileText },
+      { title: "Swakelola", href: "/dashboard/laporan/swakelola", icon: FileText },
+      { title: "BA Pembahasan Penyedia", href: "/dashboard/laporan/ba-pembahasan-penyedia", icon: FileText },
+      { title: "BA Pembahasan Swakelola", href: "/dashboard/laporan/ba-pembahasan-swakelola", icon: FileText },
+      { title: "BA Catatan RKBMD Pengadaan", href: "/dashboard/laporan/ba-rkbmd-pengadaan", icon: FileText },
+      { title: "BA Catatan RKBMD Pemeliharaan", href: "/dashboard/laporan/ba-rkbmd-pemeliharaan", icon: FileText },
     ],
   },
   {

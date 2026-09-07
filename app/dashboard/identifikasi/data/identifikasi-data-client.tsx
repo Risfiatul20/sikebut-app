@@ -471,7 +471,7 @@ export function IdentifikasiDataClient({ session }: { session: IdentifikasiDataC
                   const fd = (item.form_data || {}) as Record<string, unknown>
                   const metodePengadaan = String(fd.metode_pengadaan || item.cara_pengadaan || "-")
                   const pembuatNama = item.pembuat?.nama || item.nama_user || "PPK"
-                  const pembuatUsername = item.pembuat?.username || "ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â"
+                  const pembuatUsername = item.pembuat?.username || "—"
                   const isDraft = item.status_review === "Draft"
                   const isDitolak = item.status_review === "Ditolak"
                   const isMenungguReview = item.status_review === "Menunggu Review"
@@ -651,7 +651,7 @@ export function IdentifikasiDataClient({ session }: { session: IdentifikasiDataC
         <div className="p-4 border-t border-slate-100 dark:border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-slate-50/40 dark:bg-slate-900/40">
           <div className="text-xs text-slate-500 dark:text-slate-400">
             Halaman {meta?.current_page ?? page} dari {totalPages}
-            {total > 0 && ` ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â menampilkan ${meta?.from ?? ((page - 1) * perPage + 1)}ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Å“${meta?.to ?? Math.min(page * perPage, total)} dari ${total} paket`}
+            {total > 0 && ` — menampilkan ${meta?.from ?? ((page - 1) * perPage + 1)}–${meta?.to ?? Math.min(page * perPage, total)} dari ${total} paket`}
           </div>
 
           <div className="flex items-center gap-2 self-end sm:self-auto">

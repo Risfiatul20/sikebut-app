@@ -1,9 +1,9 @@
 "use client"
 
-import { useState, useEffect, useCallback } from "react"
+import { useState } from "react"
 import { RkbmdPengadaanItem } from "@/types/rkbmd"
-import { INITIAL_RKBMD_PENGADAAN } from "@/lib/mock-rkbmd"
 import { RkbmdImportDropzone } from "@/components/rkbmd/rkbmd-import-dropzone"
+import { useRkbmdList } from "@/hooks/useRkbmdList"
 import { useSkpd } from "@/hooks/useSkpd"
 import {
   Package,
@@ -23,16 +23,6 @@ import {
 export default function RkbmdPengadaanPage() {
   const { skpdList } = useSkpd()
 
-  const [items, setItems] = useState<RkbmdPengadaanItem[]>(INITIAL_RKBMD_PENGADAAN)
-  const [meta, setMeta] = useState<{
-    current_page: number
-    last_page: number
-    per_page: number
-    total: number
-    from: number
-    to: number
-  }>({ current_page: 1, last_page: 1, per_page: 10, total: INITIAL_RKBMD_PENGADAAN.length, from: 1, to: INITIAL_RKBMD_PENGADAAN.length })
-  const [isLoading, setIsLoading] = useState(false)
   const [isImportOpen, setIsImportOpen] = useState(false)
   const [selectedItem, setSelectedItem] = useState<RkbmdPengadaanItem | null>(null)
 
@@ -45,46 +35,20 @@ export default function RkbmdPengadaanPage() {
   const [sortBy, setSortBy] = useState("id_pengadaan")
   const [sortDirection, setSortDirection] = useState<"asc" | "desc">("desc")
 
-  // Fetch data dari API /api/rkbmd/pengadaan (proxy ke /api/v1/rkbmd-pengadaan)
-  const fetchData = useCallback(async () => {
-    setIsLoading(true)
-    try {
-      const params = new URLSearchParams({
-        page: String(page),
-        per_page: String(perPage),
-        periode: String(selectedPeriode),
-        sort_by: sortBy,
-        sort_direction: sortDirection,
-      })
-      if (search) params.set("search", search)
-      if (selectedSkpd && selectedSkpd !== "ALL") params.set("kode_skpd", selectedSkpd)
+  // Server-side pagination Laravel (membaca meta)
+  const { data: items, meta, isLoading, reload } = useRkbmdList<RkbmdPengadaanItem>({
+    endpoint: "pengadaan",
+    search,
+    kode_skpd: selectedSkpd,
+    periode: selectedPeriode,
+    page,
+    perPage,
+    sortBy,
+    sortDirection,
+  })
 
-      const res = await fetch(`/api/rkbmd/pengadaan?${params.toString()}`)
-      if (res.ok) {
-        const json = await res.json()
-        if (json.data && Array.isArray(json.data)) {
-          setItems(json.data)
-        }
-      }
-    } catch {
-      // Fallback lokal
-    } finally {
-      setIsLoading(false)
-    }
-  }, [page, perPage, selectedPeriode, sortBy, sortDirection, search, selectedSkpd])
-
-  useEffect(() => {
-    let cancel = false
-    async function load() {
-      if (!cancel) {
-        await fetchData()
-      }
-    }
-    load()
-    return () => {
-      cancel = true
-    }
-  }, [fetchData])
+  const total = meta?.total ?? items.length
+  const totalPages = meta?.last_page ?? Math.max(1, Math.ceil(total / perPage))
 
   const handleSort = (field: string) => {
     if (sortBy === field) {
@@ -93,6 +57,7 @@ export default function RkbmdPengadaanPage() {
       setSortBy(field)
       setSortDirection("asc")
     }
+    setPage(1)
   }
 
   const handleResetFilters = () => {
@@ -103,11 +68,6 @@ export default function RkbmdPengadaanPage() {
   }
 
   const hasActiveFilters = Boolean(search || selectedSkpd !== "ALL" || selectedPeriode !== 2026)
-
-  // Filtered client side calculation
-  const totalItems = items.length
-  const totalPages = Math.max(1, Math.ceil(totalItems / perPage))
-  const paginated = items.slice((page - 1) * perPage, page * perPage)
 
   const getStatusBadge = (status: string) => {
     switch (status) {
@@ -143,7 +103,7 @@ export default function RkbmdPengadaanPage() {
         <div className="flex items-center gap-2">
           <button
             type="button"
-            onClick={() => fetchData()}
+            onClick={() => reload()}
             className="h-8 px-2.5 inline-flex items-center gap-1.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-xs font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
           >
             <RotateCcw className={`h-3.5 w-3.5 ${isLoading ? "animate-spin text-blue-500" : "text-slate-400"}`} />
@@ -171,7 +131,7 @@ export default function RkbmdPengadaanPage() {
         <RkbmdImportDropzone
           type="pengadaan"
           title="RKBMD Pengadaan"
-          onImportSuccess={() => fetchData()}
+          onImportSuccess={() => reload()}
         />
       )}
 
@@ -180,7 +140,6 @@ export default function RkbmdPengadaanPage() {
         {/* Table Control Bar */}
         <div className="p-4 border-b border-slate-100 dark:border-slate-800 flex flex-col md:flex-row md:items-center justify-between gap-3 bg-slate-50/40 dark:bg-slate-900/40">
           <div className="flex flex-wrap items-center gap-2.5">
-            {/* Search Input */}
             <div className="relative">
               <Search className="h-3.5 w-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
               <input
@@ -195,7 +154,6 @@ export default function RkbmdPengadaanPage() {
               />
             </div>
 
-            {/* Filter SKPD */}
             <select
               value={selectedSkpd}
               onChange={(e) => {
@@ -212,7 +170,6 @@ export default function RkbmdPengadaanPage() {
               ))}
             </select>
 
-            {/* Filter Periode */}
             <select
               value={selectedPeriode}
               onChange={(e) => {
@@ -265,7 +222,7 @@ export default function RkbmdPengadaanPage() {
             <span>Rencana kebutuhan barang hasil impor & penelaahan RKBMD.</span>
           </div>
           <div className="text-[10px] font-mono text-slate-400 hidden sm:block">
-            {totalItems} data ditemukan
+            {total} data ditemukan
           </div>
         </div>
 
@@ -310,19 +267,18 @@ export default function RkbmdPengadaanPage() {
                     </div>
                   </td>
                 </tr>
-              ) : paginated.length === 0 ? (
+              ) : items.length === 0 ? (
                 <tr>
                   <td colSpan={7} className="text-center text-xs text-slate-400 py-12">
                     Tidak ada data RKBMD Pengadaan yang cocok dengan kriteria filter.
                   </td>
                 </tr>
               ) : (
-                paginated.map((item) => (
+                items.map((item) => (
                   <tr
                     key={item.id_pengadaan}
                     className="hover:bg-slate-50/80 dark:hover:bg-slate-800/40 transition-colors group"
                   >
-                    {/* Nama Barang & Klasifikasi */}
                     <td className="px-4 py-3">
                       <p className="font-semibold text-slate-900 dark:text-slate-100 text-xs leading-snug">
                         {item.nama_barang}
@@ -332,7 +288,6 @@ export default function RkbmdPengadaanPage() {
                       </p>
                     </td>
 
-                    {/* Jumlah Barang & Satuan */}
                     <td className="px-4 py-3 text-center whitespace-nowrap">
                       <p className="font-mono font-bold text-xs text-slate-900 dark:text-white">
                         {item.jumlah_barang} {item.satuan}
@@ -342,7 +297,6 @@ export default function RkbmdPengadaanPage() {
                       </p>
                     </td>
 
-                    {/* Cara Pemenuhan */}
                     <td className="px-4 py-3">
                       <p className="text-xs text-slate-800 dark:text-slate-200 font-medium">
                         {item.cara_pemenuhan}
@@ -354,7 +308,6 @@ export default function RkbmdPengadaanPage() {
                       )}
                     </td>
 
-                    {/* SKPD */}
                     <td className="px-4 py-3">
                       <p className="font-medium text-[11px] text-slate-900 dark:text-slate-100 truncate max-w-[200px]" title={item.nama_skpd}>
                         {item.nama_skpd}
@@ -364,7 +317,6 @@ export default function RkbmdPengadaanPage() {
                       </p>
                     </td>
 
-                    {/* Sub Kegiatan */}
                     <td className="px-4 py-3">
                       <p className="text-[11px] font-medium text-slate-800 dark:text-slate-200 truncate max-w-[200px]" title={item.nama_sub_giat_nama_sub_giat}>
                         {item.nama_sub_giat_nama_sub_giat || "-"}
@@ -376,14 +328,12 @@ export default function RkbmdPengadaanPage() {
                       )}
                     </td>
 
-                    {/* Status */}
                     <td className="px-4 py-3 whitespace-nowrap">
                       <span className={`inline-flex items-center px-2 py-0.5 rounded text-[10px] font-semibold border ${getStatusBadge(item.nm_status)}`}>
                         {item.nm_status}
                       </span>
                     </td>
 
-                    {/* Aksi */}
                     <td className="px-4 py-3 text-right whitespace-nowrap">
                       <button
                         type="button"
@@ -402,17 +352,18 @@ export default function RkbmdPengadaanPage() {
           </table>
         </div>
 
-        {/* Pagination Footer */}
+        {/* Pagination Footer - server-side Laravel meta */}
         <div className="p-4 border-t border-slate-100 dark:border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-slate-50/40 dark:bg-slate-900/40">
           <div className="text-xs text-slate-500 dark:text-slate-400">
-            Halaman {page} dari {totalPages} — menampilkan {totalItems > 0 ? (page - 1) * perPage + 1 : 0}–{Math.min(page * perPage, totalItems)} dari {totalItems} item
+            Halaman {meta?.current_page ?? page} dari {totalPages}
+            {total > 0 && ` — menampilkan ${meta?.from ?? 0}–${meta?.to ?? 0} dari ${total} item`}
           </div>
 
           <div className="flex items-center gap-2 self-end sm:self-auto">
             <button
               type="button"
               onClick={() => setPage((p) => Math.max(1, p - 1))}
-              disabled={page <= 1 || isLoading}
+              disabled={(meta?.current_page ?? page) <= 1 || isLoading}
               className="h-7 px-2.5 inline-flex items-center gap-1 rounded border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-xs font-medium text-slate-600 dark:text-slate-300 disabled:opacity-40 disabled:cursor-not-allowed hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
             >
               <ChevronLeft className="h-3.5 w-3.5" />
@@ -422,7 +373,7 @@ export default function RkbmdPengadaanPage() {
             <button
               type="button"
               onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-              disabled={page >= totalPages || isLoading}
+              disabled={(meta?.current_page ?? page) >= totalPages || isLoading}
               className="h-7 px-2.5 inline-flex items-center gap-1 rounded border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-xs font-medium text-slate-600 dark:text-slate-300 disabled:opacity-40 disabled:cursor-not-allowed hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
             >
               <span>Berikutnya</span>

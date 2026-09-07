@@ -1,10 +1,9 @@
 "use client"
 
-import { useState, useEffect, useCallback } from "react"
-import { useSession } from "next-auth/react"
+import { useState } from "react"
 import { RkbmdPemeliharaanItem } from "@/types/rkbmd"
-import { INITIAL_RKBMD_PEMELIHARAAN } from "@/lib/mock-rkbmd"
 import { RkbmdImportDropzone } from "@/components/rkbmd/rkbmd-import-dropzone"
+import { useRkbmdList } from "@/hooks/useRkbmdList"
 import { useSkpd } from "@/hooks/useSkpd"
 import {
   Wrench,
@@ -19,15 +18,11 @@ import {
   ChevronDown,
   ChevronUp,
   X,
-  CheckCircle2,
 } from "lucide-react"
 
 export default function RkbmdPemeliharaanPage() {
-  const { data: session } = useSession()
   const { skpdList } = useSkpd()
 
-  const [items, setItems] = useState<RkbmdPemeliharaanItem[]>(INITIAL_RKBMD_PEMELIHARAAN)
-  const [isLoading, setIsLoading] = useState(false)
   const [isImportOpen, setIsImportOpen] = useState(false)
   const [selectedItem, setSelectedItem] = useState<RkbmdPemeliharaanItem | null>(null)
 
@@ -40,37 +35,20 @@ export default function RkbmdPemeliharaanPage() {
   const [sortBy, setSortBy] = useState("id_pemeliharaan")
   const [sortDirection, setSortDirection] = useState<"asc" | "desc">("desc")
 
-  // Fetch data dari API /api/rkbmd/pemeliharaan (proxy ke /api/v1/rkbmd-pemeliharaan)
-  const fetchData = useCallback(async () => {
-    setIsLoading(true)
-    try {
-      const params = new URLSearchParams({
-        page: String(page),
-        per_page: String(perPage),
-        periode: String(selectedPeriode),
-        sort_by: sortBy,
-        sort_direction: sortDirection,
-      })
-      if (search) params.set("search", search)
-      if (selectedSkpd && selectedSkpd !== "ALL") params.set("kode_skpd", selectedSkpd)
+  // Server-side pagination Laravel (membaca meta)
+  const { data: items, meta, isLoading, reload } = useRkbmdList<RkbmdPemeliharaanItem>({
+    endpoint: "pemeliharaan",
+    search,
+    kode_skpd: selectedSkpd,
+    periode: selectedPeriode,
+    page,
+    perPage,
+    sortBy,
+    sortDirection,
+  })
 
-      const res = await fetch(`/api/rkbmd/pemeliharaan?${params.toString()}`)
-      if (res.ok) {
-        const json = await res.json()
-        if (json.data && Array.isArray(json.data)) {
-          setItems(json.data)
-        }
-      }
-    } catch {
-      // Fallback lokal
-    } finally {
-      setIsLoading(false)
-    }
-  }, [page, perPage, selectedPeriode, sortBy, sortDirection, search, selectedSkpd])
-
-  useEffect(() => {
-    fetchData()
-  }, [fetchData])
+  const total = meta?.total ?? items.length
+  const totalPages = meta?.last_page ?? Math.max(1, Math.ceil(total / perPage))
 
   const handleSort = (field: string) => {
     if (sortBy === field) {
@@ -79,6 +57,7 @@ export default function RkbmdPemeliharaanPage() {
       setSortBy(field)
       setSortDirection("asc")
     }
+    setPage(1)
   }
 
   const handleResetFilters = () => {
@@ -89,10 +68,6 @@ export default function RkbmdPemeliharaanPage() {
   }
 
   const hasActiveFilters = Boolean(search || selectedSkpd !== "ALL" || selectedPeriode !== 2026)
-
-  const totalItems = items.length
-  const totalPages = Math.max(1, Math.ceil(totalItems / perPage))
-  const paginated = items.slice((page - 1) * perPage, page * perPage)
 
   const getStatusBadge = (status: string) => {
     switch (status) {
@@ -128,7 +103,7 @@ export default function RkbmdPemeliharaanPage() {
         <div className="flex items-center gap-2">
           <button
             type="button"
-            onClick={() => fetchData()}
+            onClick={() => reload()}
             className="h-8 px-2.5 inline-flex items-center gap-1.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-xs font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
           >
             <RotateCcw className={`h-3.5 w-3.5 ${isLoading ? "animate-spin text-emerald-500" : "text-slate-400"}`} />
@@ -156,7 +131,7 @@ export default function RkbmdPemeliharaanPage() {
         <RkbmdImportDropzone
           type="pemeliharaan"
           title="RKBMD Pemeliharaan"
-          onImportSuccess={() => fetchData()}
+          onImportSuccess={() => reload()}
         />
       )}
 
@@ -165,7 +140,6 @@ export default function RkbmdPemeliharaanPage() {
         {/* Table Control Bar */}
         <div className="p-4 border-b border-slate-100 dark:border-slate-800 flex flex-col md:flex-row md:items-center justify-between gap-3 bg-slate-50/40 dark:bg-slate-900/40">
           <div className="flex flex-wrap items-center gap-2.5">
-            {/* Search Input */}
             <div className="relative">
               <Search className="h-3.5 w-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
               <input
@@ -180,7 +154,6 @@ export default function RkbmdPemeliharaanPage() {
               />
             </div>
 
-            {/* Filter SKPD */}
             <select
               value={selectedSkpd}
               onChange={(e) => {
@@ -197,7 +170,6 @@ export default function RkbmdPemeliharaanPage() {
               ))}
             </select>
 
-            {/* Filter Periode */}
             <select
               value={selectedPeriode}
               onChange={(e) => {
@@ -250,7 +222,7 @@ export default function RkbmdPemeliharaanPage() {
             <span>Rencana pemeliharaan barang & status kondisi fisik (B/RR/RB).</span>
           </div>
           <div className="text-[10px] font-mono text-slate-400 hidden sm:block">
-            {totalItems} data ditemukan
+            {total} data ditemukan
           </div>
         </div>
 
@@ -295,19 +267,18 @@ export default function RkbmdPemeliharaanPage() {
                     </div>
                   </td>
                 </tr>
-              ) : paginated.length === 0 ? (
+              ) : items.length === 0 ? (
                 <tr>
                   <td colSpan={7} className="text-center text-xs text-slate-400 py-12">
                     Tidak ada data RKBMD Pemeliharaan yang cocok dengan kriteria filter.
                   </td>
                 </tr>
               ) : (
-                paginated.map((item) => (
+                items.map((item) => (
                   <tr
                     key={item.id_pemeliharaan}
                     className="hover:bg-slate-50/80 dark:hover:bg-slate-800/40 transition-colors group"
                   >
-                    {/* Nama Barang & Fikasi */}
                     <td className="px-4 py-3">
                       <p className="font-semibold text-slate-900 dark:text-slate-100 text-xs leading-snug">
                         {item.nama_barang}
@@ -317,7 +288,6 @@ export default function RkbmdPemeliharaanPage() {
                       </p>
                     </td>
 
-                    {/* Kondisi Barang */}
                     <td className="px-4 py-3 text-center whitespace-nowrap">
                       <div className="flex items-center justify-center gap-1 font-mono text-[11px]">
                         <span className="px-1.5 py-0.5 rounded bg-emerald-100 dark:bg-emerald-500/20 text-emerald-800 dark:text-emerald-300 font-semibold" title="Kondisi Baik">
@@ -335,7 +305,6 @@ export default function RkbmdPemeliharaanPage() {
                       </p>
                     </td>
 
-                    {/* Pemeliharaan */}
                     <td className="px-4 py-3">
                       <p className="text-xs font-semibold text-slate-900 dark:text-white leading-snug">
                         {item.nama_pemeliharaan}
@@ -345,7 +314,6 @@ export default function RkbmdPemeliharaanPage() {
                       </p>
                     </td>
 
-                    {/* SKPD */}
                     <td className="px-4 py-3">
                       <p className="font-medium text-[11px] text-slate-900 dark:text-slate-100 truncate max-w-[200px]" title={item.nama_skpd}>
                         {item.nama_skpd}
@@ -355,7 +323,6 @@ export default function RkbmdPemeliharaanPage() {
                       </p>
                     </td>
 
-                    {/* Sub Kegiatan */}
                     <td className="px-4 py-3">
                       <p className="text-[11px] font-medium text-slate-800 dark:text-slate-200 truncate max-w-[200px]" title={item.nama_sub_giat_nama_sub_giat}>
                         {item.nama_sub_giat_nama_sub_giat || "-"}
@@ -367,14 +334,12 @@ export default function RkbmdPemeliharaanPage() {
                       )}
                     </td>
 
-                    {/* Status */}
                     <td className="px-4 py-3 whitespace-nowrap">
                       <span className={`inline-flex items-center px-2 py-0.5 rounded text-[10px] font-semibold border ${getStatusBadge(item.nm_status)}`}>
                         {item.nm_status}
                       </span>
                     </td>
 
-                    {/* Aksi */}
                     <td className="px-4 py-3 text-right whitespace-nowrap">
                       <button
                         type="button"
@@ -393,17 +358,18 @@ export default function RkbmdPemeliharaanPage() {
           </table>
         </div>
 
-        {/* Pagination Footer */}
+        {/* Pagination Footer - server-side Laravel meta */}
         <div className="p-4 border-t border-slate-100 dark:border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-slate-50/40 dark:bg-slate-900/40">
           <div className="text-xs text-slate-500 dark:text-slate-400">
-            Halaman {page} dari {totalPages} — menampilkan {totalItems > 0 ? (page - 1) * perPage + 1 : 0}–{Math.min(page * perPage, totalItems)} dari {totalItems} item
+            Halaman {meta?.current_page ?? page} dari {totalPages}
+            {total > 0 && ` — menampilkan ${meta?.from ?? 0}–${meta?.to ?? 0} dari ${total} item`}
           </div>
 
           <div className="flex items-center gap-2 self-end sm:self-auto">
             <button
               type="button"
               onClick={() => setPage((p) => Math.max(1, p - 1))}
-              disabled={page <= 1 || isLoading}
+              disabled={(meta?.current_page ?? page) <= 1 || isLoading}
               className="h-7 px-2.5 inline-flex items-center gap-1 rounded border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-xs font-medium text-slate-600 dark:text-slate-300 disabled:opacity-40 disabled:cursor-not-allowed hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
             >
               <ChevronLeft className="h-3.5 w-3.5" />
@@ -413,7 +379,7 @@ export default function RkbmdPemeliharaanPage() {
             <button
               type="button"
               onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-              disabled={page >= totalPages || isLoading}
+              disabled={(meta?.current_page ?? page) >= totalPages || isLoading}
               className="h-7 px-2.5 inline-flex items-center gap-1 rounded border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-xs font-medium text-slate-600 dark:text-slate-300 disabled:opacity-40 disabled:cursor-not-allowed hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
             >
               <span>Berikutnya</span>
