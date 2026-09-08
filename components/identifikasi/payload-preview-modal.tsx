@@ -57,7 +57,11 @@ export function PayloadPreviewModal({
       volume_satuan?: string
     }
     anggaran?: unknown[]
+    status_review?: string
   }
+
+  // Mode simpan: Draft (biasa) atau Diajukan (Ajukan Langsung → langsung kirim ke Verifikator)
+  const isAjukanLangsung = p?.status_review === "Diajukan"
 
   const namaPaket = p?.nama_paket || p?.form_data?.nama_paket || "—"
   const namaSkpd = p?.identitas?.nama_skpd || p?.kode_skpd || "—"
@@ -106,7 +110,9 @@ export function PayloadPreviewModal({
                 </span>
               </div>
               <p className="text-xs text-slate-500 dark:text-slate-400">
-                Status usulan akan disimpan sebagai <b className="text-slate-700 dark:text-slate-300">Draft</b> pada sistem PBJ SIPD-RI.
+                Status usulan akan disimpan sebagai{" "}
+                <b className="text-slate-700 dark:text-slate-300">{isAjukanLangsung ? "Diajukan (langsung ke Verifikator)" : "Draft"}</b>{" "}
+                pada sistem PBJ SIPD-RI.
               </p>
             </div>
           </div>
@@ -129,7 +135,11 @@ export function PayloadPreviewModal({
                 Apakah Anda yakin ingin menyimpan usulan identifikasi kebutuhan ini?
               </p>
               <p className="text-[11px] text-blue-700 dark:text-blue-300 leading-relaxed">
-                Data akan tersimpan dengan status <b>Draft</b>. Anda masih dapat mengubah rincian spesifikasi dan pagu paket kapan saja sebelum diajukan ke tahap review/verifikasi.
+                {isAjukanLangsung ? (
+                  <>Data akan tersimpan dengan status <b>Diajukan</b> dan <b>langsung masuk ke antrean review Verifikator</b>. Pastikan semua data sudah final sebelum mengajukan.</>
+                ) : (
+                  <>Data akan tersimpan dengan status <b>Draft</b>. Anda masih dapat mengubah rincian spesifikasi dan pagu paket kapan saja sebelum diajukan ke tahap review/verifikasi.</>
+                )}
               </p>
             </div>
           </div>
@@ -214,7 +224,7 @@ export function PayloadPreviewModal({
         {/* Footer */}
         <div className="shrink-0 px-6 py-3.5 border-t border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/50 flex items-center justify-between">
           <div className="text-[11px] text-slate-500">
-            Status Simpan: <span className="font-semibold text-slate-800 dark:text-slate-200">Draft Usulan</span>
+            Status Simpan: <span className="font-semibold text-slate-800 dark:text-slate-200">{isAjukanLangsung ? "Diajukan Langsung" : "Draft Usulan"}</span>
           </div>
           <div className="flex items-center gap-2">
             <button
@@ -232,7 +242,7 @@ export function PayloadPreviewModal({
               className="px-4 py-2 inline-flex items-center gap-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold shadow-xs disabled:opacity-50 transition-colors"
             >
               <Send className="h-3.5 w-3.5" />
-              {isSaving ? "Menyimpan..." : "Ya, Simpan sebagai Draft"}
+              {isSaving ? "Menyimpan..." : isAjukanLangsung ? "Ya, Simpan & Ajukan Langsung" : "Ya, Simpan sebagai Draft"}
             </button>
           </div>
         </div>

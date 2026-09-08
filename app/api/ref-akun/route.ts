@@ -46,4 +46,4 @@ export async function GET(req: Request) {
   // Teruskan error backend apa adanya — jangan pernah memakai data cadangan.
   const errText = await backendRes.text()
   return new NextResponse(errText, { status: backendRes.status, headers: { "Content-Type": "application/json" } })
-}
+}

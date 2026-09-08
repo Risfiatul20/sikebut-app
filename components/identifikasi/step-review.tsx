@@ -35,7 +35,9 @@ export function StepReview({ identitas, anggaran, formData }: Props) {
     <div className="space-y-6">
       <div>
         <h2 className="font-display text-lg font-semibold text-slate-900 dark:text-white">Review & Konfirmasi</h2>
-        <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Periksa data sebelum disimpan sebagai Draft.</p>
+        <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+          Periksa data, lalu simpan sebagai <b>Draft</b> atau <b>Ajukan Langsung</b> ke Verifikator.
+        </p>
       </div>
 
       {/* Summary Cards */}
@@ -147,7 +149,7 @@ export function StepReview({ identitas, anggaran, formData }: Props) {
         <div>
           <p className="text-xs font-semibold text-amber-800 dark:text-amber-200">Konfirmasi Simpan</p>
           <p className="text-[11px] text-amber-700 dark:text-amber-300 mt-0.5">
-            Data akan disimpan dengan status <b>Draft</b>. Anda dapat menekan tombol Simpan sebagai Draft di bawah untuk memeriksa payload dan mengonfirmasi penyimpanan.
+            Data dapat disimpan sebagai <b>Draft</b> atau langsung <b>Ajukan Langsung</b> ke Verifikator (status Diajukan). Tekan salah satu tombol di bawah untuk memeriksa payload dan mengonfirmasi.
           </p>
         </div>
       </div>

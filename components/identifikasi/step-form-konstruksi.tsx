@@ -132,8 +132,10 @@ function LokasiRow({
   } = useWilayah()
 
   
-  // Pre-load kabupaten & kecamatan saat mount untuk mode edit
+  // Pre-load provinsi + kabupaten & kecamatan saat mount (mode edit): nilai tersimpan
+  // langsung tampil tanpa harus diklik dulu (sebelumnya provinsiList hanya dimuat onFocus).
   useEffect(() => {
+    loadProvinsi()
     if (lokasi.provinsiCode) {
       loadKabupaten(lokasi.provinsiCode)
       if (lokasi.kabupatenCode) {

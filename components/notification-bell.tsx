@@ -1,6 +1,7 @@
 "use client"
 
 import { useCallback, useEffect, useRef, useState } from "react"
+import { createPortal } from "react-dom"
 import { Bell, CheckCheck, Loader2 } from "lucide-react"
 import { NotificationItem } from "@/types/notification"
 import Link from "next/link"
@@ -24,7 +25,9 @@ export function NotificationBell() {
   const [items, setItems] = useState<NotificationItem[] | null>(null)
   const [open, setOpen] = useState(false)
   const [error, setError] = useState(false)
-  const containerRef = useRef<HTMLDivElement>(null)
+  const [pos, setPos] = useState<{ top: number; right: number } | null>(null)
+  const bellRef = useRef<HTMLButtonElement>(null)
+  const panelRef = useRef<HTMLDivElement>(null)
   const router = useRouter()
 
   const refresh = useCallback(async () => {
@@ -53,11 +56,24 @@ export function NotificationBell() {
     return () => clearInterval(t)
   }, [refresh])
 
+  // Hitung posisi panel dari tombol bell (portal di document.body → selalu di atas konten)
+  useEffect(() => {
+    if (open && bellRef.current) {
+      const r = bellRef.current.getBoundingClientRect()
+      setPos({
+        top: Math.min(r.bottom + 8, window.innerHeight - 16),
+        right: Math.max(8, window.innerWidth - r.right),
+      })
+    }
+  }, [open])
+
+  // Tutup bila klik di luar bell & di luar panel
   useEffect(() => {
     function onClick(e: MouseEvent) {
-      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
-        setOpen(false)
-      }
+      const t = e.target as Node
+      const inBell = bellRef.current?.contains(t)
+      const inPanel = panelRef.current?.contains(t)
+      if (!inBell && !inPanel) setOpen(false)
     }
     document.addEventListener("mousedown", onClick)
     return () => document.removeEventListener("mousedown", onClick)
@@ -73,83 +89,94 @@ export function NotificationBell() {
     }
   }
 
-  return (
-    <div className="relative" ref={containerRef}>
-      <button
-        type="button"
-        onClick={() => {
-          setOpen((v) => !v)
-          if (!open) refresh()
-        }}
-        className="relative h-8 w-8 flex items-center justify-center rounded-md text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
-        aria-label="Notifikasi"
-      >
-        <Bell className="h-4 w-4" />
+  const panel = open ? (
+    <div
+      ref={panelRef}
+      className="fixed z-[100] w-80 sm:w-96 max-h-[min(70vh,480px)] flex flex-col rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 shadow-2xl ring-1 ring-black/5 dark:ring-white/10 overflow-hidden animate-in fade-in-0 zoom-in-95 duration-150"
+      style={{ top: pos?.top ?? 44, right: pos?.right ?? 8, maxHeight: "min(70vh, 480px)" }}
+    >
+      <div className="flex items-center justify-between px-4 py-2.5 border-b border-slate-100 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-800/50">
+        <p className="text-xs font-semibold text-slate-900 dark:text-white">Notifikasi</p>
         {unread > 0 && (
-          <span className="absolute top-0.5 right-0.5 h-4 min-w-4 px-0.5 rounded-full bg-amber-500 text-white text-[9px] font-bold flex items-center justify-center ring-2 ring-white dark:ring-slate-900">
-            {unread > 9 ? "9+" : unread}
-          </span>
+          <button
+            type="button"
+            onClick={markAllRead}
+            className="inline-flex items-center gap-1 text-[10px] font-semibold text-blue-600 dark:text-blue-400 hover:underline"
+          >
+            <CheckCheck className="h-3 w-3" /> Tandai dibaca
+          </button>
         )}
-      </button>
+      </div>
 
-      {open && (
-        <div className="absolute right-0 top-10 w-80 sm:w-96 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-xl overflow-hidden z-50 animate-in fade-in-0 zoom-in-95 duration-150">
-          <div className="flex items-center justify-between px-4 py-2.5 border-b border-slate-100 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-800/50">
-            <p className="text-xs font-semibold text-slate-900 dark:text-white">Notifikasi</p>
-            {unread > 0 && (
-              <button
-                type="button"
-                onClick={markAllRead}
-                className="inline-flex items-center gap-1 text-[10px] font-semibold text-blue-600 dark:text-blue-400 hover:underline"
-              >
-                <CheckCheck className="h-3 w-3" /> Tandai dibaca
-              </button>
-            )}
+      <div
+        className="flex-1 overflow-y-auto min-h-0 custom-scrollbar divide-y divide-slate-100 dark:divide-slate-800"
+        style={{ overflowY: "auto" }}
+      >
+        {items === null && !error ? (
+          <div className="p-6 flex items-center justify-center text-slate-400">
+            <Loader2 className="h-4 w-4 animate-spin" />
           </div>
-
-          <div className="max-h-80 overflow-y-auto custom-scrollbar divide-y divide-slate-100 dark:divide-slate-800">
-            {items === null && !error ? (
-              <div className="p-6 flex items-center justify-center text-slate-400">
-                <Loader2 className="h-4 w-4 animate-spin" />
-              </div>
-            ) : error ? (
-              <div className="p-4 text-xs text-rose-600 dark:text-rose-400">Gagal memuat notifikasi.</div>
-            ) : items && items.length > 0 ? (
-              items.map((n) => (
-                <Link
-                  key={n.id}
-                  href={n.identifikasi_kebutuhan_id ? `/dashboard/identifikasi/data` : "/dashboard/notifikasi"}
-                  onClick={() => setOpen(false)}
-                  className={`block px-4 py-2.5 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors ${n.is_read ? "" : "bg-blue-50/40 dark:bg-blue-500/5"}`}
-                >
-                  <div className="flex items-start gap-2">
-                    <span className={`mt-1.5 h-1.5 w-1.5 rounded-full shrink-0 ${n.is_read ? "bg-transparent" : "bg-blue-500"}`} />
-                    <div className="min-w-0">
-                      <p className="text-[11px] text-slate-800 dark:text-slate-200 leading-snug">{n.pesan}</p>
-                      <p className="text-[9px] text-slate-400 mt-1">{fmtWaktu(n.created_at)}</p>
-                    </div>
-                  </div>
-                </Link>
-              ))
-            ) : (
-              <div className="p-6 text-center text-xs text-slate-400">Belum ada notifikasi.</div>
-            )}
-          </div>
-
-          <div className="border-t border-slate-100 dark:border-slate-800 px-4 py-2">
+        ) : error ? (
+          <div className="p-4 text-xs text-rose-600 dark:text-rose-400">Gagal memuat notifikasi.</div>
+        ) : items && items.length > 0 ? (
+          items.map((n) => (
             <Link
-              href="/dashboard/notifikasi"
-              onClick={() => {
-                setOpen(false)
-                router.push("/dashboard/notifikasi")
-              }}
-              className="block text-center text-[11px] font-semibold text-blue-600 dark:text-blue-400 hover:underline"
+              key={n.id}
+              href={n.identifikasi_kebutuhan_id ? `/dashboard/identifikasi/data` : "/dashboard/notifikasi"}
+              onClick={() => setOpen(false)}
+              className={`block px-4 py-2.5 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors ${n.is_read ? "" : "bg-blue-50/40 dark:bg-blue-500/5"}`}
             >
-              Lihat semua notifikasi
+              <div className="flex items-start gap-2">
+                <span className={`mt-1.5 h-1.5 w-1.5 rounded-full shrink-0 ${n.is_read ? "bg-transparent" : "bg-blue-500"}`} />
+                <div className="min-w-0">
+                  <p className="text-[11px] text-slate-800 dark:text-slate-200 leading-snug">{n.pesan}</p>
+                  <p className="text-[9px] text-slate-400 mt-1">{fmtWaktu(n.created_at)}</p>
+                </div>
+              </div>
             </Link>
-          </div>
-        </div>
-      )}
+          ))
+        ) : (
+          <div className="p-6 text-center text-xs text-slate-400">Belum ada notifikasi.</div>
+        )}
+      </div>
+
+      <div className="border-t border-slate-100 dark:border-slate-800 px-4 py-2">
+        <Link
+          href="/dashboard/notifikasi"
+          onClick={() => {
+            setOpen(false)
+            router.push("/dashboard/notifikasi")
+          }}
+          className="block text-center text-[11px] font-semibold text-blue-600 dark:text-blue-400 hover:underline"
+        >
+          Lihat semua notifikasi
+        </Link>
+      </div>
     </div>
+  ) : null
+
+  return (
+    <>
+      <div className="relative">
+        <button
+          ref={bellRef}
+          type="button"
+          onClick={() => {
+            setOpen((v) => !v)
+            if (!open) refresh()
+          }}
+          className="relative h-8 w-8 flex items-center justify-center rounded-md text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+          aria-label="Notifikasi"
+        >
+          <Bell className="h-4 w-4" />
+          {unread > 0 && (
+            <span className="absolute top-0.5 right-0.5 h-4 min-w-4 px-0.5 rounded-full bg-amber-500 text-white text-[9px] font-bold flex items-center justify-center ring-2 ring-white dark:ring-slate-900">
+              {unread > 9 ? "9+" : unread}
+            </span>
+          )}
+        </button>
+      </div>
+      {typeof document !== "undefined" ? createPortal(panel, document.body) : null}
+    </>
   )
 }

@@ -266,8 +266,12 @@ function IdentifikasiPageContent() {
 
   const handlePrev = () => setCurrentStep((s) => Math.max(s - 1, 0))
 
-  const handleSaveClick = () => {
+  // Mode simpan: "draft" = simpan sebagai Draft, "ajukan" = simpan + langsung diajukan ke Verifikator
+  const [saveMode, setSaveMode] = useState<"draft" | "ajukan">("draft")
+
+  const handleSaveClick = (mode: "draft" | "ajukan" = "draft") => {
     if (isLoadingDetail || isSaving) return
+    setSaveMode(mode)
     setPreviewOpen(true)
   }
 
@@ -311,23 +315,27 @@ function IdentifikasiPageContent() {
       const endpoint = isUpdating ? `/api/identifikasi?id=${editIdStr}` : "/api/identifikasi"
       const method = isUpdating ? "PUT" : "POST"
 
+      const isAjukanLangsung = saveMode === "ajukan"
       const res = await fetch(endpoint, {
         method,
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
+        body: JSON.stringify({ ...payload, status_review: isAjukanLangsung ? "Diajukan" : "Draft" }),
       })
       const result = await res.json()
       if (res.ok && (result.success || result.data)) {
+        const statusMsg = isAjukanLangsung
+          ? "berhasil disimpan dan LANGSUNG DIAJUKAN ke Verifikator"
+          : "berhasil disimpan sebagai Draft ke database"
         setToastMsg(
           result.message ||
             (isUpdating
-              ? `Usulan paket (#${editIdStr}) berhasil diperbarui`
-              : "Identifikasi kebutuhan berhasil disimpan sebagai Draft ke database")
+              ? `Usulan paket (#${editIdStr}) ${statusMsg}`
+              : `Identifikasi kebutuhan ${statusMsg}`)
         )
 
         setTimeout(() => {
           setToastMsg(null)
-          if (isUpdating) {
+          if (isUpdating || isAjukanLangsung) {
             router.push("/dashboard/identifikasi/data")
           } else {
             setCurrentStep(0)
@@ -582,7 +590,8 @@ function IdentifikasiPageContent() {
         currentStep={currentStep}
         onPrev={handlePrev}
         onNext={handleNext}
-        onSubmit={handleSaveClick}
+        onSubmit={() => handleSaveClick("draft")}
+        onSubmitDirect={() => handleSaveClick("ajukan")}
         isLastStep={currentStep === formSteps.length - 1}
         totalPagu={totalPagu}
         isDisabled={isLoadingDetail || isSaving}
@@ -601,7 +610,7 @@ function IdentifikasiPageContent() {
 
       <PayloadPreviewModal
         isOpen={previewOpen}
-        payload={payload}
+        payload={{ ...payload, status_review: saveMode === "ajukan" ? "Diajukan" : "Draft" }}
         totalPagu={totalPagu} isSaving={isSaving}
         onClose={() => setPreviewOpen(false)}
         onConfirm={handleConfirmSave}

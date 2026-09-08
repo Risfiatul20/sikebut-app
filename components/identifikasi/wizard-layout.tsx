@@ -1,7 +1,7 @@
 "use client"
 
 import { ReactNode } from "react"
-import { Check, Circle, ChevronLeft, ChevronRight, Save } from "lucide-react"
+import { Check, Circle, ChevronLeft, ChevronRight, Save, Send } from "lucide-react"
 import { cn } from "@/lib/utils"
 
 export interface WizardStep {
@@ -16,13 +16,15 @@ interface WizardLayoutProps {
   onPrev: () => void
   onNext: () => void
   onSubmit: () => void
+  /** Klik "Ajukan Langsung" — simpan sekaligus kirim ke Verifikator (status Diajukan). */
+  onSubmitDirect?: () => void
   children: ReactNode
   isLastStep: boolean
   totalPagu: number
   isDisabled?: boolean
 }
 
-export function WizardLayout({ steps, currentStep, onPrev, onNext, onSubmit, children, isLastStep, totalPagu, isDisabled = false }: WizardLayoutProps) {
+export function WizardLayout({ steps, currentStep, onPrev, onNext, onSubmit, onSubmitDirect, children, isLastStep, totalPagu, isDisabled = false }: WizardLayoutProps) {
   const progress = ((currentStep + 1) / steps.length) * 100
   const formatRupiah = (v: number) => new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", minimumFractionDigits: 0 }).format(v)
 
@@ -82,9 +84,16 @@ export function WizardLayout({ steps, currentStep, onPrev, onNext, onSubmit, chi
           </button>
           <div className="text-[10px] font-mono text-slate-400">Langkah {currentStep + 1} / {steps.length}</div>
           {isLastStep ? (
-            <button type="button" onClick={onSubmit} disabled={isDisabled} className="h-8 px-4 inline-flex items-center gap-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 disabled:opacity-40 disabled:cursor-not-allowed text-white text-xs font-semibold shadow-xs transition-colors">
-              <Save className="h-3.5 w-3.5" /> Simpan sebagai Draft
-            </button>
+            <div className="flex items-center gap-2">
+              <button type="button" onClick={onSubmit} disabled={isDisabled} className="h-8 px-4 inline-flex items-center gap-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 disabled:opacity-40 disabled:cursor-not-allowed text-white text-xs font-semibold shadow-xs transition-colors">
+                <Save className="h-3.5 w-3.5" /> Simpan sebagai Draft
+              </button>
+              {onSubmitDirect && (
+                <button type="button" onClick={onSubmitDirect} disabled={isDisabled} className="h-8 px-4 inline-flex items-center gap-1.5 rounded-lg bg-blue-600 hover:bg-blue-700 disabled:opacity-40 disabled:cursor-not-allowed text-white text-xs font-semibold shadow-xs transition-colors">
+                  <Send className="h-3.5 w-3.5" /> Ajukan Langsung
+                </button>
+              )}
+            </div>
           ) : (
             <button type="button" onClick={onNext} disabled={isDisabled} className="h-8 px-4 inline-flex items-center gap-1.5 rounded-lg bg-blue-600 hover:bg-blue-700 disabled:opacity-40 disabled:cursor-not-allowed text-white text-xs font-semibold shadow-xs transition-colors">
               Langkah Berikutnya <ChevronRight className="h-3.5 w-3.5" />

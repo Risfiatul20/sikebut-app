@@ -36,12 +36,6 @@ export function Header() {
           <span className="text-slate-300 dark:text-slate-600">/</span>
           <span className="text-slate-900 dark:text-slate-100">{breadcrumbs[breadcrumbs.length - 1] || "Dashboard"}</span>
         </div>
-
-        {/* SIPD Status Badge */}
-        <div className="hidden sm:flex items-center gap-1.5 px-2 py-1 rounded bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-200 dark:border-emerald-500/20 text-[10px] font-semibold text-emerald-700 dark:text-emerald-400">
-          <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
-          Koneksi SIPD Aktif
-        </div>
       </div>
 
       <div className="flex items-center gap-3">

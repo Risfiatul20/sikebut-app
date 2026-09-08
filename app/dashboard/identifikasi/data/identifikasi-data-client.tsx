@@ -169,10 +169,14 @@ export function IdentifikasiDataClient({ session }: { session: IdentifikasiDataC
     }
   }
 
-  // Verifikator hanya boleh melihat paket yang SUDAH DIAJUKAN (menunggu review).
+  // Verifikator melihat paket Diajukan (menunggu review), Disetujui, dan Perlu Perbaikan.
   // Paket Draft (belum final) milik PPK tidak ditampilkan & tidak bisa diakses.
   const STATUS_TABS = isUserVerifikator
-    ? [{ key: "Diajukan", label: "Menunggu Review", icon: AlertCircle }]
+    ? [
+        { key: "Diajukan", label: "Menunggu Review", icon: AlertCircle },
+        { key: "Disetujui", label: "Disetujui", icon: CheckCircle2 },
+        { key: "Perlu Perbaikan", label: "Perlu Perbaikan", icon: XCircle },
+      ]
     : [
         { key: "ALL", label: "Semua Status" },
         { key: "Draft", label: "Draft", icon: Clock },
@@ -220,7 +224,7 @@ export function IdentifikasiDataClient({ session }: { session: IdentifikasiDataC
         <div className="flex items-center gap-2">
           {isUserVerifikator && (
             <span className="hidden sm:inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg border border-indigo-200 dark:border-indigo-500/30 bg-indigo-50/60 dark:bg-indigo-500/10 text-[10px] font-medium text-indigo-700 dark:text-indigo-300">
-              <ShieldCheck className="h-3.5 w-3.5" /> Hanya paket Menunggu Review — Draft PPK tidak ditampilkan
+              <ShieldCheck className="h-3.5 w-3.5" /> Menunggu Review, Disetujui & Perlu Perbaikan — Draft PPK tidak ditampilkan
             </span>
           )}
           <button
@@ -466,8 +470,8 @@ export function IdentifikasiDataClient({ session }: { session: IdentifikasiDataC
                   const pembuatUsername = item.pembuat?.username || "—"
                   const isDraft = item.status_review === "Draft"
                   const isPerluPerbaikan = item.status_review === "Perlu Perbaikan"
-                  // Cek izin aksi via permissions
-                  const canReview = can("paket:review")
+                  // Cek izin aksi via permissions — Verifikator hanya bisa mereview paket yang Diajukan
+                  const canReview = can("paket:review") && item.status_review === "Diajukan"
                   const canAjukan = can("paket:ajukan") && (isDraft || isPerluPerbaikan)
                   const canDelete = isUserAdmin || (can("paket:delete") && isDraft)
                   const canEdit = can("paket:edit") && (isDraft || isPerluPerbaikan) && (isUserAdmin || item.user_id === Number(session?.user?.id) || ppkSubCodes.includes(item.kode_sub_kegiatan))
@@ -658,7 +662,7 @@ export function IdentifikasiDataClient({ session }: { session: IdentifikasiDataC
       {/* Modal Terpadu: Detail Paket + Catatan Verifikator + Keputusan Review */}
       <DetailReviewModal
         item={selectedItem}
-        canReview={can("paket:review")}
+        canReview={can("paket:review") && selectedItem?.status_review === "Diajukan"}
         onClose={() => setSelectedItem(null)}
         onSuccess={() => {
           reload()

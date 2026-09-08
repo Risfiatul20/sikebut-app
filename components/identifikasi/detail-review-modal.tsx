@@ -26,6 +26,7 @@ import {
   ShieldCheck,
   XCircle,
   MessageSquareWarning,
+  ClipboardList,
 } from "lucide-react"
 
 interface DetailReviewModalProps {
@@ -115,6 +116,57 @@ function FieldRow({
           className="mt-2 w-full rounded-md border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-950 px-2 py-1.5 text-xs focus:ring-2 focus:ring-indigo-500/40 focus:border-indigo-500 transition-colors resize-none"
         />
       )}
+    </div>
+  )
+}
+
+// ---------------------------------------------------------------------------
+// Tabel daftar item RKBMD (tab Rencana Pengadaan 🔵 / Aset Dimiliki 🟣)
+// ---------------------------------------------------------------------------
+function RkbmdItemsTable({ items }: { items: unknown }) {
+  const list = Array.isArray(items) ? (items as Array<Record<string, unknown>>) : []
+  if (list.length === 0) return null
+  return (
+    <div className="border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden">
+      <table className="w-full text-xs">
+        <thead className="bg-slate-50/80 dark:bg-slate-800/50">
+          <tr className="text-[10px] uppercase text-slate-400 border-b border-slate-100 dark:border-slate-800">
+            <th className="font-semibold px-4 py-2 text-left">Nama Barang</th>
+            <th className="font-semibold px-4 py-2 text-left">Sumber</th>
+            <th className="font-semibold px-4 py-2 text-right">Jumlah</th>
+            <th className="font-semibold px-4 py-2 text-right">Kondisi (B/RR/RB)</th>
+          </tr>
+        </thead>
+        <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+          {list.map((it, i) => (
+            <tr key={String(it.id ?? i)} className="hover:bg-slate-50 dark:hover:bg-slate-800/40">
+              <td className="px-4 py-2">
+                <p className="text-[11px] text-slate-800 dark:text-slate-200">{String(it.nama_barang ?? "")}</p>
+                {it.kode_fikasi ? <p className="font-mono text-[10px] text-indigo-600 dark:text-indigo-400">{String(it.kode_fikasi)}</p> : null}
+              </td>
+              <td className="px-4 py-2">
+                <span
+                  className={`px-2 py-0.5 rounded-md text-[9px] font-bold ${
+                    it.sumber === "pengadaan"
+                      ? "bg-blue-50 dark:bg-blue-500/10 text-blue-700 dark:text-blue-300"
+                      : "bg-violet-50 dark:bg-violet-500/10 text-violet-700 dark:text-violet-300"
+                  }`}
+                >
+                  {it.sumber === "pengadaan" ? "Rencana Pengadaan" : "Aset Dimiliki"}
+                </span>
+              </td>
+              <td className="px-4 py-2 text-right font-mono font-semibold text-xs text-slate-900 dark:text-white">
+                {Number(it.jumlah ?? 0).toLocaleString("id-ID")} {String(it.satuan ?? "")}
+              </td>
+              <td className="px-4 py-2 text-right font-mono text-[10px] text-slate-500 dark:text-slate-400">
+                {it.sumber === "pemeliharaan"
+                  ? `${Number(it.kondisi_b ?? 0)} / ${Number(it.kondisi_rr ?? 0)} / ${Number(it.kondisi_rb ?? 0)}`
+                  : "—"}
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
     </div>
   )
 }
@@ -344,16 +396,35 @@ export function DetailReviewModal({ item, canReview, onClose, onSuccess }: Detai
                     <Shield className="h-3.5 w-3.5" /> {sec.title}
                   </p>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5">
-                    {fields.map((f) => (
-                      <FieldRow
-                        key={`${item.id}-${f.key}`}
-                        def={f}
-                        value={fieldValues[f.key]}
-                        note={fieldComments[f.key] || undefined}
-                        readOnly={!canReview}
-                        onNote={(v) => setFieldComment(f.key, v)}
-                      />
-                    ))}
+                    {fields.map((f) =>
+                      f.key === "rkbmd_items" ? (
+                        <div key={`${item.id}-${f.key}`} className="md:col-span-2 space-y-2">
+                          <FieldRow
+                            def={f}
+                            value={fieldValues[f.key]}
+                            note={fieldComments[f.key] || undefined}
+                            readOnly={!canReview}
+                            onNote={(v) => setFieldComment(f.key, v)}
+                          />
+                          <div className="flex items-center gap-1.5 px-1">
+                            <ClipboardList className="h-3.5 w-3.5 text-slate-400" />
+                            <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                              Rincian Item (Rencana Pengadaan 🔵 / Aset Dimiliki 🟣)
+                            </p>
+                          </div>
+                          <RkbmdItemsTable items={fd.rkbmd_items} />
+                        </div>
+                      ) : (
+                        <FieldRow
+                          key={`${item.id}-${f.key}`}
+                          def={f}
+                          value={fieldValues[f.key]}
+                          note={fieldComments[f.key] || undefined}
+                          readOnly={!canReview}
+                          onNote={(v) => setFieldComment(f.key, v)}
+                        />
+                      )
+                    )}
                   </div>
                 </div>
               )
@@ -376,34 +447,50 @@ export function DetailReviewModal({ item, canReview, onClose, onSuccess }: Detai
               </div>
             )}
 
-            {/* Waktu */}
+            {/* Waktu — tiap baris dengan ikon pensil (catatan verifikator per-field) */}
             <div className="space-y-2">
               <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500 flex items-center gap-1.5">
                 <Calendar className="h-3.5 w-3.5" /> Jadwal & Waktu Pelaksanaan
               </p>
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 p-3.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-950/40">
-                <div>
-                  <p className="text-[10px] text-slate-400 uppercase">Pemanfaatan</p>
-                  <p className="font-mono text-[11px] text-slate-800 dark:text-slate-200 mt-0.5">
-                    {item.waktu_pemanfaatan_awal ? `${item.waktu_pemanfaatan_awal} s/d ${item.waktu_pemanfaatan_akhir || ""}` : "—"}
-                  </p>
-                </div>
-                <div>
-                  <p className="text-[10px] text-slate-400 uppercase">Pemilihan Penyedia</p>
-                  <p className="font-mono text-[11px] text-slate-800 dark:text-slate-200 mt-0.5">
-                    {item.waktu_pemilihan_awal ? `${item.waktu_pemilihan_awal} s/d ${item.waktu_pemilihan_akhir || ""}` : "—"}
-                  </p>
-                </div>
-                <div>
-                  <p className="text-[10px] text-slate-400 uppercase">Pelaksanaan Pekerjaan</p>
-                  <p className="font-mono text-[11px] text-slate-800 dark:text-slate-200 mt-0.5">
-                    {item.waktu_pelaksanaan_pekerjaan_awal
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+                <FieldRow
+                  key={`${item.id}-waktu_pemanfaatan`}
+                  def={{ key: "waktu_pemanfaatan", label: "Waktu Pemanfaatan" }}
+                  value={
+                    item.waktu_pemanfaatan_awal
+                      ? `${item.waktu_pemanfaatan_awal} s/d ${item.waktu_pemanfaatan_akhir || ""}`
+                      : "—"
+                  }
+                  note={fieldComments["waktu_pemanfaatan"] || undefined}
+                  readOnly={!canReview}
+                  onNote={(v) => setFieldComment("waktu_pemanfaatan", v)}
+                />
+                <FieldRow
+                  key={`${item.id}-waktu_pemilihan`}
+                  def={{ key: "waktu_pemilihan", label: "Waktu Pemilihan Penyedia" }}
+                  value={
+                    item.waktu_pemilihan_awal
+                      ? `${item.waktu_pemilihan_awal} s/d ${item.waktu_pemilihan_akhir || ""}`
+                      : "—"
+                  }
+                  note={fieldComments["waktu_pemilihan"] || undefined}
+                  readOnly={!canReview}
+                  onNote={(v) => setFieldComment("waktu_pemilihan", v)}
+                />
+                <FieldRow
+                  key={`${item.id}-waktu_pelaksanaan`}
+                  def={{ key: "waktu_pelaksanaan", label: "Waktu Pelaksanaan Pekerjaan" }}
+                  value={
+                    item.waktu_pelaksanaan_pekerjaan_awal
                       ? `${item.waktu_pelaksanaan_pekerjaan_awal} s/d ${item.waktu_pelaksanaan_pekerjaan_akhir || ""}`
                       : item.waktu_pelaksanaan_kontrak_awal
                       ? `${item.waktu_pelaksanaan_kontrak_awal} s/d ${item.waktu_pelaksanaan_kontrak_akhir || ""}`
-                      : "—"}
-                  </p>
-                </div>
+                      : "—"
+                  }
+                  note={fieldComments["waktu_pelaksanaan"] || undefined}
+                  readOnly={!canReview}
+                  onNote={(v) => setFieldComment("waktu_pelaksanaan", v)}
+                />
               </div>
             </div>
 

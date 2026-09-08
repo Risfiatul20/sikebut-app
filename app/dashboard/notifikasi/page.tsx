@@ -1,4 +1,4 @@
-"use client"
+  "use client"
 
 import { useCallback, useEffect, useState } from "react"
 import { Bell, CheckCheck, Loader2, RefreshCw } from "lucide-react"
@@ -83,13 +83,13 @@ export default function NotifikasiPage() {
         </div>
       )}
 
-      <div className="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 overflow-hidden">
+      <div className="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 overflow-hidden flex flex-col" style={{ maxHeight: "min(72vh, 640px)" }}>
         {loading ? (
           <div className="p-10 flex items-center justify-center text-slate-400">
             <Loader2 className="h-5 w-5 animate-spin" />
           </div>
         ) : items && items.length > 0 ? (
-          <div className="divide-y divide-slate-100 dark:divide-slate-800">
+          <div className="divide-y divide-slate-100 dark:divide-slate-800 overflow-y-auto min-h-0" style={{ overflowY: "auto" }}>
             {items.map((n) => (
               <div
                 key={n.id}
