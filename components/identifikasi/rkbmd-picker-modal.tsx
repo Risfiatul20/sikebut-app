@@ -133,6 +133,23 @@ export function RkbmdPickerModal({
 
   const isChecked = (id: string) => selected.has(id)
 
+  /** Batas atas jumlah untuk tab Rencana (Pengadaan) = kolom "Maks" (jumlah_maksimum),
+   *  fallback ke jumlah_barang bila Maks tidak terisi. */
+  const pengadaanCap = (r: RawPengadaan): number | undefined => {
+    const m = r.jumlah_maksimum
+    if (m && m > 0) return m
+    const b = r.jumlah_barang
+    return b && b > 0 ? b : undefined
+  }
+
+  /** Batas atas jumlah untuk tab Aset (Pemeliharaan) = total aset yang dimiliki (jumlah_barang). */
+  const pemeliharaanCap = (r: RawPemeliharaan): number | undefined =>
+    r.jumlah_barang > 0 ? r.jumlah_barang : undefined
+
+  /** Jepit nilai agar 0 ≤ v ≤ cap (pola Modal Pagu — nilai tidak pernah melebihi Maks). */
+  const clampTo = (cap: number | undefined, v: number) =>
+    cap == null ? Math.max(0, v) : Math.max(0, Math.min(v, cap))
+
   const togglePengadaan = (r: RawPengadaan) => {
     setSelected((prev) => {
       const next = new Map(prev)
@@ -140,12 +157,13 @@ export function RkbmdPickerModal({
       if (next.has(id)) {
         next.delete(id)
       } else {
+        const cap = pengadaanCap(r)
         next.set(id, {
           id,
           sumber: "pengadaan",
           nama_barang: r.nama_barang,
           kode_fikasi: r.kode_fikasi || "",
-          jumlah: Math.max(r.jumlah_barang ?? 0, r.jumlah_maksimum ?? 0),
+          jumlah: clampTo(cap, Math.max(r.jumlah_barang ?? 0, r.jumlah_maksimum ?? 0)),
           satuan: r.satuan || "",
           jumlah_maksimum: r.jumlah_maksimum,
         })
@@ -177,12 +195,16 @@ export function RkbmdPickerModal({
     })
   }
 
-  const updateSelectedItem = (id: string, patch: Partial<RkbmdItemTerpilih>) => {
+  const updateSelectedItem = (id: string, patch: Partial<RkbmdItemTerpilih>, cap?: number) => {
     setSelected((prev) => {
       const next = new Map(prev)
       const cur = next.get(id)
       if (!cur) return prev
-      next.set(id, { ...cur, ...patch })
+      const nextPatch =
+        cap != null && patch.jumlah != null
+          ? { ...patch, jumlah: Math.max(0, Math.min(patch.jumlah, cap)) }
+          : patch
+      next.set(id, { ...cur, ...nextPatch })
       return next
     })
   }
@@ -312,8 +334,9 @@ export function RkbmdPickerModal({
                                 <input
                                   type="number"
                                   min={0}
+                                  max={pengadaanCap(r)}
                                   value={selected.get(id)?.jumlah ?? 0}
-                                  onChange={(e) => updateSelectedItem(id, { jumlah: Math.max(0, Number(e.target.value) || 0) })}
+                                  onChange={(e) => updateSelectedItem(id, { jumlah: Number(e.target.value) || 0 }, pengadaanCap(r))}
                                   className="w-24 rounded-lg border border-emerald-300 dark:border-emerald-700 bg-white dark:bg-slate-950 px-2 py-1.5 text-[11px] font-mono text-right focus:ring-2 focus:ring-emerald-500/40 focus:border-emerald-500"
                                 />
                               ) : (
@@ -383,8 +406,9 @@ export function RkbmdPickerModal({
                                   <input
                                     type="number"
                                     min={0}
+                                    max={pemeliharaanCap(r)}
                                     value={sel?.jumlah ?? 0}
-                                    onChange={(e) => updateSelectedItem(id, { jumlah: Math.max(0, Number(e.target.value) || 0) })}
+                                    onChange={(e) => updateSelectedItem(id, { jumlah: Number(e.target.value) || 0 }, pemeliharaanCap(r))}
                                     className="w-20 rounded-lg border border-emerald-300 dark:border-emerald-700 bg-white dark:bg-slate-950 px-2 py-1.5 text-[11px] font-mono text-right focus:ring-2 focus:ring-emerald-500/40 focus:border-emerald-500"
                                   />
                                   <span className="text-[10px] text-slate-400">{r.satuan || ""}</span>
