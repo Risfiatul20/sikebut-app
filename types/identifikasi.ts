@@ -2,14 +2,14 @@ export type CaraPengadaan = "Penyedia" | "Swakelola"
 export type JenisPengadaan = "Barang" | "Konstruksi" | "Jasa Lainnya" | "Konsultansi"
 export type YaTidak = "Ya" | "Tidak"
 export type BanyakTerbatas = "Banyak" | "Terbatas"
-export type MetodePengadaan = "ePurchasing" | "Tender" | "Pengadaan Langsung" | "Seleksi" | "Penunjukan Langsung" | "Swakelola"
+export type MetodePengadaan = "ePurchasing" | "Tender" | "Tender Cepat" | "Pengadaan Langsung" | "Seleksi" | "Seleksi Cepat" | "Penunjukan Langsung"
 export type TipeSwakelola = "Tipe I" | "Tipe II" | "Tipe III" | "Tipe IV"
 export type KondisiBarang = "Baik" | "Rusak Ringan" | "Rusak Berat"
 export type Prioritas = "Tinggi" | "Sedang" | "Kecil"
 export type Kompleksitas = "Kompleks" | "Sederhana"
 export type JenisPenyedia = "Perorangan" | "Badan Usaha"
 export type MetodeOperasi = "Otomatis" | "Manual"
-export type StatusReview = "Draft" | "Menunggu Review" | "Disetujui" | "Ditolak"
+export type StatusReview = "Draft" | "Diajukan" | "Disetujui" | "Perlu Perbaikan"
 
 export interface WilayahItem {
   code: string
@@ -45,6 +45,21 @@ export interface PaguPaketItem {
   pagu_sipd: number
   pagu_tertagih: number
   rencana_pagu_paket: number
+}
+
+export interface RkbmdItemTerpilih {
+  /** id unik — `${sumber}-${id sumber}` */
+  id: string
+  sumber: "pengadaan" | "pemeliharaan"
+  nama_barang: string
+  kode_fikasi: string
+  /** jumlah yang dipakai: jumlah dibutuhkan (pengadaan) / jumlah sejenis (pemeliharaan) */
+  jumlah: number
+  satuan: string
+  jumlah_maksimum?: number
+  kondisi_b?: number
+  kondisi_rr?: number
+  kondisi_rb?: number
 }
 
 export interface FormIdentitas {
@@ -92,10 +107,14 @@ export interface FormBarang {
   kondisi_rusak_berat: number
   mudah_pasaran: YaTidak
   produsen: BanyakTerbatas
+  rkbmd_items: RkbmdItemTerpilih[]
   kriteria_barang: string[]
   persyaratan_tkdn: YaTidak
   nilai_tkdn: number
   cara_pengiriman: string
+  cara_pengangkutan: string
+  cara_pemasangan: string
+  cara_penimbunan: string
   cara_operasi: MetodeOperasi
   pelatihan: YaTidak
   spp_lanjutan: string[]
@@ -146,6 +165,13 @@ export interface FormKonstruksi {
   izin_pemanfaatan_tanah: YaTidak
   lama_pengurusan_lahan: number
   status_pembayaran_ganti_rugi: YaTidak
+  // Identifikasi pekerjaan/barang yang telah tersedia (belanja modal) — penjelasan.docx Tabel 9
+  jumlah_dibutuhkan: number
+  jumlah_sejenis: number
+  kondisi_baik: number
+  kondisi_rusak_ringan: number
+  kondisi_rusak_berat: number
+  rkbmd_items: RkbmdItemTerpilih[]
   pengadaan_sejenis: YaTidak
   indikasi_konsolidasi: YaTidak
 }
@@ -314,6 +340,26 @@ export interface IdentifikasiPaginationLinks {
   last: string | null
   prev: string | null
   next: string | null
+}
+
+export interface RiwayatItem {
+  id: number
+  identifikasi_kebutuhan_id: number
+  status_dari: string | null
+  status_ke: string
+  catatan: string | null
+  user_id: number
+  pembuat?: {
+    id: number
+    nama: string
+    username: string
+    role: string
+  } | null
+  created_at: string
+}
+
+export interface RiwayatListResponse {
+  data: RiwayatItem[]
 }
 
 export interface IdentifikasiListResponse {

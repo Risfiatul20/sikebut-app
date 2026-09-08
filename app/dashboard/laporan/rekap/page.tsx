@@ -1,6 +1,7 @@
 import { auth } from "@/auth"
 import { redirect } from "next/navigation"
-import { DUMMY_LAPORAN_REKAP } from "@/lib/mock-laporan-rekap"
+import { getApi } from "@/lib/api"
+import { LaporanRekapResponse } from "@/types/laporan"
 import { LaporanTreeTable } from "@/components/laporan/laporan-tree-table"
 import { PieChart, Calendar, Database, Layers, FileSpreadsheet } from "lucide-react"
 
@@ -16,15 +17,29 @@ export default async function LaporanRekapPage() {
     redirect("/login")
   }
 
-  // Data diambil dari sumber database / API (menggunakan dataset hierarki 5 level terstruktur)
-  const dataRekap = DUMMY_LAPORAN_REKAP
+  // Data diambil dari API backend (Laravel) — rekap berjenjang 5 level dari pagu RKA SIPD.
+  let dataRekap: LaporanRekapResponse["data"]["tree"] = []
+  let totalPagu = 0
+  let totalPengadaan = 0
+  let totalTeridentifikasi = 0
+  let totalPaket = 0
   const tahunAnggaran = 2026
+  let errorMessage: string | null = null
 
-  // Kalkulasi ringkasan atas
-  const totalPagu = dataRekap.reduce((acc, curr) => acc + curr.pagu, 0)
-  const totalPengadaan = dataRekap.reduce((acc, curr) => acc + curr.belanjaPengadaan, 0)
-  const totalTeridentifikasi = dataRekap.reduce((acc, curr) => acc + curr.identifikasi.jumlah.pagu, 0)
-  const totalPaket = dataRekap.reduce((acc, curr) => acc + curr.identifikasi.jumlah.paket, 0)
+  try {
+    const res = await getApi<LaporanRekapResponse>("/api/v1/laporan/rekap?tahun=" + tahunAnggaran)
+    dataRekap = res?.data?.tree ?? []
+    const s = res?.data?.summary
+    if (s) {
+      totalPagu = s.total_pagu || 0
+      totalPengadaan = s.total_pengadaan || 0
+      totalTeridentifikasi = s.total_pagu_paket || 0
+      totalPaket = s.total_paket || 0
+    }
+  } catch (err) {
+    errorMessage = err instanceof Error ? err.message : "Gagal memuat laporan rekapitulasi"
+    console.error("[laporan/rekap] Gagal memuat data dari backend:", err)
+  }
 
   const formatRupiah = (val: number): string => {
     return new Intl.NumberFormat("id-ID", {
@@ -35,8 +50,29 @@ export default async function LaporanRekapPage() {
     }).format(val || 0)
   }
 
+  // Format ringkas untuk angka besar (Triliun/Miliar/Juta) agar kartu tetap rapi,
+  // nilai lengkap tetap tersedia via tooltip (title).
+  const formatRupiahRingkas = (val: number): string => {
+    const v = val || 0
+    const abs = Math.abs(v)
+    const fmt = (n: number) =>
+      new Intl.NumberFormat("id-ID", {
+        minimumFractionDigits: 0,
+        maximumFractionDigits: 2,
+      }).format(n)
+    if (abs >= 1e12) return `Rp ${fmt(v / 1e12)} T`
+    if (abs >= 1e9) return `Rp ${fmt(v / 1e9)} M`
+    if (abs >= 1e6) return `Rp ${fmt(v / 1e6)} Jt`
+    return formatRupiah(v)
+  }
+
   return (
     <div className="space-y-6 animate-in fade-in duration-300">
+      {errorMessage && (
+        <div className="rounded-lg border border-rose-200 dark:border-rose-500/30 bg-rose-50 dark:bg-rose-500/10 px-4 py-3 text-xs text-rose-700 dark:text-rose-300">
+          <strong>Gagal memuat data dari server:</strong> {errorMessage}. Menampilkan data kosong.
+        </div>
+      )}
       {/* Header Halaman */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
@@ -54,6 +90,16 @@ export default async function LaporanRekapPage() {
         </div>
 
         <div className="flex items-center gap-2 self-start sm:self-auto">
+          {/* Tombol Ekspor Excel */}
+          <a
+            href={`/api/laporan/rekap/export?tahun=${tahunAnggaran}`}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold border border-blue-600 shadow-sm transition-colors"
+            title="Unduh rekapitulasi dalam format Excel"
+          >
+            <FileSpreadsheet className="h-3.5 w-3.5" />
+            Ekspor Excel
+          </a>
+
           {/* Badge Tahun Anggaran */}
           <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-100 dark:bg-slate-800 text-xs font-mono font-semibold text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700">
             <Calendar className="h-3.5 w-3.5 text-blue-500" />
@@ -73,8 +119,11 @@ export default async function LaporanRekapPage() {
           <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
             <Database className="h-3.5 w-3.5 text-slate-500" /> Total Pagu APBD
           </p>
-          <p className="font-display text-xl font-bold text-slate-900 dark:text-white mt-1.5 font-mono">
-            {formatRupiah(totalPagu)}
+          <p
+            title={formatRupiah(totalPagu)}
+            className="font-display text-xl font-bold text-slate-900 dark:text-white mt-1.5 font-mono tracking-tight whitespace-nowrap overflow-hidden text-ellipsis"
+          >
+            {formatRupiahRingkas(totalPagu)}
           </p>
           <p className="text-[10px] text-slate-400 mt-1">Seluruh perangkat daerah</p>
         </div>
@@ -83,8 +132,11 @@ export default async function LaporanRekapPage() {
           <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
             <Layers className="h-3.5 w-3.5 text-blue-500" /> Belanja Pengadaan
           </p>
-          <p className="font-display text-xl font-bold text-blue-600 dark:text-blue-400 mt-1.5 font-mono">
-            {formatRupiah(totalPengadaan)}
+          <p
+            title={formatRupiah(totalPengadaan)}
+            className="font-display text-xl font-bold text-blue-600 dark:text-blue-400 mt-1.5 font-mono tracking-tight whitespace-nowrap overflow-hidden text-ellipsis"
+          >
+            {formatRupiahRingkas(totalPengadaan)}
           </p>
           <p className="text-[10px] text-slate-400 mt-1">Pagu pengadaan tervalidasi</p>
         </div>
@@ -93,8 +145,11 @@ export default async function LaporanRekapPage() {
           <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
             <FileSpreadsheet className="h-3.5 w-3.5 text-emerald-500" /> Pagu Teridentifikasi
           </p>
-          <p className="font-display text-xl font-bold text-emerald-600 dark:text-emerald-400 mt-1.5 font-mono">
-            {formatRupiah(totalTeridentifikasi)}
+          <p
+            title={formatRupiah(totalTeridentifikasi)}
+            className="font-display text-xl font-bold text-emerald-600 dark:text-emerald-400 mt-1.5 font-mono tracking-tight whitespace-nowrap overflow-hidden text-ellipsis"
+          >
+            {formatRupiahRingkas(totalTeridentifikasi)}
           </p>
           <p className="text-[10px] text-slate-400 mt-1">
             {totalPengadaan > 0 ? ((totalTeridentifikasi / totalPengadaan) * 100).toFixed(1) : 0}% dari pagu pengadaan

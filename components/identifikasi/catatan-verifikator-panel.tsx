@@ -1,6 +1,7 @@
 "use client"
 
 import { useState } from "react"
+import { statusLabel } from "@/lib/status-paket"
 import { MessageCircle, ListChecks, AlertCircle, ChevronDown, ChevronUp, RefreshCw, XCircle } from "lucide-react"
 
 interface CatatanVerifikatorPanelProps {
@@ -24,7 +25,7 @@ export function CatatanVerifikatorPanel({
   const detailEntries = Object.entries(catatanReviewerDetail || {}).filter(([_, v]) => Boolean(v?.trim()))
   const hasGlobalNote = Boolean(catatanReviewer?.trim())
   const hasDetailNotes = detailEntries.length > 0
-  const isDitolak = statusReview === "Ditolak"
+  const isDitolak = statusReview === "Perlu Perbaikan"
 
   if (!hasGlobalNote && !hasDetailNotes && !isDitolak) {
     return null
@@ -48,7 +49,7 @@ export function CatatanVerifikatorPanel({
                   ? "bg-red-100 text-red-700 dark:bg-red-500/20 dark:text-red-300 border-red-200 dark:border-red-500/30"
                   : "bg-amber-100 text-amber-800 dark:bg-amber-500/20 dark:text-amber-200 border-amber-200 dark:border-amber-500/30"
               }`}>
-                {statusReview || "Perlu Perbaikan"}
+                {statusLabel(statusReview) || "Perlu Perbaikan"}
               </span>
             </div>
             <p className="text-[10px] text-amber-700 dark:text-amber-300 mt-0.5">

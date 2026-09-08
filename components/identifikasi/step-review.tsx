@@ -1,6 +1,6 @@
 "use client"
 
-import { AlertTriangle, FileText, Layers, Building2, DollarSign } from "lucide-react"
+import { AlertTriangle, FileText, Layers, Building2, DollarSign, ClipboardList } from "lucide-react"
 
 interface Props {
   identitas: {
@@ -94,6 +94,52 @@ export function StepReview({ identitas, anggaran, formData }: Props) {
           </div>
         </div>
       )}
+
+      {/* RKBMD Items Table */}
+      {(() => {
+        const rkbmd = (formData as Record<string, unknown>)?.rkbmd_items
+        if (!Array.isArray(rkbmd) || rkbmd.length === 0) return null
+        return (
+          <div className="space-y-2">
+            <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1.5"><ClipboardList className="h-3.5 w-3.5" /> Identifikasi Barang Tersedia (RKBMD) — {rkbmd.length} item</p>
+            <div className="border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden">
+              <table className="w-full text-xs">
+                <thead className="bg-slate-50/80 dark:bg-slate-800/50">
+                  <tr className="text-[10px] uppercase text-slate-400 border-b border-slate-100 dark:border-slate-800">
+                    <th className="font-semibold px-4 py-2 text-left">Nama Barang</th>
+                    <th className="font-semibold px-4 py-2 text-left">Sumber</th>
+                    <th className="font-semibold px-4 py-2 text-right">Jumlah</th>
+                    <th className="font-semibold px-4 py-2 text-right">Kondisi (B/RR/RB)</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+                  {(rkbmd as Array<Record<string, unknown>>).map((it, i) => (
+                    <tr key={String(it.id ?? i)} className="hover:bg-slate-50 dark:hover:bg-slate-800/40">
+                      <td className="px-4 py-2">
+                        <p className="text-[11px] text-slate-800 dark:text-slate-200">{String(it.nama_barang ?? "")}</p>
+                        {it.kode_fikasi ? <p className="font-mono text-[10px] text-indigo-600 dark:text-indigo-400">{String(it.kode_fikasi)}</p> : null}
+                      </td>
+                      <td className="px-4 py-2">
+                        <span className={`px-2 py-0.5 rounded-md text-[9px] font-bold ${it.sumber === "pengadaan" ? "bg-blue-50 dark:bg-blue-500/10 text-blue-700 dark:text-blue-300" : "bg-violet-50 dark:bg-violet-500/10 text-violet-700 dark:text-violet-300"}`}>
+                          {it.sumber === "pengadaan" ? "Rencana Pengadaan" : "Aset Dimiliki"}
+                        </span>
+                      </td>
+                      <td className="px-4 py-2 text-right font-mono font-semibold text-xs text-slate-900 dark:text-white">
+                        {Number(it.jumlah ?? 0).toLocaleString("id-ID")} {String(it.satuan ?? "")}
+                      </td>
+                      <td className="px-4 py-2 text-right font-mono text-[10px] text-slate-500 dark:text-slate-400">
+                        {it.sumber === "pemeliharaan"
+                          ? `${Number(it.kondisi_b ?? 0)} / ${Number(it.kondisi_rr ?? 0)} / ${Number(it.kondisi_rb ?? 0)}`
+                          : "—"}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )
+      })()}
 
       {/* Confirmation Note */}
       <div className="flex items-start gap-3 p-4 rounded-xl border border-amber-200 dark:border-amber-800/50 bg-amber-50/50 dark:bg-amber-950/20">

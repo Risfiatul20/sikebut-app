@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from "react"
 import { User, UserRole, UserListResponse, CreateUserPayload, UpdateUserPayload } from "@/types/user"
-import { INITIAL_USERS } from "@/lib/mock-users"
 import { useSkpd } from "@/hooks/useSkpd"
 import { usePermission } from "@/hooks/usePermission"
 import { SearchableSelect, SearchableSelectOption } from "@/components/ui/searchable-select"
@@ -35,7 +34,7 @@ export function UserManagementTable() {
   const { can, canCreate, creatableRoles } = usePermission()
   const canCreateAnyUser = creatableRoles().length > 0
 
-  const [users, setUsers] = useState<User[]>(INITIAL_USERS)
+  const [users, setUsers] = useState<User[]>([])
   const [isLoading, setIsLoading] = useState<boolean>(false)
   const [search, setSearch] = useState("")
   const [selectedRole, setSelectedRole] = useState<string>("ALL")
@@ -66,7 +65,7 @@ export function UserManagementTable() {
   const [currentPage, setCurrentPage] = useState(1)
   const [pageSize, setPageSize] = useState(10)
   const [totalPages, setTotalPages] = useState(1)
-  const [totalRecords, setTotalRecords] = useState(INITIAL_USERS.length)
+  const [totalRecords, setTotalRecords] = useState(0)
 
   // Sorting state
   const [sortField, setSortField] = useState<string>("nama")

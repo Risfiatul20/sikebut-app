@@ -3,6 +3,7 @@
 import { useState } from "react"
 import { RkbmdPengadaanItem } from "@/types/rkbmd"
 import { RkbmdImportDropzone } from "@/components/rkbmd/rkbmd-import-dropzone"
+import { RkbmdManualForm } from "@/components/rkbmd/rkbmd-manual-form"
 import { useRkbmdList } from "@/hooks/useRkbmdList"
 import { useSkpd } from "@/hooks/useSkpd"
 import {
@@ -18,12 +19,14 @@ import {
   ChevronDown,
   ChevronUp,
   X,
+  PackagePlus,
 } from "lucide-react"
 
 export default function RkbmdPengadaanPage() {
   const { skpdList } = useSkpd()
 
   const [isImportOpen, setIsImportOpen] = useState(false)
+  const [isManualOpen, setIsManualOpen] = useState(false)
   const [selectedItem, setSelectedItem] = useState<RkbmdPengadaanItem | null>(null)
 
   // Filters
@@ -108,6 +111,15 @@ export default function RkbmdPengadaanPage() {
           >
             <RotateCcw className={`h-3.5 w-3.5 ${isLoading ? "animate-spin text-blue-500" : "text-slate-400"}`} />
             <span>Sinkronkan</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setIsManualOpen(true)}
+            className="h-8 px-3 inline-flex items-center gap-1.5 rounded-lg border border-emerald-600 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold shadow-xs transition-colors"
+          >
+            <PackagePlus className="h-3.5 w-3.5" />
+            <span>Tambah Manual</span>
           </button>
 
           <button
@@ -382,6 +394,14 @@ export default function RkbmdPengadaanPage() {
           </div>
         </div>
       </section>
+
+      {/* Modal Tambah Manual */}
+      <RkbmdManualForm
+        type="pengadaan"
+        isOpen={isManualOpen}
+        onClose={() => setIsManualOpen(false)}
+        onSaved={() => reload()}
+      />
 
       {/* Detail Modal */}
       {selectedItem && (

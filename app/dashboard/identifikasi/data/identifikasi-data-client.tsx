@@ -6,8 +6,8 @@ import { AuthSubKegiatan } from "@/types/next-auth"
 import { usePermission } from "@/hooks/usePermission"
 import { useIdentifikasiList } from "@/hooks/useIdentifikasiList"
 import { IdentifikasiKebutuhan } from "@/types/identifikasi"
-import { IdentifikasiDetailModal } from "@/components/identifikasi/identifikasi-detail-modal"
-import { ReviewPaketModal } from "@/components/identifikasi/review-paket-modal"
+import { statusLabel, statusBadgeClass } from "@/lib/status-paket"
+import { DetailReviewModal } from "@/components/identifikasi/detail-review-modal"
 import {
   FileText,
   Plus,
@@ -20,14 +20,14 @@ import {
   Loader2,
   Tag,
   ArrowUpDown,
-  ShieldCheck,
   Send,
   Trash2,
   CheckCircle2,
   AlertCircle,
   Clock,
   XCircle,
-  Inbox
+  Inbox,
+  ShieldCheck
 } from "lucide-react"
 
 export interface IdentifikasiDataClientSession {
@@ -55,8 +55,8 @@ export function IdentifikasiDataClient({ session }: { session: IdentifikasiDataC
 
   // Filter & pagination state
   const [search, setSearch] = useState("")
-  // Default tab: Verifikator -> "Menunggu Review", lainnya -> "ALL"
-  const [statusReview, setStatusReview] = useState<string>(() => (isUserVerifikator ? "Menunggu Review" : "ALL"))
+  // Default tab: Verifikator -> "Diajukan" (label: Menunggu Review), lainnya -> "ALL"
+  const [statusReview, setStatusReview] = useState<string>(() => (isUserVerifikator ? "Diajukan" : "ALL"))
   const [caraPengadaan, setCaraPengadaan] = useState("ALL")
   const [jenisPengadaan, setJenisPengadaan] = useState("ALL")
   const [page, setPage] = useState(1)
@@ -64,9 +64,8 @@ export function IdentifikasiDataClient({ session }: { session: IdentifikasiDataC
   const [sortBy, setSortBy] = useState("id")
   const [sortDirection, setSortDirection] = useState<"asc" | "desc">("desc")
 
-  // Modals state
-  const [selectedDetailItem, setSelectedDetailItem] = useState<IdentifikasiKebutuhan | null>(null)
-  const [selectedReviewItem, setSelectedReviewItem] = useState<IdentifikasiKebutuhan | null>(null)
+  // Modal terpadu Detail & Review (1 state untuk semua role)
+  const [selectedItem, setSelectedItem] = useState<IdentifikasiKebutuhan | null>(null)
   const [isActionLoading, setIsActionLoading] = useState<number | null>(null)
   const [toastMsg, setToastMsg] = useState<{ type: "success" | "error"; text: string } | null>(null)
 
@@ -104,14 +103,14 @@ export function IdentifikasiDataClient({ session }: { session: IdentifikasiDataC
 
   const handleResetFilters = () => {
     setSearch("")
-    setStatusReview(isUserVerifikator ? "Menunggu Review" : "ALL")
+    setStatusReview(isUserVerifikator ? "Diajukan" : "ALL")
     setCaraPengadaan("ALL")
     setJenisPengadaan("ALL")
     setPage(1)
   }
 
   const hasActiveFilters = Boolean(
-    search || (isUserVerifikator ? statusReview !== "Menunggu Review" : statusReview !== "ALL") || caraPengadaan !== "ALL" || jenisPengadaan !== "ALL"
+    search || (isUserVerifikator ? statusReview !== "Diajukan" : statusReview !== "ALL") || caraPengadaan !== "ALL" || jenisPengadaan !== "ALL"
   )
 
   // Aksi Ajukan Review (PPK & Admin)
@@ -126,7 +125,7 @@ export function IdentifikasiDataClient({ session }: { session: IdentifikasiDataC
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          status_review: "Menunggu Review",
+          action: "submit",
         }),
       })
 
@@ -170,26 +169,17 @@ export function IdentifikasiDataClient({ session }: { session: IdentifikasiDataC
     }
   }
 
-  const getStatusBadge = (status: string) => {
-    switch (status) {
-      case "Disetujui":
-        return "bg-emerald-50 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300 border-emerald-200 dark:border-emerald-500/30"
-      case "Menunggu Review":
-        return "bg-amber-50 text-amber-700 dark:bg-amber-500/15 dark:text-amber-300 border-amber-200 dark:border-amber-500/30"
-      case "Ditolak":
-        return "bg-red-50 text-red-700 dark:bg-red-500/15 dark:text-red-300 border-red-200 dark:border-red-500/30"
-      default:
-        return "bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300 border-slate-200 dark:border-slate-700"
-    }
-  }
-
-  const STATUS_TABS = [
-    { key: "ALL", label: "Semua Status" },
-    { key: "Draft", label: "Draft", icon: Clock },
-    { key: "Menunggu Review", label: "Menunggu Review", icon: AlertCircle },
-    { key: "Disetujui", label: "Disetujui", icon: CheckCircle2 },
-    { key: "Ditolak", label: "Ditolak / Revisi", icon: XCircle },
-  ]
+  // Verifikator hanya boleh melihat paket yang SUDAH DIAJUKAN (menunggu review).
+  // Paket Draft (belum final) milik PPK tidak ditampilkan & tidak bisa diakses.
+  const STATUS_TABS = isUserVerifikator
+    ? [{ key: "Diajukan", label: "Menunggu Review", icon: AlertCircle }]
+    : [
+        { key: "ALL", label: "Semua Status" },
+        { key: "Draft", label: "Draft", icon: Clock },
+        { key: "Diajukan", label: "Menunggu Review", icon: AlertCircle },
+        { key: "Disetujui", label: "Disetujui", icon: CheckCircle2 },
+        { key: "Perlu Perbaikan", label: "Perlu Perbaikan", icon: XCircle },
+      ]
 
   return (
     <div className="space-y-6 animate-in fade-in duration-300">
@@ -228,6 +218,11 @@ export function IdentifikasiDataClient({ session }: { session: IdentifikasiDataC
         </div>
 
         <div className="flex items-center gap-2">
+          {isUserVerifikator && (
+            <span className="hidden sm:inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg border border-indigo-200 dark:border-indigo-500/30 bg-indigo-50/60 dark:bg-indigo-500/10 text-[10px] font-medium text-indigo-700 dark:text-indigo-300">
+              <ShieldCheck className="h-3.5 w-3.5" /> Hanya paket Menunggu Review — Draft PPK tidak ditampilkan
+            </span>
+          )}
           <button
             type="button"
             onClick={() => reload()}
@@ -363,9 +358,6 @@ export function IdentifikasiDataClient({ session }: { session: IdentifikasiDataC
         {/* Info Banner */}
         <div className="px-4 py-2 border-b border-slate-100 dark:border-slate-800 bg-slate-50/60 dark:bg-slate-800/30 flex items-center justify-between text-[11px] text-slate-500 dark:text-slate-400">
           <div className="flex items-center gap-2">
-            <span className="font-mono text-[10px] bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 px-1.5 py-0.5 rounded font-semibold">
-              GET /api/v1/identifikasi-kebutuhan
-            </span>
             <span>
               {isUserAdmin
                 ? "Hak Akses Admin: Anda dapat melihat, memverifikasi, mengajukan, maupun menghapus paket usulan."
@@ -473,14 +465,12 @@ export function IdentifikasiDataClient({ session }: { session: IdentifikasiDataC
                   const pembuatNama = item.pembuat?.nama || item.nama_user || "PPK"
                   const pembuatUsername = item.pembuat?.username || "—"
                   const isDraft = item.status_review === "Draft"
-                  const isDitolak = item.status_review === "Ditolak"
-                  const isMenungguReview = item.status_review === "Menunggu Review"
-
+                  const isPerluPerbaikan = item.status_review === "Perlu Perbaikan"
                   // Cek izin aksi via permissions
                   const canReview = can("paket:review")
-                  const canAjukan = can("paket:ajukan") && (isDraft || isDitolak)
+                  const canAjukan = can("paket:ajukan") && (isDraft || isPerluPerbaikan)
                   const canDelete = isUserAdmin || (can("paket:delete") && isDraft)
-                  const canEdit = can("paket:edit") && (isDraft || isDitolak) && (isUserAdmin || item.user_id === Number(session?.user?.id) || ppkSubCodes.includes(item.kode_sub_kegiatan))
+                  const canEdit = can("paket:edit") && (isDraft || isPerluPerbaikan) && (isUserAdmin || item.user_id === Number(session?.user?.id) || ppkSubCodes.includes(item.kode_sub_kegiatan))
 
                   return (
                     <tr
@@ -542,11 +532,11 @@ export function IdentifikasiDataClient({ session }: { session: IdentifikasiDataC
                       {/* 5. Status Review */}
                       <td className="px-4 py-3 whitespace-nowrap">
                         <span
-                          className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold border ${getStatusBadge(
+                          className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold border ${statusBadgeClass(
                             item.status_review
                           )}`}
                         >
-                          {item.status_review}
+                          {statusLabel(item.status_review)}
                         </span>
                       </td>
 
@@ -567,12 +557,16 @@ export function IdentifikasiDataClient({ session }: { session: IdentifikasiDataC
                       {/* Aksi Kolom (Role-Based) */}
                       <td className="px-4 py-3 text-right whitespace-nowrap">
                         <div className="flex items-center justify-end gap-1.5">
-                          {/* Tombol Detail (Semua Role) */}
+                          {/* Tombol Detail (Semua Role — Verifikator/Admin: detail + review terpadu) */}
                           <button
                             type="button"
-                            onClick={() => setSelectedDetailItem(item)}
-                            className="h-7 px-2 inline-flex items-center gap-1 rounded bg-slate-100 hover:bg-blue-50 text-slate-600 hover:text-blue-700 dark:bg-slate-800 dark:hover:bg-blue-900/30 dark:text-slate-300 dark:hover:text-blue-300 text-[11px] font-medium transition-colors"
-                            title="Lihat Detail Usulan & Anggaran"
+                            onClick={() => setSelectedItem(item)}
+                            className={`h-7 px-2 inline-flex items-center gap-1 rounded transition-colors text-[11px] font-medium ${
+                              canReview
+                                ? "bg-indigo-50 hover:bg-indigo-100 text-indigo-700 dark:bg-indigo-950/40 dark:text-indigo-300 dark:hover:bg-indigo-900/50 border border-indigo-200 dark:border-indigo-800"
+                                : "bg-slate-100 hover:bg-blue-50 text-slate-600 hover:text-blue-700 dark:bg-slate-800 dark:hover:bg-blue-900/30 dark:text-slate-300 dark:hover:text-blue-300"
+                            }`}
+                            title={canReview ? "Detail & Review Paket (catatan + keputusan)" : "Lihat Detail Usulan & Anggaran"}
                           >
                             <Eye className="h-3.5 w-3.5" />
                             <span>Detail</span>
@@ -590,23 +584,6 @@ export function IdentifikasiDataClient({ session }: { session: IdentifikasiDataC
                               <span>Edit</span>
                             </Link>
                           )}
-{/* Tombol Verifikasi / Review (Admin & Verifikator) */}
-                          {canReview && (
-                            <button
-                              type="button"
-                              onClick={() => setSelectedReviewItem(item)}
-                              className={`h-7 px-2.5 inline-flex items-center gap-1 rounded text-[11px] font-semibold transition-colors shadow-2xs ${
-                                isMenungguReview
-                                  ? "bg-indigo-600 hover:bg-indigo-700 text-white"
-                                  : "bg-indigo-50 hover:bg-indigo-100 text-indigo-700 dark:bg-indigo-950/40 dark:text-indigo-300 dark:hover:bg-indigo-900/50 border border-indigo-200 dark:border-indigo-800"
-                              }`}
-                              title="Review & Berikan Keputusan Verifikator"
-                            >
-                              <ShieldCheck className="h-3.5 w-3.5" />
-                              <span>Verifikasi</span>
-                            </button>
-                          )}
-
                           {/* Tombol Ajukan Review (PPK & Admin jika Draft/Ditolak) */}
                           {canAjukan && (
                             <button
@@ -678,17 +655,11 @@ export function IdentifikasiDataClient({ session }: { session: IdentifikasiDataC
         </div>
       </section>
 
-      {/* Modal Detail Usulan */}
-      <IdentifikasiDetailModal
-        item={selectedDetailItem}
-        onClose={() => setSelectedDetailItem(null)}
-      />
-
-      {/* Modal Review Verifikasi (Admin & Verifikator) */}
-      <ReviewPaketModal
-        item={selectedReviewItem}
-        open={Boolean(selectedReviewItem)}
-        onClose={() => setSelectedReviewItem(null)}
+      {/* Modal Terpadu: Detail Paket + Catatan Verifikator + Keputusan Review */}
+      <DetailReviewModal
+        item={selectedItem}
+        canReview={can("paket:review")}
+        onClose={() => setSelectedItem(null)}
         onSuccess={() => {
           reload()
         }}

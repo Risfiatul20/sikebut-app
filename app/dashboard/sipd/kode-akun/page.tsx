@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useMemo } from "react"
+import { useState, useEffect, useMemo } from "react"
 import Link from "next/link"
 import { ListTree, Search, RotateCcw, Filter, Loader2, Check, Table2 } from "lucide-react"
 import { useAkun } from "@/hooks/useAkun"
@@ -8,28 +8,53 @@ import { useAkun } from "@/hooks/useAkun"
 export default function KodeAkunPage() {
   const [search, setSearch] = useState("")
   const [levelFilter, setLevelFilter] = useState<number | null>(null)
-  
+  const [page, setPage] = useState(1)
+  const [perPage, setPerPage] = useState(50)
+
   // Filter boolean untuk 4 indikator RKBMD
   const [filterB, setFilterB] = useState<boolean | undefined>(undefined)
   const [filterR, setFilterR] = useState<boolean | undefined>(undefined)
   const [filterH, setFilterH] = useState<boolean | undefined>(undefined)
   const [filterT, setFilterT] = useState<boolean | undefined>(undefined)
 
-  // Mengambil data melalui API /api/ref-akun (proxy ke /api/v1/ref-akun)
-  const { akunList, isLoading, error, reload } = useAkun({
-    search,
-    level: levelFilter,
-    b: filterB,
-    r: filterR,
-    h: filterH,
-    t: filterT,
-  })
+  // Muat seluruh data SEKALI (backend sudah scoping per user) — respons pertama ~3s
+  // lalu di-cache Next.js (revalidate 3600) sehingga reload berikutnya instan.
+  const { akunList, isLoading, error, reload } = useAkun()
 
-  // Hitung summary dinamis dari data yang dimuat
-  const totalAkun = akunList.length
-  const totalBelanja = useMemo(() => akunList.filter((a) => a.b).length, [akunList])
-  const totalRkbmd = useMemo(() => akunList.filter((a) => a.r).length, [akunList])
-  const maxLevel = useMemo(() => (akunList.length > 0 ? Math.max(...akunList.map((a) => a.level)) : 0), [akunList])
+  // Filter client-side: instan tanpa request tambahan per ketikan.
+  const filteredList = useMemo(() => {
+    const q = search.trim().toLowerCase()
+    return akunList.filter((a) => {
+      if (q && !a.kode.toLowerCase().includes(q) && !a.nama.toLowerCase().includes(q)) return false
+      if (levelFilter !== null && a.level !== levelFilter) return false
+      if (filterB !== undefined && a.b !== filterB) return false
+      if (filterR !== undefined && a.r !== filterR) return false
+      if (filterH !== undefined && a.h !== filterH) return false
+      if (filterT !== undefined && a.t !== filterT) return false
+      return true
+    })
+  }, [akunList, search, levelFilter, filterB, filterR, filterH, filterT])
+
+  // Hitung summary dinamis dari hasil filter
+  const totalAkun = filteredList.length
+  const totalBelanja = useMemo(() => filteredList.filter((a) => a.b).length, [filteredList])
+  const totalRkbmd = useMemo(() => filteredList.filter((a) => a.r).length, [filteredList])
+  const maxLevel = useMemo(
+    () => (filteredList.length > 0 ? Math.max(...filteredList.map((a) => a.level)) : 0),
+    [filteredList]
+  )
+
+  // Pagination client-side (hindari render 3.301 baris sekaligus)
+  useEffect(() => {
+    setPage(1)
+  }, [search, levelFilter, filterB, filterR, filterH, filterT])
+
+  const totalPages = Math.max(1, Math.ceil(filteredList.length / perPage))
+  const safePage = Math.min(page, totalPages)
+  const paginated = useMemo(
+    () => filteredList.slice((safePage - 1) * perPage, safePage * perPage),
+    [filteredList, safePage, perPage]
+  )
 
   const hasActiveFilters = Boolean(
     search ||
@@ -47,6 +72,7 @@ export default function KodeAkunPage() {
     setFilterR(undefined)
     setFilterH(undefined)
     setFilterT(undefined)
+    setPage(1)
   }
 
   // Toggle filter boolean state: undefined -> true -> undefined
@@ -293,14 +319,14 @@ export default function KodeAkunPage() {
                     {error}
                   </td>
                 </tr>
-              ) : akunList.length === 0 ? (
+              ) : filteredList.length === 0 ? (
                 <tr>
                   <td colSpan={5} className="text-center text-xs text-slate-400 py-10">
                     Tidak ada kode akun yang cocok dengan pencarian atau filter aktif.
                   </td>
                 </tr>
               ) : (
-                akunList.map((a) => {
+                paginated.map((a) => {
                   return (
                     <tr
                       key={a.kode}
@@ -368,6 +394,59 @@ export default function KodeAkunPage() {
             </tbody>
           </table>
         </div>
+
+        {/* Pagination Footer */}
+        {!isLoading && !error && filteredList.length > 0 && (
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-3 px-4 py-3 border-t border-slate-100 dark:border-slate-800 bg-slate-50/40 dark:bg-slate-900/40">
+            <div className="flex flex-wrap items-center gap-2 text-[11px] text-slate-500 dark:text-slate-400">
+              <span>
+                Menampilkan{" "}
+                <span className="font-mono font-semibold text-slate-700 dark:text-slate-200">
+                  {(safePage - 1) * perPage + 1}–{Math.min(safePage * perPage, filteredList.length)}
+                </span>{" "}
+                dari{" "}
+                <span className="font-mono font-semibold text-slate-700 dark:text-slate-200">
+                  {filteredList.length}
+                </span>{" "}
+                kode akun
+              </span>
+              <select
+                value={String(perPage)}
+                onChange={(e) => {
+                  setPerPage(Number(e.target.value))
+                  setPage(1)
+                }}
+                className="h-7 rounded-md border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-950/60 px-2 text-[11px] text-slate-600 dark:text-slate-300 focus:ring-2 focus:ring-blue-500/40 focus:outline-none"
+              >
+                <option value="25">25 / hal</option>
+                <option value="50">50 / hal</option>
+                <option value="100">100 / hal</option>
+                <option value="200">200 / hal</option>
+              </select>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <button
+                type="button"
+                onClick={() => setPage((p) => Math.max(1, p - 1))}
+                disabled={safePage <= 1}
+                className="h-7 px-2.5 rounded-md border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-[11px] font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+              >
+                Sebelumnya
+              </button>
+              <span className="px-2 text-[11px] font-mono text-slate-500 dark:text-slate-400">
+                Hal. {safePage} / {totalPages}
+              </span>
+              <button
+                type="button"
+                onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                disabled={safePage >= totalPages}
+                className="h-7 px-2.5 rounded-md border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-[11px] font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+              >
+                Berikutnya
+              </button>
+            </div>
+          </div>
+        )}
       </section>
     </div>
   )

@@ -1,55 +1,57 @@
 "use client"
 
-import { useState, useMemo } from "react"
+import { useState, useEffect } from "react"
 import { PieChart, BarChart3, TrendingUp, Download, FileText, Layers } from "lucide-react"
-import { INITIAL_SIPD_ITEMS, MOCK_SIPD_VERSIONS } from "@/lib/mock-sipd"
+import { LaporanKebutuhanResponse } from "@/types/laporan"
 
 type ViewMode = "ringkasan" | "per-program" | "per-sumber-dana"
 
 export default function LaporanKebutuhanPage() {
   const [selectedYear, setSelectedYear] = useState(2026)
   const [viewMode, setViewMode] = useState<ViewMode>("ringkasan")
-  const yearItems = useMemo(() => INITIAL_SIPD_ITEMS.filter((it) => it.tahun === selectedYear), [selectedYear])
-  const yearVersions = MOCK_SIPD_VERSIONS.filter((v) => v.tahun === selectedYear)
-  const latestVersion = yearVersions.find((v) => v.status === "Aktif")
 
-  const totalPagu = useMemo(() => yearItems.reduce((s, a) => s + a.pagu, 0), [yearItems])
-  const totalRincian = yearItems.length
-  const uniqueSKPD = useMemo(() => new Set(yearItems.map((it) => it.kode_skpd)).size, [yearItems])
-  const uniquePrograms = useMemo(() => new Set(yearItems.map((it) => it.kode_program)).size, [yearItems])
+  // Data agregat diambil dari backend (Laravel) melalui route proxy Next.js.
+  const [laporan, setLaporan] = useState<LaporanKebutuhanResponse["data"] | null>(null)
+  const [isLoading, setIsLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+
+  useEffect(() => {
+    let cancelled = false
+    async function loadData() {
+      setIsLoading(true)
+      setError(null)
+      try {
+        const res = await fetch(`/api/laporan/kebutuhan?tahun=${selectedYear}`)
+        if (!res.ok) throw new Error(`Gagal memuat data laporan (HTTP ${res.status})`)
+        const json: LaporanKebutuhanResponse = await res.json()
+        if (!cancelled) setLaporan(json.data)
+      } catch (err) {
+        if (!cancelled) setError(err instanceof Error ? err.message : "Terjadi kesalahan saat memuat data")
+      } finally {
+        if (!cancelled) setIsLoading(false)
+      }
+    }
+    loadData()
+    return () => { cancelled = true }
+  }, [selectedYear])
+
+  const summary = laporan?.summary
+  const yearVersions = (laporan?.versi_list ?? []).map((v) => v.versi)
+  const latestVersion =
+    yearVersions.length > 0
+      ? { nama_versi: `Versi ${yearVersions.join(" & ")}` }
+      : undefined
+
+  const totalPagu = summary?.total_pagu ?? 0
+  const totalRincian = summary?.total_rincian ?? 0
+  const uniqueSKPD = summary?.total_skpd ?? 0
+  const uniquePrograms = summary?.total_program ?? 0
+  const byProgram = laporan?.program ?? []
+  const bySumberDana = laporan?.sumber_dana ?? []
+  const bySKPD = laporan?.skpd ?? []
 
   const fmt = (v: number) => new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", minimumFractionDigits: 0 }).format(v)
   const pct = (val: number, total: number) => total > 0 ? ((val / total) * 100).toFixed(1) : "0"
-
-  const byProgram = useMemo(() => {
-    const map = new Map<string, { nama: string; kode: string; total: number; count: number }>()
-    yearItems.forEach((it) => {
-      const key = it.kode_program
-      const existing = map.get(key)
-      if (existing) { existing.total += it.pagu; existing.count++ } else { map.set(key, { nama: it.nama_program, kode: it.kode_program, total: it.pagu, count: 1 }) }
-    })
-    return Array.from(map.values()).sort((a, b) => b.total - a.total)
-  }, [yearItems])
-
-  const bySumberDana = useMemo(() => {
-    const map = new Map<string, { nama: string; total: number; count: number }>()
-    yearItems.forEach((it) => {
-      const key = it.kode_sumber_dana
-      const existing = map.get(key)
-      if (existing) { existing.total += it.pagu; existing.count++ } else { map.set(key, { nama: it.nama_sumber_dana, total: it.pagu, count: 1 }) }
-    })
-    return Array.from(map.values()).sort((a, b) => b.total - a.total)
-  }, [yearItems])
-
-  const bySKPD = useMemo(() => {
-    const map = new Map<string, { nama: string; kode: string; total: number; count: number }>()
-    yearItems.forEach((it) => {
-      const key = it.kode_skpd
-      const existing = map.get(key)
-      if (existing) { existing.total += it.pagu; existing.count++ } else { map.set(key, { nama: it.nama_skpd, kode: it.kode_skpd, total: it.pagu, count: 1 }) }
-    })
-    return Array.from(map.values()).sort((a, b) => b.total - a.total)
-  }, [yearItems])
 
   const COLORS = ["bg-blue-500", "bg-emerald-500", "bg-amber-500", "bg-indigo-500", "bg-purple-500", "bg-rose-500", "bg-cyan-500"]
 
@@ -67,9 +69,13 @@ export default function LaporanKebutuhanPage() {
           <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">Analisis dan ringkasan pagu anggaran per program, sumber dana, dan perangkat daerah.</p>
         </div>
         <div className="flex items-center gap-2">
-          <button className="h-8 px-2.5 inline-flex items-center gap-1.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-xs font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-50 transition-colors">
-            <Download className="h-3.5 w-3.5" /> Export
-          </button>
+          <a
+            href={`/api/laporan/kebutuhan/export?tahun=${selectedYear}`}
+            className="h-8 px-2.5 inline-flex items-center gap-1.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold border border-blue-600 shadow-sm transition-colors"
+            title="Unduh laporan kebutuhan dalam format Excel (3 sheet)"
+          >
+            <Download className="h-3.5 w-3.5" /> Export Excel
+          </a>
         </div>
       </div>
 

@@ -94,8 +94,11 @@ const menuCategories: MenuCategory[] = [
     items: [
       {
         title: "Manajemen Pengguna",
-        href: "/dashboard/users",
         icon: Users,
+        subItems: [
+          { title: "Daftar Pengguna", href: "/dashboard/users" },
+          { title: "Mapping PPK ↔ Sub Kegiatan", href: "/dashboard/users/mapping" },
+        ],
       },
       {
         title: "Pengaturan Sistem",

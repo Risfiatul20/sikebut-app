@@ -1,6 +1,6 @@
 "use client"
 
-import { useMemo, useEffect } from "react"
+import { useMemo, useEffect, useState } from "react"
 import {
   FormBarang,
   LokasiItem,
@@ -8,8 +8,10 @@ import {
   BanyakTerbatas,
   MetodePengadaan,
   MetodeOperasi,
+  RkbmdItemTerpilih,
 } from "@/types/identifikasi"
 import { FieldCatatanBadge } from "@/components/identifikasi/field-catatan-badge"
+import { RkbmdPickerModal } from "@/components/identifikasi/rkbmd-picker-modal"
 import { useWilayah } from "@/hooks/useWilayah"
 import { SearchableSelect, SearchableSelectOption } from "@/components/ui/searchable-select"
 import {
@@ -32,6 +34,8 @@ interface Props {
   onChange: (data: FormBarang) => void
   onOpenPagu: () => void
   totalPagu: number
+  kodeSubKegiatan?: string
+  kodeSkpd?: string
 }
 
 const VOLUME_SATUAN_OPTIONS = ["Unit", "Paket", "Set", "Pcs", "Lot"] as const
@@ -274,7 +278,8 @@ function LokasiRow({
   )
 }
 
-export function StepFormBarang({ data, onChange, onOpenPagu, totalPagu, catatanReviewerDetail }: Props) {
+export function StepFormBarang({ data, onChange, onOpenPagu, totalPagu, catatanReviewerDetail, kodeSubKegiatan, kodeSkpd }: Props) {
+  const [isRkbmdPickerOpen, setIsRkbmdPickerOpen] = useState(false)
   const sumberDanaOptions: SearchableSelectOption[] = [
     { value: "DAU", label: "Dana Alokasi Umum (DAU)" },
     { value: "DAK-FISIK", label: "Dana Alokasi Khusus (DAK) Fisik" },
@@ -286,15 +291,13 @@ export function StepFormBarang({ data, onChange, onOpenPagu, totalPagu, catatanR
     { value: "APBD", label: "APBD" },
   ]
 
+  // Metode pemilihan penyedia untuk Barang (Perpres PBJ): tender, pengadaan langsung, dll.
   const metodePengadaanOptions: SearchableSelectOption[] = [
     { value: "Tender", label: "Tender" },
     { value: "Tender Cepat", label: "Tender Cepat" },
     { value: "Pengadaan Langsung", label: "Pengadaan Langsung" },
     { value: "Penunjukan Langsung", label: "Penunjukan Langsung" },
-    { value: "Seleksi", label: "Seleksi" },
     { value: "ePurchasing", label: "ePurchasing" },
-    { value: "Swakelola", label: "Swakelola" },
-    { value: "Pemilihan Swakelola", label: "Pemilihan Swakelola" },
   ]
 
   const update = useMemo(() => {
@@ -330,6 +333,25 @@ export function StepFormBarang({ data, onChange, onOpenPagu, totalPagu, catatanR
 
   const removeLokasi = (index: number) => {
     onChange({ ...data, lokasi: data.lokasi.filter((_, i) => i !== index) })
+  }
+
+  /** Terapkan daftar item RKBMD (dari modal) + hitung ulang ringkasan (field skalar). */
+  const applyRkbmdItems = (items: RkbmdItemTerpilih[]) => {
+    const pengadaan = items.filter((i) => i.sumber === "pengadaan")
+    const pemeliharaan = items.filter((i) => i.sumber === "pemeliharaan")
+    onChange({
+      ...data,
+      rkbmd_items: items,
+      jumlah_dibutuhkan: pengadaan.reduce((s, i) => s + (i.jumlah || 0), 0),
+      jumlah_sejenis: pemeliharaan.reduce((s, i) => s + (i.jumlah || 0), 0),
+      kondisi_baik: pemeliharaan.reduce((s, i) => s + (i.kondisi_b ?? 0), 0),
+      kondisi_rusak_ringan: pemeliharaan.reduce((s, i) => s + (i.kondisi_rr ?? 0), 0),
+      kondisi_rusak_berat: pemeliharaan.reduce((s, i) => s + (i.kondisi_rb ?? 0), 0),
+    })
+  }
+
+  const removeRkbmdItem = (id: string) => {
+    applyRkbmdItems(data.rkbmd_items.filter((i) => i.id !== id))
   }
 
   return (
@@ -393,6 +415,7 @@ export function StepFormBarang({ data, onChange, onOpenPagu, totalPagu, catatanR
               placeholder="Uraian kebutuhan barang"
               className={inputCls + " resize-none"}
             />
+            <FieldCatatanBadge note={catatanReviewerDetail?.["uraian"]} />
           </div>
           <div className="sm:col-span-2">
             <label className={labelCls}>Spesifikasi</label>
@@ -403,6 +426,7 @@ export function StepFormBarang({ data, onChange, onOpenPagu, totalPagu, catatanR
               placeholder="Spesifikasi teknis barang"
               className={inputCls + " resize-none"}
             />
+            <FieldCatatanBadge note={catatanReviewerDetail?.["spesifikasi"]} />
           </div>
         </div>
       </section>
@@ -559,7 +583,70 @@ export function StepFormBarang({ data, onChange, onOpenPagu, totalPagu, catatanR
 
       {/* ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ Identifikasi Barang Tersedia (RKBMD) ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ */}
       <section className="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-4">
-        <SectionHeader icon={ClipboardList} title="Identifikasi Barang Tersedia (RKBMD)" />
+        <div className="flex items-center justify-between gap-3">
+          <SectionHeader icon={ClipboardList} title="Identifikasi Barang Tersedia (RKBMD)" />
+          <div className="flex items-center gap-2">
+            {data.rkbmd_items.length > 0 && (
+              <span className="px-2.5 py-1 rounded-lg bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-200 dark:border-emerald-500/30 text-[10px] font-bold text-emerald-700 dark:text-emerald-300">
+                {data.rkbmd_items.length} item teridentifikasi
+              </span>
+            )}
+            <button
+              type="button"
+              onClick={() => setIsRkbmdPickerOpen(true)}
+              className="inline-flex items-center gap-1.5 h-7 px-2.5 rounded-lg border border-emerald-300 dark:border-emerald-500/40 bg-emerald-50 dark:bg-emerald-500/10 text-[10px] font-semibold text-emerald-700 dark:text-emerald-300 hover:bg-emerald-100 dark:hover:bg-emerald-500/20 transition-colors"
+            >
+              <ClipboardList className="h-3 w-3" /> {data.rkbmd_items.length > 0 ? "Ubah Pilihan RKBMD" : "Ambil dari RKBMD"}
+            </button>
+          </div>
+        </div>
+        {data.rkbmd_items.length > 0 && (
+          <div className="mb-4 rounded-xl border border-slate-200 dark:border-slate-800 overflow-hidden">
+            <table className="w-full text-xs">
+              <thead className="bg-slate-50/80 dark:bg-slate-800/50 border-b border-slate-100 dark:border-slate-800">
+                <tr className="text-[10px] uppercase text-slate-400">
+                  <th className="font-semibold px-3 py-2 text-left">Nama Barang</th>
+                  <th className="font-semibold px-3 py-2 text-left">Sumber</th>
+                  <th className="font-semibold px-3 py-2 text-right">Jumlah</th>
+                  <th className="font-semibold px-3 py-2 text-right">Kondisi (B/RR/RB)</th>
+                  <th className="font-semibold px-3 py-2 text-right"></th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+                {data.rkbmd_items.map((it) => (
+                  <tr key={it.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/40">
+                    <td className="px-3 py-2">
+                      <p className="font-medium text-slate-800 dark:text-slate-200 text-[11px]">{it.nama_barang}</p>
+                      {it.kode_fikasi && <p className="font-mono text-[9px] text-slate-400 mt-0.5">{it.kode_fikasi}</p>}
+                    </td>
+                    <td className="px-3 py-2">
+                      <span className={`px-2 py-0.5 rounded-md text-[9px] font-bold ${it.sumber === "pengadaan" ? "bg-blue-50 dark:bg-blue-500/10 text-blue-700 dark:text-blue-300" : "bg-violet-50 dark:bg-violet-500/10 text-violet-700 dark:text-violet-300"}`}>
+                        {it.sumber === "pengadaan" ? "Rencana Pengadaan" : "Aset Dimiliki"}
+                      </span>
+                    </td>
+                    <td className="px-3 py-2 text-right font-mono text-slate-700 dark:text-slate-200">
+                      {it.jumlah.toLocaleString("id-ID")} {it.satuan}
+                    </td>
+                    <td className="px-3 py-2 text-right font-mono text-[10px] text-slate-500 dark:text-slate-400">
+                      {it.sumber === "pemeliharaan"
+                        ? `${it.kondisi_b ?? 0} / ${it.kondisi_rr ?? 0} / ${it.kondisi_rb ?? 0}`
+                        : "—"}
+                    </td>
+                    <td className="px-3 py-2 text-right">
+                      <button
+                        type="button"
+                        onClick={() => removeRkbmdItem(it.id)}
+                        className="inline-flex items-center gap-1 h-6 px-2 rounded-md text-[9px] font-semibold text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-500/10 transition-colors"
+                      >
+                        <Trash2 className="h-3 w-3" /> Hapus
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
         <div className="space-y-3">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
@@ -571,8 +658,6 @@ export function StepFormBarang({ data, onChange, onOpenPagu, totalPagu, catatanR
                 onChange={(e) => update("jumlah_dibutuhkan", Number(e.target.value))}
                 className={inputCls}
               />
-            <FieldCatatanBadge note={catatanReviewerDetail?.["spesifikasi"]} />
-            <FieldCatatanBadge note={catatanReviewerDetail?.["uraian"]} />
             </div>
             <div>
               <label className={labelCls}>Jumlah Sejenis</label>
@@ -722,6 +807,36 @@ export function StepFormBarang({ data, onChange, onOpenPagu, totalPagu, catatanR
               />
             </div>
             <div>
+              <label className={labelCls}>Cara Pengangkutan</label>
+              <input
+                type="text"
+                value={data.cara_pengangkutan}
+                onChange={(e) => update("cara_pengangkutan", e.target.value)}
+                placeholder="Cara pengangkutan barang"
+                className={inputCls}
+              />
+            </div>
+            <div>
+              <label className={labelCls}>Cara Pemasangan</label>
+              <input
+                type="text"
+                value={data.cara_pemasangan}
+                onChange={(e) => update("cara_pemasangan", e.target.value)}
+                placeholder="Cara pemasangan barang"
+                className={inputCls}
+              />
+            </div>
+            <div>
+              <label className={labelCls}>Cara Penimbunan/Penyimpanan</label>
+              <input
+                type="text"
+                value={data.cara_penimbunan}
+                onChange={(e) => update("cara_penimbunan", e.target.value)}
+                placeholder="Cara penimbunan/penyimpanan barang"
+                className={inputCls}
+              />
+            </div>
+            <div>
               <label className={labelCls}>Cara Operasi</label>
               <select
                 value={data.cara_operasi}
@@ -793,6 +908,16 @@ export function StepFormBarang({ data, onChange, onOpenPagu, totalPagu, catatanR
           </div>
         </div>
       </section>
+
+      {/* Popup Ambil dari RKBMD — multi-pilih, daftar item tersimpan di rkbmd_items */}
+      <RkbmdPickerModal
+        isOpen={isRkbmdPickerOpen}
+        onClose={() => setIsRkbmdPickerOpen(false)}
+        kodeSubKegiatan={kodeSubKegiatan || ""}
+        kodeSkpd={kodeSkpd}
+        currentSelections={data.rkbmd_items}
+        onSelect={applyRkbmdItems}
+      />
     </div>
   )
 }

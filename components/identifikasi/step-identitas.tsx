@@ -128,6 +128,17 @@ export function StepIdentitas({ data, onChange, userData, isAdmin = false }: Pro
   const displayedSkpdNama = data.nama_skpd && data.nama_skpd !== "-" ? data.nama_skpd : (userData.nama_skpd !== "-" ? userData.nama_skpd : session?.user?.namaSkpd || "-")
   const displayedSkpdKode = data.kode_skpd || userData.kode_skpd || session?.user?.kodeSkpd || ""
 
+  // Untuk menampilkan Perangkat Daerah (OPD induk) & Sub Unit secara terpisah sesuai penjelasan.docx Tabel 1.
+  // Cari record SKPD terpilih pada daftar referensi (memuat relasi parent).
+  const selectedSkpdRecord = skpdList.find((s) => s.kode_skpd === displayedSkpdKode)
+  const isSubUnitSelected = Boolean(selectedSkpdRecord?.is_sub_unit) || Boolean(selectedSkpdRecord?.parent_kode_skpd)
+  // Nama OPD induk: bila unit terpilih adalah sub unit → nama parent; selain itu → nama unit itu sendiri.
+  const perangkatDaerahNama =
+    selectedSkpdRecord?.parent?.nama_skpd ||
+    (isSubUnitSelected ? "-" : selectedSkpdRecord?.nama_skpd || displayedSkpdNama)
+  const namaSubUnit =
+    selectedSkpdRecord?.nama_skpd || displayedSkpdNama
+
   return (
     <div className="space-y-6">
       <div>
@@ -157,15 +168,27 @@ export function StepIdentitas({ data, onChange, userData, isAdmin = false }: Pro
                 searchPlaceholder="Cari nama atau kode SKPD..."
                 loading={isSkpdLoading}
               />
-              {displayedSkpdNama && displayedSkpdNama !== "-" && (
-                <p className="text-[10px] font-mono text-amber-600 dark:text-amber-400 truncate" title={displayedSkpdNama}>
-                  {displayedSkpdNama}
+              {perangkatDaerahNama && perangkatDaerahNama !== "-" && isSubUnitSelected && (
+                <p className="text-[10px] text-slate-500 dark:text-slate-400 truncate" title={perangkatDaerahNama}>
+                  <span className="text-[9px] uppercase tracking-wider text-slate-400">OPD Induk: </span>
+                  {perangkatDaerahNama}
+                </p>
+              )}
+              {namaSubUnit && namaSubUnit !== "-" && (
+                <p className="text-[10px] font-mono text-amber-600 dark:text-amber-400 truncate" title={namaSubUnit}>
+                  {isSubUnitSelected && <span className="text-[9px] uppercase tracking-wider">Sub Unit: </span>}
+                  {namaSubUnit}
                 </p>
               )}
             </div>
           ) : (
             <>
-              <p className="text-xs font-semibold text-slate-900 dark:text-white">{displayedSkpdNama}</p>
+              <p className="text-xs font-semibold text-slate-900 dark:text-white">{namaSubUnit}</p>
+              {isSubUnitSelected && perangkatDaerahNama && perangkatDaerahNama !== "-" && (
+                <p className="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5 truncate" title={perangkatDaerahNama}>
+                  OPD: {perangkatDaerahNama}
+                </p>
+              )}
               <p className="text-[10px] font-mono text-slate-400 mt-0.5">{displayedSkpdKode || "-"}</p>
             </>
           )}

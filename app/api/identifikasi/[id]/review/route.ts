@@ -1,15 +1,76 @@
 import { auth } from "@/auth"
 import { NextResponse } from "next/server"
-import { IdentifikasiKebutuhan } from "@/types/identifikasi"
-import { INITIAL_IDENTIFIKASI_LIST } from "@/lib/mock-identifikasi"
 
-// In-memory fallback state for development when backend is offline
-const identifikasiStore: IdentifikasiKebutuhan[] = [...INITIAL_IDENTIFIKASI_LIST]
+// Catatan: route ini TIDAK punya data cadangan (mock). Semua aksi review harus
+// diteruskan ke backend Laravel (database). Kalau backend tidak terjangkau →
+// error ditampilkan ke pengguna, bukan hasil review palsu di memori.
+
+type ReviewAction = "submit" | "approve" | "return" | "note"
 
 interface ReviewPayload {
-  status_review: "Disetujui" | "Ditolak" | "Menunggu Review" | "Draft"
+  action?: ReviewAction
+  // Legacy: terima status_review lama agar pemanggil lama tetap bekerja.
+  status_review?: string | null
   catatan_reviewer?: string | null
   catatan_reviewer_detail?: Record<string, unknown> | null
+}
+
+const API_URL = process.env.API_URL || "http://127.0.0.1:8000"
+
+/**
+ * Petakan payload (action / status_review legacy) ke aksi kanonik.
+ */
+function resolveAction(body: ReviewPayload): ReviewAction {
+  if (body.action) return body.action
+
+  switch (body.status_review) {
+    case "Diajukan":
+    case "Menunggu Review":
+      return "submit"
+    case "Disetujui":
+      return "approve"
+    case "Perlu Perbaikan":
+    case "Ditolak":
+      return "return"
+    default:
+      return "note"
+  }
+}
+
+/**
+ * Teruskan aksi ke endpoint backend Laravel yang sesuai.
+ */
+async function forwardToBackend(
+  action: ReviewAction,
+  paketId: number,
+  token: string,
+  body: ReviewPayload
+): Promise<{ ok: boolean; status: number; text: string }> {
+  const pathMap: Record<ReviewAction, string> = {
+    submit: `/api/v1/identifikasi-kebutuhan/${paketId}/submit`,
+    approve: `/api/v1/identifikasi-kebutuhan/${paketId}/verify`,
+    return: `/api/v1/identifikasi-kebutuhan/${paketId}/return`,
+    note: `/api/v1/identifikasi-kebutuhan/${paketId}/note`,
+  }
+
+  const payload: Record<string, unknown> = {}
+  if (action !== "submit") {
+    if (body.catatan_reviewer !== undefined) payload.catatan_reviewer = body.catatan_reviewer
+    if (body.catatan_reviewer_detail !== undefined) payload.catatan_reviewer_detail = body.catatan_reviewer_detail
+  }
+
+  const res = await fetch(`${API_URL}${pathMap[action]}`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Accept: "application/json",
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify(payload),
+    cache: "no-store",
+  })
+
+  return { ok: res.ok, status: res.status, text: await res.text() }
 }
 
 export async function PATCH(
@@ -39,78 +100,56 @@ export async function PATCH(
     return NextResponse.json({ error: "Payload tidak valid." }, { status: 400 })
   }
 
-  // Jika PPK melakukan aksi "Ajukan Review", boleh mengubah status ke "Menunggu Review"
-  if (isPpk && body.status_review !== "Menunggu Review") {
+  const action = resolveAction(body)
+
+  // ---- Role check (sama dengan kebijakan backend) ----
+  if (isPpk && action !== "submit") {
     return NextResponse.json(
-      { error: "PPK hanya dapat mengajukan usulan ke status Menunggu Review." },
+      { error: "PPK hanya dapat mengajukan usulan (submit)." },
       { status: 403 }
     )
   }
 
-  // Jika bukan Verifikator, Admin, atau PPK
-  if (!isVerifikator && !isAdmin && !isPpk) {
+  if (!isPpk && !isVerifikator && !isAdmin) {
     return NextResponse.json(
       { error: "Anda tidak memiliki hak akses untuk mengubah status review ini." },
       { status: 403 }
     )
   }
 
-  // Meneruskan ke backend Laravel PATCH /api/v1/identifikasi-kebutuhan/{id}/review
-  try {
-    const backendUrl = `${process.env.API_URL || "http://127.0.0.1:8000"}/api/v1/identifikasi-kebutuhan/${paketId}/review`
-    const backendRes = await fetch(backendUrl, {
-      method: "PATCH",
-      headers: {
-        "Content-Type": "application/json",
-        Accept: "application/json",
-        Authorization: `Bearer ${session.user.apiToken}`,
-      },
-      body: JSON.stringify(body),
-    })
+  if (isVerifikator && action === "submit") {
+    return NextResponse.json(
+      { error: "Verifikator tidak dapat mengajukan paket." },
+      { status: 403 }
+    )
+  }
 
-    const bodyText = await backendRes.text()
-    if (backendRes.ok) {
-      const json = bodyText ? JSON.parse(bodyText) : {}
+  // ---- Teruskan ke backend Laravel ----
+  try {
+    const result = await forwardToBackend(action, paketId, session.user.apiToken, body)
+
+    if (result.ok) {
+      const json = result.text ? JSON.parse(result.text) : {}
       return NextResponse.json(
         {
           success: true,
           message: json.message || "Hasil review / status berhasil disimpan",
           data: json.data || json,
         },
-        { status: backendRes.status }
+        { status: result.status }
       )
     }
-    return new NextResponse(bodyText, {
-      status: backendRes.status,
+
+    // Error bisnis dari backend (403/404/422/dll) DITERUSKAN apa adanya.
+    return new NextResponse(result.text, {
+      status: result.status,
       headers: { "Content-Type": "application/json" },
     })
   } catch {
-    // Backend offline -> fallback in-memory update
+    // Backend tidak terjangkau (network error) → error jujur, bukan hasil palsu.
+    return NextResponse.json(
+      { error: "Backend tidak dapat dijangkau. Pastikan server API (Laravel) berjalan." },
+      { status: 502 }
+    )
   }
-
-  const idx = identifikasiStore.findIndex((i) => i.id === paketId)
-  if (idx === -1) {
-    return NextResponse.json({ error: "Paket identifikasi tidak ditemukan." }, { status: 404 })
-  }
-
-  const allowed = ["Disetujui", "Ditolak", "Menunggu Review", "Draft"]
-  if (!allowed.includes(body.status_review)) {
-    return NextResponse.json({ error: "status_review tidak valid." }, { status: 422 })
-  }
-
-  const updated: IdentifikasiKebutuhan = {
-    ...identifikasiStore[idx],
-    status_review: body.status_review,
-    catatan_reviewer: body.catatan_reviewer !== undefined ? body.catatan_reviewer : identifikasiStore[idx].catatan_reviewer,
-    catatan_reviewer_detail: body.catatan_reviewer_detail !== undefined ? body.catatan_reviewer_detail : (identifikasiStore[idx].catatan_reviewer_detail ?? null),
-    updated_at: new Date().toISOString(),
-  }
-
-  identifikasiStore[idx] = updated
-
-  return NextResponse.json({
-    success: true,
-    message: `Status usulan diperbarui menjadi ${body.status_review}.`,
-    data: updated,
-  })
 }

@@ -1,8 +1,7 @@
 "use client"
 
-import { useState } from "react"
-import { SipdItem, SipdVersionInfo } from "@/types/sipd"
-import { MOCK_SIPD_VERSIONS } from "@/lib/mock-sipd"
+import { useEffect, useState } from "react"
+import { SipdVersionInfo } from "@/types/sipd"
 import { useSipdList } from "@/hooks/useSipdList"
 import { SipdImportDropzone } from "@/components/sipd/sipd-import-dropzone"
 import { SipdDataTable } from "@/components/sipd/sipd-data-table"
@@ -21,21 +20,36 @@ import {
 } from "lucide-react"
 
 export default function SipdImportPage() {
-  // Daftar rincian dari API (point 4.2 SUMMARY-API.md) — versi dummy karena backend belum sediakan
-  const [versions, setVersions] = useState<SipdVersionInfo[]>(MOCK_SIPD_VERSIONS)
-  const [extraItems, setExtraItems] = useState<SipdItem[]>([])
+  // Daftar versi Penetapan APBD dari DATABASE (backend: GET /api/v1/sipd-versions)
+  const [versions, setVersions] = useState<SipdVersionInfo[]>([])
   const [activeYear, setActiveYear] = useState<number>(2026)
-  const [activeVersion, setActiveVersion] = useState<number>(2) // Default to latest version 2
+  const [activeVersion, setActiveVersion] = useState<number>(0) // 0 = semua versi
   const [isImportPanelOpen, setIsImportPanelOpen] = useState<boolean>(true)
   const [toastMessage, setToastMessage] = useState<string | null>(null)
+
+  // Muat daftar versi dari database saat halaman dibuka & setelah impor
+  const loadVersions = async () => {
+    try {
+      const res = await fetch("/api/sipd/versions", { cache: "no-store" })
+      if (!res.ok) return
+      const json = await res.json()
+      setVersions(json.data ?? [])
+    } catch {
+      // biarkan kosong — halaman tetap bisa dipakai
+    }
+  }
+
+  useEffect(() => {
+    loadVersions()
+  }, [])
 
   const { data: apiItems, isLoading: isLoadingItems, reload: reloadItems } = useSipdList({
     tahun: activeYear,
     versi: activeVersion,
   })
 
-  // Gabungkan item dari API + hasil import demo/Excel yang diunggah
-  const items: SipdItem[] = [...extraItems, ...apiItems]
+  // Semua item berasal dari DATABASE (backend), bukan memori lokal
+  const items = apiItems
 
   const showToast = (msg: string) => {
     setToastMessage(msg)
@@ -44,14 +58,14 @@ export default function SipdImportPage() {
     }, 4000)
   }
 
-  const handleImportSuccess = (newItems: SipdItem[], newVersion: SipdVersionInfo) => {
-    setVersions((prev) => [newVersion, ...prev])
-    setExtraItems((prev) => [...newItems, ...prev])
-    setActiveYear(newVersion.tahun)
-    setActiveVersion(newVersion.versi)
+  const handleImportSuccess = async (_version: SipdVersionInfo, count: number) => {
+    // Data sudah tersimpan di database oleh backend — muat ulang dari API
+    await Promise.all([loadVersions(), reloadItems()])
+    setActiveYear(2026)
+    setActiveVersion(0)
     setIsImportPanelOpen(false) // collapse form after success to show table immediately
     showToast(
-      `Berhasil mengimpor ${newItems.length} rincian data SIPD (${newVersion.nama_versi})`
+      `Impor berhasil diproses dan tersimpan di database (${count > 0 ? count + " rincian" : "versi baru"}). Data dimuat ulang.`
     )
   }
 
@@ -201,7 +215,7 @@ export default function SipdImportPage() {
             type="button"
             onClick={() => {
               reloadItems()
-              setExtraItems([])
+              loadVersions()
               showToast("Data disinkronkan ulang dari API SIPD-RI")
             }}
             className="h-7 px-2.5 inline-flex items-center gap-1 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-[11px] font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"

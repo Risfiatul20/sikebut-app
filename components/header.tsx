@@ -2,9 +2,10 @@
 
 import { usePathname } from "next/navigation"
 import { useSession } from "next-auth/react"
-import { Bell, Search } from "lucide-react"
+import { Search } from "lucide-react"
 import { ThemeToggle } from "@/components/theme-toggle"
 import { LogoutButton } from "@/components/logout-button"
+import { NotificationBell } from "@/components/notification-bell"
 
 export function Header() {
   const pathname = usePathname()
@@ -55,10 +56,7 @@ export function Header() {
 
         <div className="h-4 w-px bg-slate-200 dark:bg-slate-700 mx-1"></div>
 
-        <button className="relative h-8 w-8 flex items-center justify-center rounded-md text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
-          <Bell className="h-4 w-4" />
-          <span className="absolute top-1.5 right-1.5 h-1.5 w-1.5 rounded-full bg-amber-500 ring-2 ring-white dark:ring-slate-900"></span>
-        </button>
+        <NotificationBell />
 
         <ThemeToggle />
 

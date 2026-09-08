@@ -278,15 +278,13 @@ export function StepFormJasaLainnya({ data, onChange, onOpenPagu, totalPagu, cat
     { value: "APBD", label: "APBD" },
   ]
 
+  // Metode pemilihan penyedia untuk Jasa Lainnya (Perpres PBJ): tender, pengadaan langsung, dll.
   const metodePengadaanOptions: SearchableSelectOption[] = [
     { value: "Tender", label: "Tender" },
     { value: "Tender Cepat", label: "Tender Cepat" },
     { value: "Pengadaan Langsung", label: "Pengadaan Langsung" },
     { value: "Penunjukan Langsung", label: "Penunjukan Langsung" },
-    { value: "Seleksi", label: "Seleksi" },
     { value: "ePurchasing", label: "ePurchasing" },
-    { value: "Swakelola", label: "Swakelola" },
-    { value: "Pemilihan Swakelola", label: "Pemilihan Swakelola" },
   ]
 
   const update = useMemo(() => {

@@ -1,7 +1,6 @@
 import { auth } from "@/auth"
 import { NextResponse } from "next/server"
 import { SipdItem } from "@/types/sipd"
-import { INITIAL_SIPD_ITEMS } from "@/lib/mock-sipd"
 
 interface RawSipdRow {
   id: number | string
@@ -97,51 +96,38 @@ export async function GET(req: Request) {
   const finalParams = new URLSearchParams(searchParams)
   if (!finalParams.get("per_page")) finalParams.set("per_page", "0")
 
-  // Teruskan ke backend: GET /api/v1/sipd-penetapan-apbd (list rincian)
+  // Teruskan ke backend: GET /api/v1/sipd-penetapan-apbd (list rincian) — TANPA fallback mock.
+  let backendRes: Response
   try {
-    const backendUrl = `${process.env.API_URL || "http://127.0.0.1:8000"}/api/v1/sipd-penetapan-apbd?${finalParams.toString()}`
-    const backendRes = await fetch(backendUrl, {
-      headers: {
-        Accept: "application/json",
-        Authorization: `Bearer ${session.user.apiToken}`,
-      },
-      next: { revalidate: 3600, tags: ["sipd-list"] },
-    })
-
-    if (backendRes.ok) {
-      const json = await backendRes.json()
-      const rows: RawSipdRow[] = json.data ?? []
-      const normalized = rows.map(normalizeRow)
-      return NextResponse.json({
-        data: normalized,
-        links: json.links,
-        meta: json.meta,
-      })
-    }
+    backendRes = await fetch(
+      `${process.env.API_URL || "http://127.0.0.1:8000"}/api/v1/sipd-penetapan-apbd?${finalParams.toString()}`,
+      {
+        headers: {
+          Accept: "application/json",
+          Authorization: `Bearer ${session.user.apiToken}`,
+        },
+        next: { revalidate: 3600, tags: ["sipd-list"] },
+      }
+    )
   } catch {
-    // Backend offline: fallback ke data mock
-  }
-
-  // Filter mock lokal sesuai tahun/versi/search bila dikirim
-  const tahunParam = searchParams.get("tahun")
-  const versiParam = searchParams.get("versi")
-  const searchParam = searchParams.get("search")?.toLowerCase().trim() ?? ""
-
-  let fallback = INITIAL_SIPD_ITEMS
-  if (tahunParam) fallback = fallback.filter((it) => it.tahun === Number(tahunParam))
-  if (versiParam && versiParam !== "0") fallback = fallback.filter((it) => it.versi === Number(versiParam))
-  if (searchParam) {
-    fallback = fallback.filter(
-      (it) =>
-        it.nama_program.toLowerCase().includes(searchParam) ||
-        it.kode_program.toLowerCase().includes(searchParam) ||
-        it.nama_rekening.toLowerCase().includes(searchParam) ||
-        it.kode_rekening.toLowerCase().includes(searchParam) ||
-        it.nama_standar_harga.toLowerCase().includes(searchParam) ||
-        it.kode_standar_harga.toLowerCase().includes(searchParam) ||
-        it.nama_sub_kegiatan.toLowerCase().includes(searchParam)
+    return NextResponse.json(
+      { error: "Backend tidak dapat dijangkau. Pastikan server API (Laravel) berjalan." },
+      { status: 502 }
     )
   }
 
-  return NextResponse.json({ data: fallback })
+  if (backendRes.ok) {
+    const json = await backendRes.json()
+    const rows: RawSipdRow[] = json.data ?? []
+    const normalized = rows.map(normalizeRow)
+    return NextResponse.json({
+      data: normalized,
+      links: json.links,
+      meta: json.meta,
+    })
+  }
+
+  // Teruskan error backend apa adanya — jangan pernah memakai data cadangan.
+  const errText = await backendRes.text()
+  return new NextResponse(errText, { status: backendRes.status, headers: { "Content-Type": "application/json" } })
 }

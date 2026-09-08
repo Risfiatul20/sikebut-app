@@ -1,23 +1,26 @@
 "use client"
 
 import { useState, useRef } from "react"
-import { SipdItem, SipdVersionInfo } from "@/types/sipd"
-import { UploadCloud, FileSpreadsheet, Download, Sparkles, CheckCircle2, Loader2, ArrowRight } from "lucide-react"
+import { SipdVersionInfo } from "@/types/sipd"
+import { UploadCloud, FileSpreadsheet, Download, CheckCircle2, Loader2, ArrowRight, AlertCircle, XCircle } from "lucide-react"
 
 interface SipdImportDropzoneProps {
-  onImportSuccess: (newItems: SipdItem[], version: SipdVersionInfo) => void
+  onImportSuccess: (version: SipdVersionInfo, count: number) => void
   existingVersions: SipdVersionInfo[]
 }
+
+type ImportPhase = "idle" | "uploading" | "processing" | "done" | "error"
 
 export function SipdImportDropzone({ onImportSuccess, existingVersions }: SipdImportDropzoneProps) {
   const [selectedYear, setSelectedYear] = useState<number>(2026)
   const [versionName, setVersionName] = useState<string>("Penetapan Perubahan APBD 2026")
   const [isDragging, setIsDragging] = useState<boolean>(false)
   const [selectedFile, setSelectedFile] = useState<File | null>(null)
-  const [isProcessing, setIsProcessing] = useState<boolean>(false)
-  const [currentStep, setCurrentStep] = useState<number>(0) // 0: Idle, 1: Validating, 2: Mapping, 3: Saving, 4: Done
+  const [phase, setPhase] = useState<ImportPhase>("idle")
+  const [statusMessage, setStatusMessage] = useState<string>("")
 
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const isProcessing = phase === "uploading" || phase === "processing"
 
   const handleDragOver = (e: React.DragEvent) => {
     e.preventDefault()
@@ -33,12 +36,16 @@ export function SipdImportDropzone({ onImportSuccess, existingVersions }: SipdIm
     setIsDragging(false)
     if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
       setSelectedFile(e.dataTransfer.files[0])
+      setPhase("idle")
+      setStatusMessage("")
     }
   }
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files.length > 0) {
       setSelectedFile(e.target.files[0])
+      setPhase("idle")
+      setStatusMessage("")
     }
   }
 
@@ -70,28 +77,28 @@ export function SipdImportDropzone({ onImportSuccess, existingVersions }: SipdIm
     ]
 
     const exampleRow = [
-      "34.04",
-      "Kabupaten Sleman",
+      "13",
+      "Provinsi Sumatera Barat",
       "2026",
-      "1.03.0.00.0.00.01.0000",
-      "Dinas Pekerjaan Umum, Perumahan dan Kawasan Permukiman",
-      "1",
-      "Urusan Wajib Pelayanan Dasar",
-      "1.03",
-      "Pekerjaan Umum dan Penataan Ruang",
-      "1.03.02",
-      "Program Penyelenggaraan Jalan",
-      "1.03.02.1.01",
-      "Penyelenggaraan Jalan Kabupaten/Kota",
-      "1.03.02.1.01.0003",
-      "Rekonstruksi Jalan Ruas Kalasan - Prambanan",
-      "DAK-FISIK",
-      "Dana Alokasi Khusus Fisik",
-      "5.2.04.01.01.0001",
-      "Belanja Modal Jalan Kabupaten/Kota",
-      "ASB-2026-0004",
-      "Pekerjaan Rekonstruksi & Overlay Aspal Hotmix AC-WC",
-      "7500000000",
+      "4.01.0.00.0.00.01.0006",
+      "BIRO PENGADAAN BARANG DAN JASA",
+      "4",
+      "Urusan Pemerintahan Umum",
+      "4.01",
+      "Kesekretariatan Daerah",
+      "4.01.07",
+      "PROGRAM KEBIJAKAN DAN PELAYANAN PENGADAAN BARANG DAN JASA",
+      "4.01.07.1.02",
+      "Pengelolaan Layanan Pengadaan Secara Elektronik",
+      "4.01.07.1.02.0002",
+      "Pengembangan Sistem Informasi Pengadaan Barang dan Jasa",
+      "1.1",
+      "PENDAPATAN ASLI DAERAH (PAD)",
+      "5.1.02.01.001.00052",
+      "Belanja Makanan dan Minuman Kegiatan",
+      "8.1.02.01.01.0052.00013",
+      "Makan/Minum kegiatan",
+      "855000",
     ]
 
     const csvContent =
@@ -105,133 +112,79 @@ export function SipdImportDropzone({ onImportSuccess, existingVersions }: SipdIm
     document.body.removeChild(link)
   }
 
-  // Process Import
-  const runImportProcess = async (sampleData?: SipdItem[]) => {
-    setIsProcessing(true)
-    setCurrentStep(1) // Step 1: Validasi
-    await new Promise((r) => setTimeout(r, 600))
+  // Impor NYATA: unggah berkas ke backend → polling status → selesai/gagal
+  const runImportProcess = async () => {
+    if (!selectedFile) return
 
-    setCurrentStep(2) // Step 2: Mapping Referensi & Relasi DB
-    await new Promise((r) => setTimeout(r, 700))
+    setIsDragging(false)
+    setPhase("uploading")
+    setStatusMessage("Mengunggah berkas ke server...")
 
-    setCurrentStep(3) // Step 3: Simpan ke dev.sipd_penetapan_apbd
-    await new Promise((r) => setTimeout(r, 600))
+    try {
+      const formData = new FormData()
+      formData.append("file", selectedFile)
+      formData.append("tahun", String(selectedYear))
+      formData.append("nama_versi", versionName.trim() || `Penetapan APBD ${selectedYear}`)
 
-    // Next version calculation
-    const nextVersi =
-      existingVersions.filter((v) => v.tahun === selectedYear).length + 1
+      const res = await fetch("/api/sipd/import", { method: "POST", body: formData })
+      const json = await res.json()
 
-    const finalItems: SipdItem[] = sampleData || [
-      {
-        id: Date.now(),
-        kode_daerah: "34.04",
-        nama_daerah: "Kabupaten Sleman",
-        tahun: selectedYear,
-        versi: nextVersi,
-        nama_versi: versionName || `Versi ${nextVersi} - Penetapan APBD ${selectedYear}`,
-        kode_skpd: "1.03.0.00.0.00.01.0000",
-        nama_skpd: "Dinas Pekerjaan Umum, Perumahan dan Kawasan Permukiman",
-        kode_sub_unit: "1.03.0.00.0.00.01.0000",
-        nama_sub_unit: "Dinas Pekerjaan Umum, Perumahan dan Kawasan Permukiman",
-        kode_urusan: "1",
-        nama_urusan: "Urusan Pemerintahan Wajib yang Berkaitan dengan Pelayanan Dasar",
-        kode_bidang_urusan: "1.03",
-        nama_bidang_urusan: "Pekerjaan Umum dan Penataan Ruang",
-        kode_program: "1.03.02",
-        nama_program: "Program Penyelenggaraan Jalan",
-        kode_kegiatan: "1.03.02.1.01",
-        nama_kegiatan: "Penyelenggaraan Jalan Kabupaten/Kota",
-        kode_sub_kegiatan: "1.03.02.1.01.0003",
-        nama_sub_kegiatan: "Rekonstruksi Jalan Paket Baru Hasil Impor SIPD",
-        kode_sumber_dana: "DAK-FISIK",
-        nama_sumber_dana: "Dana Alokasi Khusus (DAK) Fisik",
-        kode_rekening: "5.2.04.01.01.0001",
-        nama_rekening: "Belanja Modal Jalan Kabupaten/Kota",
-        kode_standar_harga: "ASB-2026-0004",
-        nama_standar_harga: "Pekerjaan Overlay Aspal Hotmix AC-WC Standar Bina Marga",
-        pagu: 9500000000,
-        created_at: new Date().toISOString(),
-      },
-      {
-        id: Date.now() + 1,
-        kode_daerah: "34.04",
-        nama_daerah: "Kabupaten Sleman",
-        tahun: selectedYear,
-        versi: nextVersi,
-        nama_versi: versionName || `Versi ${nextVersi} - Penetapan APBD ${selectedYear}`,
-        kode_skpd: "1.02.0.00.0.00.01.0000",
-        nama_skpd: "Dinas Kesehatan",
-        kode_sub_unit: "1.02.0.00.0.00.01.0000",
-        nama_sub_unit: "Dinas Kesehatan",
-        kode_urusan: "1",
-        nama_urusan: "Urusan Pemerintahan Wajib yang Berkaitan dengan Pelayanan Dasar",
-        kode_bidang_urusan: "1.02",
-        nama_bidang_urusan: "Kesehatan",
-        kode_program: "1.02.03",
-        nama_program: "Program Sediaan Farmasi, Alat Kesehatan dan Makanan Minuman",
-        kode_kegiatan: "1.02.03.1.01",
-        nama_kegiatan: "Pengadaan Alat Kesehatan Fasilitas Layanan Kesehatan",
-        kode_sub_kegiatan: "1.02.02.1.01.0005",
-        nama_sub_kegiatan: "Pengadaan Alat Laboratorium PCR & Reagen Puskesmas",
-        kode_sumber_dana: "PAD",
-        nama_sumber_dana: "Pendapatan Asli Daerah (PAD)",
-        kode_rekening: "5.2.02.08.01.0002",
-        nama_rekening: "Belanja Modal Alat Kedokteran dan Diagnostik",
-        kode_standar_harga: "SSH-2026-0189",
-        nama_standar_harga: "Alat Laboratorium Otomatis Real-time Thermal Cycler",
-        pagu: 2800000000,
-        created_at: new Date().toISOString(),
-      },
-      {
-        id: Date.now() + 2,
-        kode_daerah: "34.04",
-        nama_daerah: "Kabupaten Sleman",
-        tahun: selectedYear,
-        versi: nextVersi,
-        nama_versi: versionName || `Versi ${nextVersi} - Penetapan APBD ${selectedYear}`,
-        kode_skpd: "2.16.0.00.0.00.01.0000",
-        nama_skpd: "Dinas Komunikasi dan Informatika",
-        kode_sub_unit: "2.16.0.00.0.00.01.0000",
-        nama_sub_unit: "Dinas Komunikasi dan Informatika",
-        kode_urusan: "2",
-        nama_urusan: "Urusan Pemerintahan Wajib yang Tidak Berkaitan dengan Pelayanan Dasar",
-        kode_bidang_urusan: "2.16",
-        nama_bidang_urusan: "Komunikasi dan Informatika",
-        kode_program: "2.16.02",
-        nama_program: "Program Aplikasi Informatika dan E-Government",
-        kode_kegiatan: "2.16.02.1.01",
-        nama_kegiatan: "Pengelolaan Pusat Data dan Infrastruktur SPBE",
-        kode_sub_kegiatan: "2.16.02.1.01.0001",
-        nama_sub_kegiatan: "Pengembangan Infrastruktur Jaringan & Server Data Center",
-        kode_sumber_dana: "DAU",
-        nama_sumber_dana: "Dana Alokasi Umum (DAU)",
-        kode_rekening: "5.2.02.05.01.0005",
-        nama_rekening: "Belanja Modal Komputer Server Rackmount",
-        kode_standar_harga: "SSH-2026-0240",
-        nama_standar_harga: "Storage SAN Enterprise 100TB High Availability",
-        pagu: 4200000000,
-        created_at: new Date().toISOString(),
-      },
-    ]
+      if (!res.ok) {
+        setPhase("error")
+        setStatusMessage(json.error || json.message || `Gagal mengunggah berkas (status ${res.status})`)
+        return
+      }
 
-    const totalPagu = finalItems.reduce((a, b) => a + b.pagu, 0)
-    const newVersion: SipdVersionInfo = {
-      versi: nextVersi,
-      nama_versi: versionName || `Versi ${nextVersi} - Penetapan APBD ${selectedYear}`,
-      tahun: selectedYear,
-      total_pagu: totalPagu,
-      total_rincian: finalItems.length,
-      tanggal_impor: new Date().toISOString(),
-      status: "Aktif",
+      const importId = json.import_id
+      setPhase("processing")
+      setStatusMessage("Berkas diterima, memproses & menyimpan rincian ke database...")
+
+      // Polling status impor (backend queue) sampai selesai/gagal
+      const maxAttempts = 60 // 60 x 2.5s ≈ 2.5 menit
+      for (let attempt = 0; attempt < maxAttempts; attempt++) {
+        await new Promise((r) => setTimeout(r, 2500))
+        const statusRes = await fetch(`/api/sipd/import-status/${importId}`, { cache: "no-store" })
+        if (!statusRes.ok) {
+          setPhase("error")
+          setStatusMessage("Gagal memeriksa status impor di server.")
+          return
+        }
+        const statusJson = await statusRes.json()
+
+        if (statusJson.status === "completed") {
+          // Versi baru yang berhasil diimpor (dihitung backend = versi tertinggi tahun tsb)
+          const nextVersi = existingVersions.filter((v) => v.tahun === selectedYear).length + 1
+          const count = 0 // jumlah baris dihitung dari reload tabel (backend)
+          const version: SipdVersionInfo = {
+            versi: nextVersi,
+            nama_versi: versionName.trim() || `Versi ${nextVersi} - Penetapan APBD ${selectedYear}`,
+            tahun: selectedYear,
+            total_pagu: 0,
+            total_rincian: 0,
+            tanggal_impor: new Date().toISOString(),
+            status: "Aktif",
+          }
+          setPhase("done")
+          setStatusMessage("Impor selesai. Data tersimpan di database.")
+          onImportSuccess(version, count)
+          setSelectedFile(null)
+          setTimeout(() => setPhase("idle"), 1500)
+          return
+        }
+
+        if (statusJson.status === "failed") {
+          setPhase("error")
+          setStatusMessage(statusJson.error_message || "Impor gagal diproses di server.")
+          return
+        }
+      }
+
+      setPhase("error")
+      setStatusMessage("Waktu pemrosesan habis. Silakan periksa status impor di server.")
+    } catch {
+      setPhase("error")
+      setStatusMessage("Terjadi kesalahan jaringan saat mengunggah berkas.")
     }
-
-    setCurrentStep(4) // Selesai
-    await new Promise((r) => setTimeout(r, 400))
-
-    onImportSuccess(finalItems, newVersion)
-    setIsProcessing(false)
-    setSelectedFile(null)
-    setCurrentStep(0)
   }
 
   return (
@@ -285,7 +238,7 @@ export function SipdImportDropzone({ onImportSuccess, existingVersions }: SipdIm
           type="file"
           ref={fileInputRef}
           onChange={handleFileChange}
-          accept=".xlsx,.xls,.csv,.json"
+          accept=".xlsx,.xls,.csv"
           className="hidden"
         />
 
@@ -311,66 +264,54 @@ export function SipdImportDropzone({ onImportSuccess, existingVersions }: SipdIm
                 Pilih atau seret berkas ekspor SIPD-RI ke sini
               </p>
               <p className="text-[10px] text-slate-400 mt-0.5">
-                Mendukung format Microsoft Excel (<code className="font-mono">.xlsx</code>, <code className="font-mono">.xls</code>), <code className="font-mono">.csv</code>, atau <code className="font-mono">.json</code>
+                Mendukung format Microsoft Excel (<code className="font-mono">.xlsx</code>, <code className="font-mono">.xls</code>) atau <code className="font-mono">.csv</code>
               </p>
             </div>
           )}
         </div>
       </div>
 
-      {/* Stepper / Processing Progress */}
+      {/* Processing / Result Status */}
       {isProcessing && (
-        <div className="p-3.5 rounded-xl border border-blue-200 dark:border-blue-900/60 bg-blue-50/50 dark:bg-blue-950/30 space-y-2 animate-in fade-in duration-200">
-          <div className="flex items-center justify-between text-xs font-semibold text-blue-900 dark:text-blue-200">
-            <span className="flex items-center gap-1.5">
-              <Loader2 className="h-3.5 w-3.5 animate-spin text-blue-600 dark:text-blue-400" />
-              Memproses Impor Data Penetapan APBD...
-            </span>
-            <span className="font-mono text-[11px]">{currentStep * 25}%</span>
+        <div className="p-3.5 rounded-xl border border-blue-200 dark:border-blue-900/60 bg-blue-50/50 dark:bg-blue-950/30 flex items-center gap-2.5 animate-in fade-in duration-200">
+          <Loader2 className="h-4 w-4 animate-spin text-blue-600 dark:text-blue-400 shrink-0" />
+          <div>
+            <p className="text-xs font-semibold text-blue-900 dark:text-blue-200">
+              {phase === "uploading" ? "Mengunggah berkas..." : "Memproses & menyimpan ke database..."}
+            </p>
+            <p className="text-[10px] text-blue-700/70 dark:text-blue-300/70 mt-0.5">{statusMessage}</p>
           </div>
+        </div>
+      )}
 
-          <div className="h-1.5 w-full bg-slate-200 dark:bg-slate-800 rounded-full overflow-hidden">
-            <div
-              className="h-full bg-gradient-to-r from-blue-600 to-indigo-600 rounded-full transition-all duration-300"
-              style={{ width: `${currentStep * 25}%` }}
-            />
-          </div>
+      {phase === "done" && (
+        <div className="p-3.5 rounded-xl border border-emerald-200 dark:border-emerald-800/50 bg-emerald-50/50 dark:bg-emerald-950/20 flex items-center gap-2.5 animate-in fade-in duration-200">
+          <CheckCircle2 className="h-4 w-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
+          <p className="text-xs font-semibold text-emerald-800 dark:text-emerald-300">{statusMessage}</p>
+        </div>
+      )}
 
-          <div className="grid grid-cols-3 text-[10px] text-slate-500 dark:text-slate-400 pt-1">
-            <span className={currentStep >= 1 ? "text-blue-600 font-semibold" : ""}>1. Validasi Kolom</span>
-            <span className={`text-center ${currentStep >= 2 ? "text-blue-600 font-semibold" : ""}`}>2. Relasi Struktur</span>
-            <span className={`text-right ${currentStep >= 3 ? "text-emerald-600 font-semibold" : ""}`}>3. Simpan DB</span>
-          </div>
+      {phase === "error" && (
+        <div className="p-3.5 rounded-xl border border-red-200 dark:border-red-800/50 bg-red-50/50 dark:bg-red-950/20 flex items-center gap-2.5 animate-in fade-in duration-200">
+          <XCircle className="h-4 w-4 text-red-600 dark:text-red-400 shrink-0" />
+          <p className="text-xs font-semibold text-red-800 dark:text-red-300 break-words">{statusMessage}</p>
         </div>
       )}
 
       {/* Action Footer */}
       <div className="flex flex-wrap items-center justify-between gap-3 pt-2 border-t border-slate-100 dark:border-slate-800">
-        <div className="flex items-center gap-2">
-          <button
-            type="button"
-            onClick={handleDownloadTemplate}
-            className="h-8 px-2.5 inline-flex items-center gap-1.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-xs font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
-            title="Download Template Format CSV"
-          >
-            <Download className="h-3.5 w-3.5 text-slate-400" />
-            <span>Format Template CSV</span>
-          </button>
-
-          <button
-            type="button"
-            onClick={() => runImportProcess()}
-            disabled={isProcessing}
-            className="h-8 px-2.5 inline-flex items-center gap-1.5 rounded-lg border border-amber-200 dark:border-amber-500/30 bg-amber-50 dark:bg-amber-500/10 text-amber-800 dark:text-amber-300 hover:bg-amber-100 dark:hover:bg-amber-500/20 text-xs font-semibold transition-colors disabled:opacity-50"
-            title="Simulasikan impor dengan dataset baru SIPD-RI"
-          >
-            <Sparkles className="h-3.5 w-3.5 text-amber-600 dark:text-amber-400" />
-            <span>Gunakan Sampel SIPD-RI (Demo)</span>
-          </button>
-        </div>
+        <button
+          type="button"
+          onClick={handleDownloadTemplate}
+          className="h-8 px-2.5 inline-flex items-center gap-1.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-xs font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
+          title="Download Template Format CSV"
+        >
+          <Download className="h-3.5 w-3.5 text-slate-400" />
+          <span>Format Template CSV</span>
+        </button>
 
         <div className="flex items-center gap-2">
-          {selectedFile && (
+          {selectedFile && !isProcessing && (
             <button
               type="button"
               onClick={() => setSelectedFile(null)}
@@ -382,20 +323,19 @@ export function SipdImportDropzone({ onImportSuccess, existingVersions }: SipdIm
 
           <button
             type="button"
-            onClick={() => runImportProcess()}
+            onClick={runImportProcess}
             disabled={isProcessing || !selectedFile}
             className="h-8 px-4 inline-flex items-center gap-1.5 rounded-lg bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:pointer-events-none text-white text-xs font-semibold shadow-xs transition-colors"
           >
             {isProcessing ? (
               <>
                 <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                <span>Mengimpor...</span>
+                <span>{phase === "uploading" ? "Mengunggah..." : "Memproses..."}</span>
               </>
             ) : (
               <>
-                <CheckCircle2 className="h-3.5 w-3.5" />
-                <span>Mulai Impor Versi Ini</span>
                 <ArrowRight className="h-3.5 w-3.5" />
+                <span>Mulai Impor Versi Ini</span>
               </>
             )}
           </button>
@@ -403,4 +343,4 @@ export function SipdImportDropzone({ onImportSuccess, existingVersions }: SipdIm
       </div>
     </div>
   )
-}
+}

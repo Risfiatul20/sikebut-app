@@ -286,7 +286,7 @@ function IdentifikasiPageContent() {
       const res = await fetch(`/api/identifikasi/${editId}/review`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ status_review: "Menunggu Review" }),
+        body: JSON.stringify({ action: "submit" }),
       })
       const result = await res.json()
       if (res.ok) {
@@ -372,6 +372,8 @@ function IdentifikasiPageContent() {
               onChange={(d) => setFormData(d)}
               onOpenPagu={() => setIsPaguOpen(true)}
               totalPagu={totalPagu} catatanReviewerDetail={catatanReviewerDetail}
+              kodeSubKegiatan={effectiveIdentitas.kode_sub_kegiatan}
+              kodeSkpd={effectiveIdentitas.kode_skpd}
             />
           )
         if (tipeForm === "Konstruksi")
@@ -381,6 +383,8 @@ function IdentifikasiPageContent() {
               onChange={(d) => setFormData(d)}
               onOpenPagu={() => setIsPaguOpen(true)}
               totalPagu={totalPagu} catatanReviewerDetail={catatanReviewerDetail}
+              kodeSubKegiatan={effectiveIdentitas.kode_sub_kegiatan}
+              kodeSkpd={effectiveIdentitas.kode_skpd}
             />
           )
         if (tipeForm === "Jasa Lainnya")
@@ -562,7 +566,7 @@ function IdentifikasiPageContent() {
       </div>
 
       {/* Catatan Verifikator jika ada / saat mode edit */}
-      {isEditMode && (catatanReviewer || catatanReviewerDetail || statusReview === "Ditolak") && (
+      {isEditMode && (catatanReviewer || catatanReviewerDetail || statusReview === "Perlu Perbaikan") && (
         <CatatanVerifikatorPanel
           catatanReviewer={catatanReviewer}
           catatanReviewerDetail={catatanReviewerDetail}

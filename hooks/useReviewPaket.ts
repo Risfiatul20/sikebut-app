@@ -1,10 +1,34 @@
 "use client"
 
 import { useState, useCallback } from "react"
-import { StatusReview } from "@/types/identifikasi"
+
+/**
+ * Aksi review yang dipetakan ke endpoint backend Laravel:
+ * - submit  → POST .../submit      (Draft/Perlu Perbaikan → Diajukan)
+ * - approve → POST .../verify      (Diajukan → Disetujui)
+ * - return  → POST .../return      (Diajukan → Perlu Perbaikan)
+ * - note    → POST .../note        (simpan catatan, status tetap)
+ */
+export type ReviewAction = "submit" | "approve" | "return" | "note"
+
+/**
+ * Terjemahkan pesan validasi bawaan Laravel (Inggris) ke Bahasa Indonesia
+ * agar error yang tampil di UI ramah pengguna.
+ */
+function translateError(msg: string): string {
+  if (!msg) return msg
+  const rules: Array<[RegExp, string]> = [
+    [/The catatan reviewer field is required\./i, "Catatan global wajib diisi sebelum Minta Perbaikan."],
+    [/The (.+?) field is required\./i, "Kolom \"$1\" wajib diisi."],
+  ]
+  for (const [re, repl] of rules) {
+    if (re.test(msg)) return msg.replace(re, repl)
+  }
+  return msg
+}
 
 export interface ReviewPayload {
-  status_review: StatusReview
+  action: ReviewAction
   catatan_reviewer: string | null
   catatan_reviewer_detail: Record<string, unknown> | null
 }
@@ -42,7 +66,7 @@ export function useReviewPaket() {
           setSuccessMsg(json.message || "Hasil review berhasil disimpan")
           return true
         }
-        setError(json.message || json.error || `Gagal review paket (status ${res.status})`)
+        setError(translateError(json.message || json.error || `Gagal review paket (status ${res.status})`))
         return false
       } catch (err) {
         setError(err instanceof Error ? err.message : "Terjadi kesalahan jaringan")
@@ -54,5 +78,5 @@ export function useReviewPaket() {
     [reset]
   )
 
-  return { review, isLoading, error, successMsg, reset }
+  return { review, isLoading, error, successMsg, reset, setError }
 }

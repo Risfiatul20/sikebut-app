@@ -12,29 +12,26 @@ export async function GET(
 
   const { id } = await params
 
+  let res: Response
   try {
-    const backendUrl = `${process.env.API_URL || "http://127.0.0.1:8000"}/api/v1/import/status/${id}`
-    const res = await fetch(backendUrl, {
+    res = await fetch(`${process.env.API_URL || "http://127.0.0.1:8000"}/api/v1/import/status/${id}`, {
       headers: {
         Accept: "application/json",
         Authorization: `Bearer ${session.user.apiToken}`,
       },
       cache: "no-store",
     })
-
-    if (res.ok) {
-      const data = await res.json()
-      return NextResponse.json(data)
-    }
   } catch {
-    // Fallback status mock
+    return NextResponse.json(
+      { error: "Backend tidak dapat dijangkau. Pastikan server API (Laravel) berjalan." },
+      { status: 502 }
+    )
   }
 
-  return NextResponse.json({
-    success: true,
-    status: "completed",
-    file_name: `rkbmd_import_${id}.xlsx`,
-    error_message: null,
-    updated_at: new Date().toISOString(),
-  })
+  if (res.ok) {
+    return NextResponse.json(await res.json())
+  }
+
+  const errText = await res.text()
+  return new NextResponse(errText, { status: res.status, headers: { "Content-Type": "application/json" } })
 }

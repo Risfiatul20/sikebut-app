@@ -1,6 +1,5 @@
 import { auth } from "@/auth"
 import { NextResponse } from "next/server"
-import { INITIAL_SIPD_ITEMS } from "@/lib/mock-sipd"
 import { SipdItem } from "@/types/sipd"
 
 interface RawSipdRow {
@@ -95,27 +94,34 @@ export async function GET(req: Request) {
     return NextResponse.json({ data: [] })
   }
 
-  // Teruskan ke backend Laravel: /api/v1/sipd-penetapan-apbd
+  // Teruskan ke backend Laravel: /api/v1/sipd-penetapan-apbd — TANPA fallback mock.
+  let backendRes: Response
   try {
     const params = new URLSearchParams({ per_page: "0", kode_sub_kegiatan: kodeSubKegiatan })
-    const backendUrl = `${process.env.API_URL || "http://127.0.0.1:8000"}/api/v1/sipd-penetapan-apbd?${params.toString()}`
-    const backendRes = await fetch(backendUrl, {
-      headers: {
-        Accept: "application/json",
-        Authorization: `Bearer ${session.user.apiToken}`,
-      },
-      next: { revalidate: 3600, tags: ["sipd-penetapan-apbd"] },
-    })
-
-    if (backendRes.ok) {
-      const json = await backendRes.json()
-      const rows: RawSipdRow[] = json.data ?? []
-      return NextResponse.json({ data: rows.map(normalizeRow) })
-    }
+    backendRes = await fetch(
+      `${process.env.API_URL || "http://127.0.0.1:8000"}/api/v1/sipd-penetapan-apbd?${params.toString()}`,
+      {
+        headers: {
+          Accept: "application/json",
+          Authorization: `Bearer ${session.user.apiToken}`,
+        },
+        next: { revalidate: 3600, tags: ["sipd-penetapan-apbd"] },
+      }
+    )
   } catch {
-    // Backend offline: fallback ke data mock
+    return NextResponse.json(
+      { error: "Backend tidak dapat dijangkau. Pastikan server API (Laravel) berjalan." },
+      { status: 502 }
+    )
   }
 
-  const fallback = INITIAL_SIPD_ITEMS.filter((it) => it.kode_sub_kegiatan === kodeSubKegiatan)
-  return NextResponse.json({ data: fallback })
+  if (backendRes.ok) {
+    const json = await backendRes.json()
+    const rows: RawSipdRow[] = json.data ?? []
+    return NextResponse.json({ data: rows.map(normalizeRow) })
+  }
+
+  // Teruskan error backend apa adanya — jangan pernah memakai data cadangan.
+  const errText = await backendRes.text()
+  return new NextResponse(errText, { status: backendRes.status, headers: { "Content-Type": "application/json" } })
 }
