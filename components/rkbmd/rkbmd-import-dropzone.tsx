@@ -115,13 +115,45 @@ export function RkbmdImportDropzone({ type, title, onImportSuccess }: RkbmdImpor
     }
   }
 
-  // Format CSV Template Download
+  // Format CSV Template Download — header HARUS sama persis dengan kolom yang
+  // dibaca import class backend (WithHeadingRow), supaya data benar-benar masuk.
+  // Kolom id_* bersifat opsional: kosongkan → sistem generate otomatis.
   const handleDownloadTemplate = () => {
     const headers = type === "pengadaan"
-      ? ["kode_skpd", "nama_skpd", "kode_program", "nama_program", "kode_giat", "nama_giat", "kode_sub_giat", "nama_sub_giat", "kode_fikasi", "nama_barang", "jumlah_barang", "satuan", "jumlah_maksimum", "cara_pemenuhan", "keterangan", "periode"]
-      : ["kode_skpd", "nama_skpd", "kode_program", "nama_program", "kode_giat", "nama_giat", "kode_sub_giat", "nama_sub_giat", "kode_fikasi", "nama_barang", "jumlah_barang", "satuan", "kondisi_b", "kondisi_rr", "kondisi_rb", "nama_pemeliharaan", "jumlah_pemeliharaan", "satuan_pemeliharaan", "keterangan", "periode"]
+      ? [
+          "id_pengadaan", "kode_skpd", "nama_skpd", "kode_program", "nama_program",
+          "kode_giat", "nama_giat_nama_giat", "kode_sub_giat", "nama_sub_giat_nama_sub_giat",
+          "kode_fikasi", "nama_barang", "jumlah_barang", "satuan", "jumlah_maksimum",
+          "cara_pemenuhan", "keterangan", "periode", "nm_status",
+        ]
+      : [
+          "id_pemeliharaan", "kode_skpd", "nama_skpd", "kode_program", "nama_program",
+          "kode_kegiatan", "nama_giat_nama_giat", "kode_sub_kegiatan", "nama_sub_giat_nama_sub_giat",
+          "kode_fikasi", "nama_barang", "jumlah_barang", "satuan", "kondisi_b",
+          "kondisi_rr", "kondisi_rb", "nama_pemeliharaan", "jumlah_pemeliharaan",
+          "satuan_pemeliharaan", "keterangan", "periode", "nm_status",
+        ]
 
-    const csvContent = "data:text/csv;charset=utf-8," + headers.join(",") + "\n"
+    const exampleRow = type === "pengadaan"
+      ? [
+          "", "4.01.0.00.0.00.01.0006", "BIRO PENGADAAN BARANG DAN JASA", "4.01.07",
+          "PROGRAM KEBIJAKAN DAN PELAYANAN PENGADAAN BARANG DAN JASA", "4.01.07.1.02",
+          "Pengelolaan Layanan Pengadaan Secara Elektronik", "4.01.07.1.02.0003",
+          "Pengembangan Sistem Informasi Pengadaan Barang dan Jasa", "1.01.01.01.001",
+          "Laptop Pengelolaan SPSE", "4", "Unit", "4", "Pengadaan Langsung",
+          "Contoh baris — hapus baris ini sebelum impor", "2026", "Draft",
+        ]
+      : [
+          "", "4.01.0.00.0.00.01.0006", "BIRO PENGADAAN BARANG DAN JASA", "4.01.07",
+          "PROGRAM KEBIJAKAN DAN PELAYANAN PENGADAAN BARANG DAN JASA", "4.01.07.1.02",
+          "Pengelolaan Layanan Pengadaan Secara Elektronik", "4.01.07.1.02.0003",
+          "Pengembangan Sistem Informasi Pengadaan Barang dan Jasa", "1.01.01.01.001",
+          "Laptop Pengelolaan SPSE", "4", "Unit", "2", "1", "1", "Pemeliharaan rutin",
+          "2", "Kegiatan", "Contoh baris — hapus baris ini sebelum impor", "2026", "Draft",
+        ]
+
+    const csvContent =
+      "data:text/csv;charset=utf-8," + [headers.join(","), exampleRow.join(",")].join("\n")
     const encodedUri = encodeURI(csvContent)
     const link = document.createElement("a")
     link.setAttribute("href", encodedUri)

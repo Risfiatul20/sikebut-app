@@ -1,7 +1,7 @@
 "use client"
 
 import { useCallback, useEffect, useState } from "react"
-import { Loader2, RefreshCw, Printer, FileText } from "lucide-react"
+import { Loader2, RefreshCw, Printer, FileText, FileSpreadsheet } from "lucide-react"
 import { BaRkbmdResponse } from "@/types/laporan-paket"
 
 interface Props {
@@ -67,12 +67,19 @@ export function BaRkbmdView({ jenis, tipe, judul, deskripsi }: Props) {
           <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">{deskripsi}</p>
         </div>
         <div className="flex items-center gap-2">
+          <a
+            href={`/api/laporan/${jenis}/export`}
+            className="h-8 px-3 inline-flex items-center gap-1.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold shadow-xs transition-colors"
+            title="Unduh Berita Acara dalam format Excel"
+          >
+            <FileSpreadsheet className="h-3.5 w-3.5" /> Ekspor Excel
+          </a>
           <button
             type="button"
             onClick={handlePrint}
-            className="h-8 px-3 inline-flex items-center gap-1.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold shadow-xs transition-colors"
+            className="h-8 px-3 inline-flex items-center gap-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-white text-xs font-semibold shadow-xs transition-colors"
           >
-            <Printer className="h-3.5 w-3.5" /> Cetak
+            <Printer className="h-3.5 w-3.5" /> Cetak PDF
           </button>
           <button
             type="button"
@@ -130,64 +137,66 @@ export function BaRkbmdView({ jenis, tipe, judul, deskripsi }: Props) {
 
             <p className="text-xs leading-relaxed text-justify mb-4">
               Pada hari ini telah dicatatkan rencana kebutuhan barang pada data RKBMD ({tipe}) yang bersumber dari sistem,
-              mencakup <span className="font-semibold">{data.summary.total_skpd} SKPD</span>. Daftar rincian terlampir pada tabel berikut:
+              mencakup <span className="font-semibold">{data.summary.total_paket} paket</span> dengan
+              <span className="font-semibold"> {data.summary.total_barang} item barang</span> ({data.summary.total_unit} unit).
+              Daftar rincian terlampir pada tabel berikut:
             </p>
 
-            {/* Ringkasan per SKPD */}
-            <p className="text-xs font-semibold mb-2">Ringkasan per SKPD</p>
-            <div className="overflow-x-auto border border-slate-300 dark:border-slate-700 rounded-lg mb-6">
-              <table className="w-full text-xs">
+            {/* Tabel Paket — sesuai template BA Catatan RKBMD (table-fixed, muat 100%, tidak keluar tabel) */}
+            <div className="border border-slate-300 dark:border-slate-700 rounded-lg overflow-hidden">
+              <table className="w-full text-xs table-fixed border-collapse">
+                <colgroup>
+                  <col className="w-[6%]" />
+                  <col className="w-[30%]" />
+                  <col className="w-[8%]" />
+                  <col className="w-[10%]" />
+                  <col className="w-[26%]" />
+                  <col className="w-[20%]" />
+                </colgroup>
                 <thead>
                   <tr className="bg-slate-100 dark:bg-slate-800 text-left">
-                    <th className="font-semibold px-3 py-2">Kode SKPD</th>
-                    <th className="font-semibold px-3 py-2">Nama SKPD</th>
-                    <th className="font-semibold px-3 py-2 text-right">Jumlah Baris</th>
-                    <th className="font-semibold px-3 py-2 text-right">Total Unit</th>
+                    <th className="font-semibold px-3 py-2.5">No</th>
+                    <th className="font-semibold px-3 py-2.5">OPD / Program / Kegiatan / Sub Kegiatan / Paket</th>
+                    <th className="font-semibold px-3 py-2.5 text-right">Jml Item</th>
+                    <th className="font-semibold px-3 py-2.5 text-right">Total Unit</th>
+                    <th className="font-semibold px-3 py-2.5">Barang RKBMD</th>
+                    <th className="font-semibold px-3 py-2.5">Catatan Pembahasan</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-200 dark:divide-slate-700">
-                  {data.per_skpd.length === 0 ? (
+                  {data.paket.length === 0 ? (
                     <tr>
-                      <td colSpan={4} className="px-3 py-6 text-center text-slate-400">Belum ada data RKBMD.</td>
+                      <td colSpan={6} className="px-3 py-6 text-center text-slate-400">Belum ada paket dengan jawaban RKBMD ({tipe}).</td>
                     </tr>
                   ) : (
-                    data.per_skpd.map((s, i) => (
-                      <tr key={i}>
-                        <td className="px-3 py-2 font-mono">{s.kode_skpd}</td>
-                        <td className="px-3 py-2">{s.nama_skpd || "—"}</td>
-                        <td className="px-3 py-2 text-right">{s.jumlah_paket}</td>
-                        <td className="px-3 py-2 text-right font-mono">{Number(s.total_pagu ?? 0).toLocaleString("id-ID")}</td>
-                      </tr>
-                    ))
-                  )}
-                </tbody>
-              </table>
-            </div>
-
-            {/* Detail barang */}
-            <p className="text-xs font-semibold mb-2">Rincian Barang (lampiran, {data.items.length} baris terbaru)</p>
-            <div className="overflow-x-auto border border-slate-300 dark:border-slate-700 rounded-lg">
-              <table className="w-full text-xs">
-                <thead>
-                  <tr className="bg-slate-100 dark:bg-slate-800 text-left">
-                    <th className="font-semibold px-3 py-2">Nama Barang</th>
-                    <th className="font-semibold px-3 py-2 text-right">Jumlah</th>
-                    <th className="font-semibold px-3 py-2">Satuan</th>
-                    <th className="font-semibold px-3 py-2">SKPD</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-200 dark:divide-slate-700">
-                  {data.items.length === 0 ? (
-                    <tr>
-                      <td colSpan={4} className="px-3 py-6 text-center text-slate-400">Belum ada rincian barang.</td>
-                    </tr>
-                  ) : (
-                    data.items.map((it) => (
-                      <tr key={it.id}>
-                        <td className="px-3 py-1.5">{it.nama_barang}</td>
-                        <td className="px-3 py-1.5 text-right font-mono">{it.jumlah_barang}</td>
-                        <td className="px-3 py-1.5">{it.satuan || "—"}</td>
-                        <td className="px-3 py-1.5">{it.nama_skpd || it.kode_skpd}</td>
+                    data.paket.map((p, i) => (
+                      <tr key={p.id} className="align-top">
+                        <td className="px-3 py-2">{i + 1}</td>
+                        <td className="px-3 py-2 min-w-0 break-words">
+                          <p className="font-semibold break-words">{p.nama_paket}</p>
+                          <p className="text-[10px] text-slate-500 mt-0.5 leading-snug break-words">
+                            {[p.nama_skpd, p.nama_program, p.nama_kegiatan, p.nama_sub_kegiatan].filter(Boolean).join(" › ")}
+                          </p>
+                        </td>
+                        <td className="px-3 py-2 text-right font-mono">{p.jumlah_item}</td>
+                        <td className="px-3 py-2 text-right font-mono">{Number(p.total_unit).toLocaleString("id-ID")}</td>
+                        <td className="px-3 py-2 text-slate-600 dark:text-slate-400 break-words min-w-0">
+                          {p.items.length === 0 ? (
+                            "—"
+                          ) : (
+                            <ul className="space-y-1">
+                              {p.items.map((it, idx) => (
+                                <li key={idx} className="flex items-baseline gap-1">
+                                  <span className="shrink-0 text-slate-400">•</span>
+                                  <span className="break-words">
+                                    {it.nama_barang} — {Number(it.jumlah).toLocaleString("id-ID")} {it.satuan}
+                                  </span>
+                                </li>
+                              ))}
+                            </ul>
+                          )}
+                        </td>
+                        <td className="px-3 py-2 text-slate-700 dark:text-slate-300 leading-snug break-words min-w-0">{p.catatan_pembahasan || "—"}</td>
                       </tr>
                     ))
                   )}

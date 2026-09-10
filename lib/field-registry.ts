@@ -51,7 +51,7 @@ const BARANG_SECTIONS: FieldSection[] = [
   {
     title: "Persyaratan Pengadaan",
     fields: [
-      { key: "pdn", label: "PDN (Produk Dalam Negeri)", kind: yatidak },
+      { key: "pdn", label: "PDN", kind: yatidak },
       { key: "usaha_kecil", label: "Pengadaan Usaha Kecil", kind: yatidak },
       { key: "pra_dpa", label: "Pra DPA", kind: yatidak },
       { key: "spp_ekonomi", label: "SPP — Aspek Ekonomi", kind: yatidak },
@@ -65,9 +65,9 @@ const BARANG_SECTIONS: FieldSection[] = [
     fields: [
       { key: "jumlah_dibutuhkan", label: "Jumlah Barang Dibutuhkan (unit)", kind: number },
       { key: "jumlah_sejenis", label: "Jumlah Barang Sejenis Tersedia (unit)", kind: number },
-      { key: "kondisi_baik", label: "Kondisi Baik (unit)", kind: number },
-      { key: "kondisi_rusak_ringan", label: "Kondisi Rusak Ringan (unit)", kind: number },
-      { key: "kondisi_rusak_berat", label: "Kondisi Rusak Berat (unit)", kind: number },
+      { key: "kondisi_baik", label: "Baik (unit)", kind: number },
+      { key: "kondisi_rusak_ringan", label: "Rusak Ringan (unit)", kind: number },
+      { key: "kondisi_rusak_berat", label: "Rusak Berat (unit)", kind: number },
       { key: "rkbmd_items", label: "Daftar Item Teridentifikasi (RKBMD)", kind: rkbmdlist },
     ],
   },
@@ -90,7 +90,7 @@ const BARANG_SECTIONS: FieldSection[] = [
       { key: "cara_penimbunan", label: "Cara Penimbunan/Penyimpanan", kind: text },
       { key: "cara_operasi", label: "Cara Pengoperasian/Penggunaan", kind: text },
       { key: "pelatihan", label: "Kebutuhan Pelatihan Operasional", kind: yatidak },
-      { key: "spp_lanjutan", label: "Aspek SPP Lanjutan", kind: multi },
+      { key: "spp_lanjutan", label: "Pengadaan Berkelanjutan (SPP Lanjutan)", kind: multi },
     ],
   },
   {
@@ -122,14 +122,14 @@ const KONSTRUKSI_SECTIONS: FieldSection[] = [
   {
     title: "Persyaratan Pengadaan",
     fields: [
-      { key: "pdn", label: "PDN (Produk Dalam Negeri)", kind: yatidak },
+      { key: "pdn", label: "PDN", kind: yatidak },
       { key: "usaha_kecil", label: "Pengadaan Usaha Kecil", kind: yatidak },
       { key: "pra_dpa", label: "Pra DPA", kind: yatidak },
       { key: "spp_ekonomi", label: "SPP — Aspek Ekonomi", kind: yatidak },
       { key: "spp_sosial", label: "SPP — Aspek Sosial", kind: yatidak },
       { key: "spp_lingkungan", label: "SPP — Aspek Lingkungan", kind: yatidak },
-      { key: "tersedia_ekatalog_produk", label: "Produk Tersedia di e-Katalog", kind: yatidak },
-      { key: "tersedia_ekatalog_material", label: "Material Tersedia di e-Katalog", kind: yatidak },
+      { key: "tersedia_ekatalog_produk", label: "Produk Tersedia di e-Katalog LKPP", kind: yatidak },
+      { key: "tersedia_ekatalog_material", label: "Material Tersedia di e-Katalog LKPP", kind: yatidak },
     ],
   },
   {
@@ -173,9 +173,9 @@ const KONSTRUKSI_SECTIONS: FieldSection[] = [
     fields: [
       { key: "jumlah_dibutuhkan", label: "Jumlah Barang Dibutuhkan (unit)", kind: number },
       { key: "jumlah_sejenis", label: "Jumlah Barang Sejenis Tersedia (unit)", kind: number },
-      { key: "kondisi_baik", label: "Kondisi Baik (unit)", kind: number },
-      { key: "kondisi_rusak_ringan", label: "Kondisi Rusak Ringan (unit)", kind: number },
-      { key: "kondisi_rusak_berat", label: "Kondisi Rusak Berat (unit)", kind: number },
+      { key: "kondisi_baik", label: "Baik (unit)", kind: number },
+      { key: "kondisi_rusak_ringan", label: "Rusak Ringan (unit)", kind: number },
+      { key: "kondisi_rusak_berat", label: "Rusak Berat (unit)", kind: number },
       { key: "rkbmd_items", label: "Daftar Item Teridentifikasi (RKBMD)", kind: rkbmdlist },
     ],
   },
@@ -211,7 +211,7 @@ const JASA_SECTIONS: FieldSection[] = [
   {
     title: "Persyaratan Pengadaan",
     fields: [
-      { key: "pdn", label: "PDN (Produk Dalam Negeri)", kind: yatidak },
+      { key: "pdn", label: "PDN", kind: yatidak },
       { key: "usaha_kecil", label: "Pengadaan Usaha Kecil", kind: yatidak },
       { key: "pra_dpa", label: "Pra DPA", kind: yatidak },
       { key: "spp_ekonomi", label: "SPP — Aspek Ekonomi", kind: yatidak },
@@ -250,7 +250,7 @@ const KONSULTANSI_SECTIONS: FieldSection[] = [
   {
     title: "Persyaratan Pengadaan",
     fields: [
-      { key: "pdn", label: "PDN (Produk Dalam Negeri)", kind: yatidak },
+      { key: "pdn", label: "PDN", kind: yatidak },
       { key: "usaha_kecil", label: "Pengadaan Usaha Kecil", kind: yatidak },
       { key: "pra_dpa", label: "Pra DPA", kind: yatidak },
       { key: "spp_ekonomi", label: "SPP — Aspek Ekonomi", kind: yatidak },

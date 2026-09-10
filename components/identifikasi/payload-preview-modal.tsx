@@ -1,7 +1,6 @@
 "use client"
 
-import { useState } from "react"
-import { X, Send, Code2, FileText, AlertTriangle, Building2, Copy, Check, Terminal } from "lucide-react"
+import { X, Send, FileText, AlertTriangle, Building2 } from "lucide-react"
 
 interface PayloadPreviewModalProps {
   isOpen: boolean
@@ -20,13 +19,7 @@ export function PayloadPreviewModal({
   onClose,
   onConfirm,
 }: PayloadPreviewModalProps) {
-  const [copied, setCopied] = useState(false)
-
   if (!isOpen) return null
-
-  // Deteksi environment (default: development jika tidak diset)
-  const rawEnv = (process.env.NEXT_PUBLIC_APP_ENV || process.env.APP_ENV || "development").toLowerCase()
-  const isDev = rawEnv === "development" || rawEnv === "developement" || rawEnv === "dev"
 
   const fmt = (v: number) =>
     new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", minimumFractionDigits: 0 }).format(v ?? 0)
@@ -72,16 +65,6 @@ export function PayloadPreviewModal({
   const jenisPengadaan = p?.jenis_pengadaan || p?.identitas?.jenis_pengadaan || ""
   const jumlahAnggaran = p?.anggaran?.length || 0
 
-  const handleCopy = () => {
-    try {
-      navigator.clipboard.writeText(JSON.stringify(payload, null, 2))
-      setCopied(true)
-      setTimeout(() => setCopied(false), 2000)
-    } catch {
-      // ignore
-    }
-  }
-
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-xs animate-in fade-in duration-150">
       <div
@@ -92,23 +75,12 @@ export function PayloadPreviewModal({
         <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-800/50 shrink-0">
           <div className="flex items-center gap-2.5">
             <span className="h-8 w-8 rounded-lg bg-blue-600 flex items-center justify-center text-white">
-              {isDev ? <Terminal className="h-4 w-4" /> : <FileText className="h-4 w-4" />}
+              <FileText className="h-4 w-4" />
             </span>
             <div>
-              <div className="flex items-center gap-2">
-                <h2 className="font-display text-base font-semibold text-slate-900 dark:text-white">
-                  Konfirmasi Simpan Usulan Kebutuhan
-                </h2>
-                <span
-                  className={`px-2 py-0.5 rounded-full text-[10px] font-mono font-semibold ${
-                    isDev
-                      ? "bg-amber-50 dark:bg-amber-500/15 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-500/30"
-                      : "bg-emerald-50 dark:bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-500/30"
-                  }`}
-                >
-                  ENV: {isDev ? "development" : "production"}
-                </span>
-              </div>
+              <h2 className="font-display text-base font-semibold text-slate-900 dark:text-white">
+                Konfirmasi Simpan Usulan Kebutuhan
+              </h2>
               <p className="text-xs text-slate-500 dark:text-slate-400">
                 Status usulan akan disimpan sebagai{" "}
                 <b className="text-slate-700 dark:text-slate-300">{isAjukanLangsung ? "Diajukan (langsung ke Verifikator)" : "Draft"}</b>{" "}
@@ -188,37 +160,6 @@ export function PayloadPreviewModal({
             </div>
           </div>
 
-          {/* Informasi Payload JSON (HANYA MUNCUL DI DEVELOPMENT) */}
-          {isDev && (
-            <div className="space-y-2 pt-2 border-t border-slate-100 dark:border-slate-800 animate-in fade-in duration-200">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-1.5">
-                  <Code2 className="h-3.5 w-3.5 text-amber-500" />
-                  <p className="text-[10px] font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300">
-                    Informasi Payload Data (Mode Development)
-                  </p>
-                </div>
-                <button
-                  type="button"
-                  onClick={handleCopy}
-                  className="inline-flex items-center gap-1 px-2 py-1 rounded-md border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-[10px] font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-750 transition-colors"
-                  title="Salin JSON ke clipboard"
-                >
-                  {copied ? <Check className="h-3 w-3 text-emerald-500" /> : <Copy className="h-3 w-3" />}
-                  <span>{copied ? "Tersalin!" : "Salin JSON"}</span>
-                </button>
-              </div>
-
-              <div className="rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-950 p-3.5 overflow-x-auto">
-                <p className="text-[10px] font-mono text-slate-400 mb-2">
-                  Target Endpoint: <span className="text-blue-400">POST /api/identifikasi</span>
-                </p>
-                <pre className="font-mono text-[11px] text-emerald-400 whitespace-pre-wrap">
-                  {JSON.stringify(payload, null, 2)}
-                </pre>
-              </div>
-            </div>
-          )}
         </div>
 
         {/* Footer */}

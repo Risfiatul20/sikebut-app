@@ -145,3 +145,63 @@
     @apply bg-slate-400 dark:bg-slate-600;
   }
 }
+
+/* ===== Cetak / PDF (laporan formal) — A4 POTRAIT (vertikal) ===== */
+@media print {
+  @page {
+    size: A4 portrait;
+    margin: 10mm;
+  }
+  html,
+  body {
+    background: #fff !important;
+  }
+  /* Sembunyikan chrome aplikasi (sidebar, header, toolbar) saat mencetak laporan */
+  aside,
+  header {
+    display: none !important;
+  }
+  main {
+    overflow: visible !important;
+    padding: 0 !important;
+  }
+  .print-block {
+    display: block !important;
+  }
+  /* Kontainer scroll horizontal dibuka penuh saat cetak supaya tabel tidak terpotong */
+  .overflow-x-auto {
+    overflow: visible !important;
+  }
+  /* Kartu laporan tidak boleh terpotong di tengah halaman */
+  .print-kartu {
+    page-break-inside: avoid;
+    break-inside: avoid;
+  }
+  table {
+    page-break-inside: auto;
+  }
+  tr {
+    page-break-inside: avoid;
+  }
+  thead {
+    display: table-header-group;
+  }
+  /* Teks panjang selalu membungkus (tidak keluar dari sel) saat dicetak */
+  td,
+  th {
+    overflow-wrap: break-word;
+    word-wrap: break-word;
+    word-break: break-word;
+  }
+  /* Tabel Rekap (13 kolom) dipadatkan agar muat di A4 potrait */
+  .laporan-rekap-table th,
+  .laporan-rekap-table td {
+    font-size: 9px !important;
+    padding: 3px 4px !important;
+  }
+  /* Pertahankan header abu muda & warna latar saat dicetak (PDF) */
+  .laporan-rekap-table {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+}

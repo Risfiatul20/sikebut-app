@@ -1,16 +1,16 @@
-import { LaporanPaketView } from "@/components/laporan/laporan-paket-view"
+import { LaporanRincianView } from "@/components/laporan/laporan-rincian-view"
 
 export const metadata = {
   title: "Laporan Penyedia — Sikebut PBJ",
-  description: "Daftar & ringkasan paket pengadaan melalui penyedia.",
+  description: "Rincian paket pengadaan melalui penyedia sesuai template laporan.",
 }
 
 export default function LaporanPenyediaPage() {
   return (
-    <LaporanPaketView
+    <LaporanRincianView
       jenis="penyedia"
-      title="Laporan Pengadaan Penyedia"
-      description="Ringkasan dan daftar paket identifikasi kebutuhan dengan cara pengadaan melalui Penyedia."
+      title="Laporan Rencana Kebutuhan — Penyedia"
+      description="Rincian paket identifikasi kebutuhan dengan cara pengadaan melalui Penyedia (lokasi, volume, spesifikasi, persyaratan, jadwal & anggaran)."
     />
   )
 }

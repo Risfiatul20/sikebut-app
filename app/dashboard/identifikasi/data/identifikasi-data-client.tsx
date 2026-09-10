@@ -27,7 +27,8 @@ import {
   Clock,
   XCircle,
   Inbox,
-  ShieldCheck
+  ShieldCheck,
+  Layers
 } from "lucide-react"
 
 export interface IdentifikasiDataClientSession {
@@ -171,8 +172,10 @@ export function IdentifikasiDataClient({ session }: { session: IdentifikasiDataC
 
   // Verifikator melihat paket Diajukan (menunggu review), Disetujui, dan Perlu Perbaikan.
   // Paket Draft (belum final) milik PPK tidak ditampilkan & tidak bisa diakses.
+  // Arahan atasan: pilihan "Semua Status" ditampilkan kembali — yang tidak tampil hanya Draft.
   const STATUS_TABS = isUserVerifikator
     ? [
+        { key: "ALL", label: "Semua Status", icon: Layers },
         { key: "Diajukan", label: "Menunggu Review", icon: AlertCircle },
         { key: "Disetujui", label: "Disetujui", icon: CheckCircle2 },
         { key: "Perlu Perbaikan", label: "Perlu Perbaikan", icon: XCircle },
@@ -224,7 +227,7 @@ export function IdentifikasiDataClient({ session }: { session: IdentifikasiDataC
         <div className="flex items-center gap-2">
           {isUserVerifikator && (
             <span className="hidden sm:inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg border border-indigo-200 dark:border-indigo-500/30 bg-indigo-50/60 dark:bg-indigo-500/10 text-[10px] font-medium text-indigo-700 dark:text-indigo-300">
-              <ShieldCheck className="h-3.5 w-3.5" /> Menunggu Review, Disetujui & Perlu Perbaikan — Draft PPK tidak ditampilkan
+              <ShieldCheck className="h-3.5 w-3.5" /> Semua Status tampil (Menunggu Review, Disetujui & Perlu Perbaikan) — Draft PPK tidak ditampilkan
             </span>
           )}
           <button

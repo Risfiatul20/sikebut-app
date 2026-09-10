@@ -15,7 +15,8 @@ import {
   Landmark,
   Database,
   PieChart,
-  Map
+  Map,
+  MessageCircle
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { usePermission } from "@/hooks/usePermission"
@@ -105,13 +106,18 @@ const menuCategories: MenuCategory[] = [
         href: "/dashboard/settings",
         icon: Settings,
       },
+      {
+        title: "WhatsApp Gateway",
+        href: "/dashboard/wa-gateway",
+        icon: MessageCircle,
+      },
     ],
   },
 ]
 
 export function Sidebar() {
   const pathname = usePathname()
-  const { can } = usePermission()
+  const { can, role } = usePermission()
   const [isCollapsed, setIsCollapsed] = useState(false)
   const [expandedMenus, setExpandedMenus] = useState<string[]>(["Identifikasi Kebutuhan"])
 
@@ -168,6 +174,9 @@ export function Sidebar() {
               <div className="space-y-1">
                 {category.items.map((item) => {
                   if (item.title === "Manajemen Pengguna" && !can("user:manage")) {
+                    return null
+                  }
+                  if (item.title === "WhatsApp Gateway" && role !== "Admin") {
                     return null
                   }
                   const visibleSubItems = item.subItems?.filter(

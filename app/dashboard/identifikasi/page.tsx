@@ -16,6 +16,7 @@ import { StepReview } from "@/components/identifikasi/step-review"
 import { CatatanVerifikatorPanel } from "@/components/identifikasi/catatan-verifikator-panel"
 import { PayloadPreviewModal } from "@/components/identifikasi/payload-preview-modal"
 import { getInitialFormData } from "@/lib/mock-identifikasi"
+import { validasiIdentitas, validasiFormWajib, validasiSebelumSimpan, ValidasiError } from "@/lib/validasi-wizard"
 import {
   FormIdentitas,
   FormBarang,
@@ -45,12 +46,15 @@ function IdentifikasiPageContent() {
     nama_kegiatan: "",
     kode_sub_kegiatan: "",
     nama_sub_kegiatan: "",
-    cara_pengadaan: "Penyedia",
+    // Arahan atasan: Cara Pengadaan TIDAK langsung terisi — harus dipilih dulu,
+    // sama seperti Jenis Pengadaan (tidak ada default "Penyedia").
+    cara_pengadaan: "",
     jenis_pengadaan: "",
   }))
   const [formData, setFormData] = useState<unknown>({})
   const [anggaran, setAnggaran] = useState<PaguPaketItem[]>([])
   const [isPaguOpen, setIsPaguOpen] = useState(false)
+  const [validasiErrors, setValidasiErrors] = useState<ValidasiError[]>([])
   const [isSaving, setIsSaving] = useState(false)
   const [isLoadingDetail, setIsLoadingDetail] = useState(false)
   const [catatanReviewer, setCatatanReviewer] = useState<string | null>(null)
@@ -100,7 +104,13 @@ function IdentifikasiPageContent() {
             jenis_pengadaan: item.jenis_pengadaan || "",
           })
 
-          setFormData(item.form_data || {})
+          // Normalisasi: pastikan field RKBMD per-anggaran selalu tersedia (paket lama tidak punya)
+          setFormData({
+            rkbmd_items: [],
+            rkbmd_mode: "",
+            rkbmd_per_anggaran: [],
+            ...(item.form_data || {}),
+          })
           setCatatanReviewer(item.catatan_reviewer || null)
           setCatatanReviewerDetail((item.catatan_reviewer_detail as Record<string, string> | null) || null)
           setStatusReview(item.status_review || null)
@@ -115,6 +125,10 @@ function IdentifikasiPageContent() {
             pagu_sipd: Number(ag.sipd_penetapan?.pagu_sipd || ag.pagu || 0),
             pagu_tertagih: 0,
             rencana_pagu_paket: Number(ag.pagu || 0),
+            is_belanja_pengadaan: ag.sipd_penetapan?.is_belanja_pengadaan ?? undefined,
+            is_rkbmd_pengadaan: ag.sipd_penetapan?.is_rkbmd_pengadaan ?? undefined,
+            is_rkbmd_pemeliharaan_rehab: ag.sipd_penetapan?.is_rkbmd_pemeliharaan_rehab ?? undefined,
+            is_rkbmd_pemeliharaan_rutin: ag.sipd_penetapan?.is_rkbmd_pemeliharaan_rutin ?? undefined,
           }))
           setAnggaran(mappedAnggaran)
         }
@@ -160,8 +174,7 @@ function IdentifikasiPageContent() {
     ]
     if (tipeForm) {
       steps.push({ id: 1, label: `Form ${tipeForm}`, description: "Spesifikasi & Kebutuhan" })
-      steps.push({ id: 2, label: "Pagu Paket", description: "Pilih RKA SIPD" })
-      steps.push({ id: 3, label: "Review", description: "Konfirmasi & Simpan" })
+      steps.push({ id: 2, label: "Review", description: "Pagu Paket & Konfirmasi" })
     }
     return steps
   }
@@ -173,23 +186,38 @@ function IdentifikasiPageContent() {
     [anggaran]
   )
 
-  // Helper normalisasi tanggal: konversi "YYYY-MM" ke "YYYY-MM-DD" dan string kosong ke null
+  // Helper normalisasi tanggal: konversi "YYYY-MM", "MM/YYYY", "MM-YYYY" → "YYYY-MM-DD"
+  // (browser tertentu mengirim format MM/YYYY; backend hanya menerima tanggal standar)
+  const parseMonthYear = (str: string): { year: number; month: number } | null => {
+    let m = str.match(/^(\d{4})[-/](\d{1,2})$/) // YYYY-MM / YYYY/MM
+    if (m) return { year: Number(m[1]), month: Number(m[2]) }
+    m = str.match(/^(\d{1,2})[-/](\d{4})$/) // MM/YYYY / MM-YYYY
+    if (m) return { year: Number(m[2]), month: Number(m[1]) }
+    return null
+  }
+
   const normalizeStartDate = (val?: unknown): string | null => {
     if (!val || typeof val !== "string" || !val.trim()) return null
     const str = val.trim()
-    if (str.length === 7) return `${str}-01`
+    if (/^\d{4}-\d{2}$/.test(str)) return `${str}-01` // YYYY-MM → awal bulan
+    const p = parseMonthYear(str)
+    if (p && p.month >= 1 && p.month <= 12) {
+      return `${p.year}-${String(p.month).padStart(2, "0")}-01`
+    }
     return str
   }
 
   const normalizeEndDate = (val?: unknown): string | null => {
     if (!val || typeof val !== "string" || !val.trim()) return null
     const str = val.trim()
-    if (str.length === 7) {
+    if (/^\d{4}-\d{2}$/.test(str)) {
       const [year, month] = str.split("-").map(Number)
-      if (year && month) {
-        const lastDay = new Date(year, month, 0).getDate()
-        return `${str}-${String(lastDay).padStart(2, "0")}`
-      }
+      return `${str}-${String(new Date(year, month, 0).getDate()).padStart(2, "0")}`
+    }
+    const p = parseMonthYear(str)
+    if (p && p.month >= 1 && p.month <= 12) {
+      const lastDay = new Date(p.year, p.month, 0).getDate()
+      return `${p.year}-${String(p.month).padStart(2, "0")}-${String(lastDay).padStart(2, "0")}`
     }
     return str
   }
@@ -246,21 +274,64 @@ function IdentifikasiPageContent() {
   }, [effectiveIdentitas, formData, anggaran, userData, isEditMode, editIdStr, catatanReviewer, catatanReviewerDetail])
 
   const handleIdentitasChange = (data: FormIdentitas) => {
+    setValidasiErrors([])
     setIdentitas(data)
-    if (
-      data.cara_pengadaan !== identitas.cara_pengadaan ||
-      data.jenis_pengadaan !== identitas.jenis_pengadaan
-    ) {
-      setFormData(
-        getInitialFormData(
-          data.cara_pengadaan === "Swakelola" ? "Swakelola" : data.jenis_pengadaan || ""
-        )
-      )
+
+    const nextTipe = data.cara_pengadaan === "Swakelola" ? "Swakelola" : data.jenis_pengadaan || ""
+    const prevTipe =
+      identitas.cara_pengadaan === "Swakelola" ? "Swakelola" : identitas.jenis_pengadaan || ""
+
+    // Reset form HANYA saat struktur form benar-benar berganti jenis pengadaan.
+    // - Ganti Program/Kegiatan/Sub Kegiatan → isian form TIDAK direset (dipertahankan).
+    // - Klik ulang kartu Cara/Jenis yang sama, atau transisi lewat nilai kosong
+    //   (mis. klik "Penyedia" lagi yang sementara mengosongkan jenis) → TIDAK direset.
+    // - Pemilihan jenis PERTAMA KALI (prevTipe kosong) WAJIB menginisialisasi formData
+    //   (kalau tidak, step form render dengan data kosong → crash `data.lokasi.map`).
+    if (nextTipe && nextTipe !== prevTipe) {
+      const fresh = getInitialFormData(nextTipe) as Record<string, unknown>
+      const prev = (formData || {}) as Record<string, unknown>
+      // Pertahankan isian yang portabel antar jenis (nama paket, volume, lokasi, waktu, dll.)
+      const carried: Record<string, unknown> = {}
+      for (const key of Object.keys(fresh)) {
+        const v = prev[key]
+        if (v === undefined || v === null) continue
+        if (typeof v === "string" && v.trim() === "") continue
+        if (typeof v === "number" && v === 0) continue
+        if (Array.isArray(v) && v.length === 0) continue
+        carried[key] = v
+      }
+      setFormData({ ...fresh, ...carried })
     }
   }
 
+  // Pengaman: pastikan formData selalu punya seluruh field dasar + array wajib
+  // (lokasi, rkbmd_items, dst.) saat masuk step form — apa pun jalurnya
+  // (usulan baru, edit paket lama yang field-nya tidak lengkap, dsb.).
+  useEffect(() => {
+    if (currentStep < 1 || !tipeForm) return
+    const fd = (formData || {}) as Record<string, unknown>
+    const fresh = getInitialFormData(tipeForm) as Record<string, unknown>
+    const missing = Object.keys(fresh).filter((k) => !(k in fd))
+    if (missing.length > 0) {
+      const patched: Record<string, unknown> = { ...fresh }
+      for (const k of Object.keys(fd)) patched[k] = fd[k]
+      setFormData(patched)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentStep, tipeForm])
+
   const handleNext = () => {
     if (currentStep === 0 && !tipeForm) return
+    // Validasi sebelum pindah langkah (arahan: opsi kosong wajib diisi)
+    const errs =
+      currentStep === 0
+        ? validasiIdentitas(effectiveIdentitas)
+        : validasiFormWajib(tipeForm, (formData || {}) as Record<string, unknown>)
+    if (errs.length > 0) {
+      setValidasiErrors(errs)
+      return
+    }
+    setValidasiErrors([])
     setCurrentStep((s) => Math.min(s + 1, formSteps.length - 1))
   }
 
@@ -271,6 +342,21 @@ function IdentifikasiPageContent() {
 
   const handleSaveClick = (mode: "draft" | "ajukan" = "draft") => {
     if (isLoadingDetail || isSaving) return
+    // Validasi menyeluruh sebelum simpan/submit
+    const errs = validasiSebelumSimpan({
+      identitas: effectiveIdentitas,
+      jenis: tipeForm,
+      formData: (formData || {}) as Record<string, unknown>,
+      totalAnggaran: totalPagu,
+    })
+    if (errs.length > 0) {
+      setValidasiErrors(errs)
+      // Auto-lompat ke langkah pertama yang bermasalah (supaya user langsung melihat field yang wajib diisi)
+      const stepTerendah = Math.min(...errs.map((e) => e.step))
+      if (stepTerendah < currentStep) setCurrentStep(stepTerendah)
+      return
+    }
+    setValidasiErrors([])
     setSaveMode(mode)
     setPreviewOpen(true)
   }
@@ -335,13 +421,9 @@ function IdentifikasiPageContent() {
 
         setTimeout(() => {
           setToastMsg(null)
-          if (isUpdating || isAjukanLangsung) {
-            router.push("/dashboard/identifikasi/data")
-          } else {
-            setCurrentStep(0)
-            setFormData({})
-            setAnggaran([])
-          }
+          // Arahan atasan: setelah simpan (Draft ATAU Ajukan Langsung) dari halaman
+          // Review, otomatis langsung pindah ke daftar usulan.
+          router.push("/dashboard/identifikasi/data")
         }, 1500)
       } else {
         const errorDetail =
@@ -361,6 +443,14 @@ function IdentifikasiPageContent() {
     }
   }
 
+  // Nama langkah untuk banner validasi (0 = Identitas, 1 = Form, 2 = Review)
+  const STEP_LABELS: Record<number, string> = { 0: "Identitas", 1: "Form", 2: "Review" }
+
+  // Kumpulkan key field yang kosong per langkah — untuk highlight per-field di tiap step
+  const missingKeysIdentitas = validasiErrors.filter((e) => e.step === 0).map((e) => e.key || "").filter(Boolean)
+  const missingKeysForm = validasiErrors.filter((e) => e.step === 1).map((e) => e.key || "").filter(Boolean)
+  const missingPagu = validasiErrors.some((e) => e.step === 2)
+
   const renderCurrentStep = () => {
     switch (currentStep) {
       case 0:
@@ -370,6 +460,7 @@ function IdentifikasiPageContent() {
             onChange={handleIdentitasChange}
             userData={userData}
             isAdmin={isAdmin}
+            missing={missingKeysIdentitas}
           />
         )
       case 1:
@@ -377,150 +468,74 @@ function IdentifikasiPageContent() {
           return (
             <StepFormBarang
               data={formData as unknown as FormBarang}
-              onChange={(d) => setFormData(d)}
-              onOpenPagu={() => setIsPaguOpen(true)}
-              totalPagu={totalPagu} catatanReviewerDetail={catatanReviewerDetail}
+              onChange={(d) => { setFormData(d); setValidasiErrors([]) }}
+              catatanReviewerDetail={catatanReviewerDetail}
               kodeSubKegiatan={effectiveIdentitas.kode_sub_kegiatan}
               kodeSkpd={effectiveIdentitas.kode_skpd}
+              identifikasiId={isEditMode && editIdStr ? parseInt(editIdStr, 10) : undefined}
+              onOpenPagu={() => setIsPaguOpen(true)}
+              totalPagu={totalPagu}
+              anggaran={anggaran}
+              missing={missingKeysForm}
             />
           )
         if (tipeForm === "Konstruksi")
           return (
             <StepFormKonstruksi
               data={formData as unknown as FormKonstruksi}
-              onChange={(d) => setFormData(d)}
-              onOpenPagu={() => setIsPaguOpen(true)}
-              totalPagu={totalPagu} catatanReviewerDetail={catatanReviewerDetail}
+              onChange={(d) => { setFormData(d); setValidasiErrors([]) }}
+              catatanReviewerDetail={catatanReviewerDetail}
               kodeSubKegiatan={effectiveIdentitas.kode_sub_kegiatan}
               kodeSkpd={effectiveIdentitas.kode_skpd}
+              identifikasiId={isEditMode && editIdStr ? parseInt(editIdStr, 10) : undefined}
+              onOpenPagu={() => setIsPaguOpen(true)}
+              totalPagu={totalPagu}
+              anggaran={anggaran}
+              missing={missingKeysForm}
             />
           )
         if (tipeForm === "Jasa Lainnya")
           return (
             <StepFormJasaLainnya
               data={formData as unknown as FormJasaLainnya}
-              onChange={(d) => setFormData(d)}
+              onChange={(d) => { setFormData(d); setValidasiErrors([]) }}
+              catatanReviewerDetail={catatanReviewerDetail}
               onOpenPagu={() => setIsPaguOpen(true)}
-              totalPagu={totalPagu} catatanReviewerDetail={catatanReviewerDetail}
+              totalPagu={totalPagu}
+              missing={missingKeysForm}
             />
           )
         if (tipeForm === "Konsultansi")
           return (
             <StepFormKonsultansi
               data={formData as unknown as FormKonsultansi}
-              onChange={(d) => setFormData(d)}
+              onChange={(d) => { setFormData(d); setValidasiErrors([]) }}
+              catatanReviewerDetail={catatanReviewerDetail}
               onOpenPagu={() => setIsPaguOpen(true)}
-              totalPagu={totalPagu} catatanReviewerDetail={catatanReviewerDetail}
+              totalPagu={totalPagu}
+              missing={missingKeysForm}
             />
           )
         if (tipeForm === "Swakelola")
           return (
             <StepFormSwakelola
               data={formData as unknown as FormSwakelola}
-              onChange={(d) => setFormData(d)}
+              onChange={(d) => { setFormData(d); setValidasiErrors([]) }}
+              catatanReviewerDetail={catatanReviewerDetail}
               onOpenPagu={() => setIsPaguOpen(true)}
-              totalPagu={totalPagu} catatanReviewerDetail={catatanReviewerDetail}
+              totalPagu={totalPagu}
+              missing={missingKeysForm}
             />
           )
         return null
       case 2:
         return (
-          <div className="space-y-4">
-            <div>
-              <h2 className="font-display text-lg font-semibold text-slate-900 dark:text-white">
-                Pagu Paket (RKA SIPD)
-              </h2>
-              <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-                Pilih standar harga dan input rencana pagu paket dari data SIPD.
-              </p>
-            </div>
-            <div className="flex items-center justify-between p-4 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-950/40">
-              <div>
-                <p className="text-[10px] text-slate-400 uppercase font-semibold">
-                  Sub Kegiatan Aktif
-                </p>
-                <p className="text-xs font-semibold text-slate-900 dark:text-white mt-0.5">
-                  {effectiveIdentitas.nama_sub_kegiatan || "Belum dipilih"}
-                </p>
-              </div>
-              <button
-                onClick={() => setIsPaguOpen(true)}
-                className="h-9 px-4 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold shadow-xs transition-colors"
-              >
-                {anggaran.length > 0
-                  ? `Ubah Pemilihan (${anggaran.length} item)`
-                  : "Pilih Standar Harga & Input Pagu"}
-              </button>
-            </div>
-            {anggaran.length > 0 && (
-              <div className="border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden">
-                <table className="w-full text-xs">
-                  <thead className="bg-slate-50/80 dark:bg-slate-800/50 border-b border-slate-100 dark:border-slate-800">
-                    <tr className="text-[10px] uppercase text-slate-400">
-                      <th className="font-semibold px-4 py-2 text-left">Standar Harga</th>
-                      <th className="font-semibold px-4 py-2 text-left">Rekening</th>
-                      <th className="font-semibold px-4 py-2 text-right">Pagu Paket</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-                    {anggaran.map((a, i) => (
-                      <tr key={i}>
-                        <td className="px-4 py-2">
-                          <p className="text-[11px]">{a.nama_standar_harga}</p>
-                        </td>
-                        <td className="px-4 py-2">
-                          <p className="font-mono text-[10px] text-emerald-600">
-                            {a.nama_rekening}
-                          </p>
-                        </td>
-                        <td className="px-4 py-2 text-right font-mono font-semibold text-xs">
-                          {new Intl.NumberFormat("id-ID", {
-                            style: "currency",
-                            currency: "IDR",
-                            minimumFractionDigits: 0,
-                          }).format(a.rencana_pagu_paket)}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                  <tfoot>
-                    <tr className="bg-slate-50/80 dark:bg-slate-800/50">
-                      <td colSpan={2} className="px-4 py-2 text-[11px] font-semibold">
-                        Total
-                      </td>
-                      <td className="px-4 py-2 text-right font-mono font-bold text-sm text-blue-700 dark:text-blue-300">
-                        {new Intl.NumberFormat("id-ID", {
-                          style: "currency",
-                          currency: "IDR",
-                          minimumFractionDigits: 0,
-                        }).format(totalPagu)}
-                      </td>
-                    </tr>
-                  </tfoot>
-                </table>
-              </div>
-            )}
-            {anggaran.length === 0 && (
-              <div className="flex items-start gap-3 p-4 rounded-xl border border-amber-200 dark:border-amber-800/50 bg-amber-50/50 dark:bg-amber-950/20">
-                <AlertTriangle className="h-5 w-5 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
-                <div>
-                  <p className="text-xs font-semibold text-amber-800 dark:text-amber-200">
-                    Belum Ada Pemilihan Pagu
-                  </p>
-                  <p className="text-[11px] text-amber-700 dark:text-amber-300 mt-0.5">
-                    Klik tombol di atas untuk memilih standar harga dari RKA SIPD.
-                  </p>
-                </div>
-              </div>
-            )}
-          </div>
-        )
-      case 3:
-        return (
           <StepReview
             identitas={effectiveIdentitas}
             anggaran={anggaran}
             formData={formData}
+            onOpenPagu={() => setIsPaguOpen(true)}
+            missingPagu={missingPagu}
           />
         )
       default:
@@ -572,6 +587,33 @@ function IdentifikasiPageContent() {
           </Link>
         </div>
       </div>
+
+      {/* Banner validasi — opsi kosong wajib diisi saat pindah langkah / simpan / submit */}
+      {validasiErrors.length > 0 && (
+        <div className="rounded-xl border border-rose-300 dark:border-rose-500/40 bg-rose-50 dark:bg-rose-500/10 p-4 animate-in fade-in duration-200">
+          <div className="flex items-center gap-2 text-xs font-semibold text-rose-700 dark:text-rose-300 mb-2">
+            <AlertTriangle className="h-4 w-4 shrink-0" />
+            Data belum lengkap — lengkapi field berikut sebelum melanjutkan:
+          </div>
+          <ul className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-1.5 text-[11px] text-rose-700 dark:text-rose-300">
+            {validasiErrors.map((e, i) => (
+              <li key={`${e.step}-${e.key || ""}-${i}`}>
+                <button
+                  type="button"
+                  onClick={() => setCurrentStep(e.step)}
+                  className="inline-flex items-start gap-1.5 text-left hover:underline group"
+                  title={`Klik untuk ke Langkah ${STEP_LABELS[e.step] || e.step + 1}`}
+                >
+                  <span className="mt-0.5 shrink-0 inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-rose-200/70 dark:bg-rose-500/20 text-[9px] font-bold text-rose-800 dark:text-rose-300">
+                    Langkah {STEP_LABELS[e.step] || e.step + 1}
+                  </span>
+                  <span className="group-hover:underline">{e.label}</span>
+                </button>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
 
       {/* Catatan Verifikator jika ada / saat mode edit */}
       {isEditMode && (catatanReviewer || catatanReviewerDetail || statusReview === "Perlu Perbaikan") && (

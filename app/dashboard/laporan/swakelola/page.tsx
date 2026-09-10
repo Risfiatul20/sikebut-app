@@ -1,16 +1,16 @@
-import { LaporanPaketView } from "@/components/laporan/laporan-paket-view"
+import { LaporanRincianView } from "@/components/laporan/laporan-rincian-view"
 
 export const metadata = {
   title: "Laporan Swakelola — Sikebut PBJ",
-  description: "Daftar & ringkasan paket pengadaan swakelola.",
+  description: "Rincian paket pengadaan swakelola sesuai template laporan.",
 }
 
 export default function LaporanSwakelolaPage() {
   return (
-    <LaporanPaketView
+    <LaporanRincianView
       jenis="swakelola"
-      title="Laporan Pengadaan Swakelola"
-      description="Ringkasan dan daftar paket identifikasi kebutuhan dengan cara pengadaan Swakelola."
+      title="Laporan Rencana Kebutuhan — Swakelola"
+      description="Rincian paket identifikasi kebutuhan dengan cara Swakelola (lokasi, volume, spesifikasi, tipe, jadwal & anggaran)."
     />
   )
 }

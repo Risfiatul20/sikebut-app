@@ -185,8 +185,11 @@ export function DetailReviewModal({ item, canReview, onClose, onSuccess }: Detai
   // Reset state setiap kali item berubah (perbaikan bug: state tidak pernah di-reset antar paket)
   useEffect(() => {
     if (!item) return
-    setFieldComments((item.catatan_reviewer_detail as Record<string, string> | null) || {})
-    setGlobalComment(item.catatan_reviewer || "")
+    // Paket final (Disetujui) tampil BERSIH: catatan reviewer lama (global & per-field)
+    // tidak dimuat ke tampilan. Jejak audit tetap ada di Riwayat Status.
+    const isFinal = item.status_review === "Disetujui"
+    setFieldComments(isFinal ? {} : (item.catatan_reviewer_detail as Record<string, string> | null) || {})
+    setGlobalComment(isFinal ? "" : item.catatan_reviewer || "")
     setPendingAction(null)
     setError(null)
     setRiwayat(null)
@@ -458,7 +461,10 @@ export function DetailReviewModal({ item, canReview, onClose, onSuccess }: Detai
                   def={{ key: "waktu_pemanfaatan", label: "Waktu Pemanfaatan" }}
                   value={
                     item.waktu_pemanfaatan_awal
-                      ? `${item.waktu_pemanfaatan_awal} s/d ${item.waktu_pemanfaatan_akhir || ""}`
+                      ? item.waktu_pemanfaatan_akhir &&
+                        item.waktu_pemanfaatan_akhir !== item.waktu_pemanfaatan_awal
+                        ? `${item.waktu_pemanfaatan_awal} s/d ${item.waktu_pemanfaatan_akhir}`
+                        : item.waktu_pemanfaatan_awal
                       : "—"
                   }
                   note={fieldComments["waktu_pemanfaatan"] || undefined}
@@ -470,7 +476,10 @@ export function DetailReviewModal({ item, canReview, onClose, onSuccess }: Detai
                   def={{ key: "waktu_pemilihan", label: "Waktu Pemilihan Penyedia" }}
                   value={
                     item.waktu_pemilihan_awal
-                      ? `${item.waktu_pemilihan_awal} s/d ${item.waktu_pemilihan_akhir || ""}`
+                      ? item.waktu_pemilihan_akhir &&
+                        item.waktu_pemilihan_akhir !== item.waktu_pemilihan_awal
+                        ? `${item.waktu_pemilihan_awal} s/d ${item.waktu_pemilihan_akhir}`
+                        : item.waktu_pemilihan_awal
                       : "—"
                   }
                   note={fieldComments["waktu_pemilihan"] || undefined}
@@ -482,9 +491,15 @@ export function DetailReviewModal({ item, canReview, onClose, onSuccess }: Detai
                   def={{ key: "waktu_pelaksanaan", label: "Waktu Pelaksanaan Pekerjaan" }}
                   value={
                     item.waktu_pelaksanaan_pekerjaan_awal
-                      ? `${item.waktu_pelaksanaan_pekerjaan_awal} s/d ${item.waktu_pelaksanaan_pekerjaan_akhir || ""}`
+                      ? item.waktu_pelaksanaan_pekerjaan_akhir &&
+                        item.waktu_pelaksanaan_pekerjaan_akhir !== item.waktu_pelaksanaan_pekerjaan_awal
+                        ? `${item.waktu_pelaksanaan_pekerjaan_awal} s/d ${item.waktu_pelaksanaan_pekerjaan_akhir}`
+                        : item.waktu_pelaksanaan_pekerjaan_awal
                       : item.waktu_pelaksanaan_kontrak_awal
-                      ? `${item.waktu_pelaksanaan_kontrak_awal} s/d ${item.waktu_pelaksanaan_kontrak_akhir || ""}`
+                      ? item.waktu_pelaksanaan_kontrak_akhir &&
+                        item.waktu_pelaksanaan_kontrak_akhir !== item.waktu_pelaksanaan_kontrak_awal
+                        ? `${item.waktu_pelaksanaan_kontrak_awal} s/d ${item.waktu_pelaksanaan_kontrak_akhir}`
+                        : item.waktu_pelaksanaan_kontrak_awal
                       : "—"
                   }
                   note={fieldComments["waktu_pelaksanaan"] || undefined}

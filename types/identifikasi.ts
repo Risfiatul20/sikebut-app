@@ -1,14 +1,14 @@
-export type CaraPengadaan = "Penyedia" | "Swakelola"
+export type CaraPengadaan = "Penyedia" | "Swakelola" | ""
 export type JenisPengadaan = "Barang" | "Konstruksi" | "Jasa Lainnya" | "Konsultansi"
-export type YaTidak = "Ya" | "Tidak"
-export type BanyakTerbatas = "Banyak" | "Terbatas"
-export type MetodePengadaan = "ePurchasing" | "Tender" | "Tender Cepat" | "Pengadaan Langsung" | "Seleksi" | "Seleksi Cepat" | "Penunjukan Langsung"
-export type TipeSwakelola = "Tipe I" | "Tipe II" | "Tipe III" | "Tipe IV"
-export type KondisiBarang = "Baik" | "Rusak Ringan" | "Rusak Berat"
-export type Prioritas = "Tinggi" | "Sedang" | "Kecil"
-export type Kompleksitas = "Kompleks" | "Sederhana"
-export type JenisPenyedia = "Perorangan" | "Badan Usaha"
-export type MetodeOperasi = "Otomatis" | "Manual"
+export type YaTidak = "Ya" | "Tidak" | ""
+export type BanyakTerbatas = "Banyak" | "Terbatas" | ""
+export type MetodePengadaan = "ePurchasing" | "Tender" | "Tender Cepat" | "Pengadaan Langsung" | "Seleksi" | "Seleksi Cepat" | "Penunjukan Langsung" | ""
+export type TipeSwakelola = "Tipe I" | "Tipe II" | "Tipe III" | "Tipe IV" | ""
+export type KondisiBarang = "Baik" | "Rusak Ringan" | "Rusak Berat" | ""
+export type Prioritas = "Tinggi" | "Sedang" | "Kecil" | ""
+export type Kompleksitas = "Kompleks" | "Sederhana" | ""
+export type JenisPenyedia = "Perorangan" | "Badan Usaha" | ""
+export type MetodeOperasi = "Otomatis" | "Manual" | ""
 export type StatusReview = "Draft" | "Diajukan" | "Disetujui" | "Perlu Perbaikan"
 
 export interface WilayahItem {
@@ -45,6 +45,35 @@ export interface PaguPaketItem {
   pagu_sipd: number
   pagu_tertagih: number
   rencana_pagu_paket: number
+  // Flag akun_indikator_rkbmd — acuan pertanyaan RKBMD per kode rekening
+  is_belanja_pengadaan?: boolean
+  is_rkbmd_pengadaan?: boolean
+  is_rkbmd_pemeliharaan_rehab?: boolean
+  is_rkbmd_pemeliharaan_rutin?: boolean
+}
+
+export type RkbmdMode = "pengadaan" | "pemeliharaan" | "tidak_butuh" | "tidak_tersedia"
+
+export type RkbmdPerAnggaranMode = "rencana" | "aset" | "tidak_butuh" | "tidak_tersedia"
+export type RkbmdJenis = "pengadaan" | "pemeliharaan"
+
+/**
+ * Jawaban identifikasi RKBMD SATU item pagu paket (satu kode rekening / standar harga).
+ * Arahan: RKBMD ditanya PER item pagu paket; kode rekening menentukan jenis
+ * (pengadaan/pemeliharaan) dari tabel akun_indikator_rkbmd.
+ */
+export interface RkbmdPerAnggaran {
+  id_sipd_penetapan: number
+  kode_rekening: string
+  nama_rekening: string
+  kode_standar_harga: string
+  nama_standar_harga: string
+  /** Hasil pilihan level 0 — hanya terisi saat rekening mengarah ke DUA jenis. */
+  jenis: RkbmdJenis | ""
+  /** Mode akhir item: rencana (pengadaan) / aset (pemeliharaan) / tidak butuh / tidak tersedia. */
+  mode: RkbmdPerAnggaranMode | ""
+  /** Item barang terpilih — hanya terisi jika mode = "rencana" | "aset". */
+  items: RkbmdItemTerpilih[]
 }
 
 export interface RkbmdItemTerpilih {
@@ -108,6 +137,8 @@ export interface FormBarang {
   mudah_pasaran: YaTidak
   produsen: BanyakTerbatas
   rkbmd_items: RkbmdItemTerpilih[]
+  rkbmd_mode: RkbmdMode | ""
+  rkbmd_per_anggaran: RkbmdPerAnggaran[]
   kriteria_barang: string[]
   persyaratan_tkdn: YaTidak
   nilai_tkdn: number
@@ -172,6 +203,8 @@ export interface FormKonstruksi {
   kondisi_rusak_ringan: number
   kondisi_rusak_berat: number
   rkbmd_items: RkbmdItemTerpilih[]
+  rkbmd_mode: RkbmdMode | ""
+  rkbmd_per_anggaran: RkbmdPerAnggaran[]
   pengadaan_sejenis: YaTidak
   indikasi_konsolidasi: YaTidak
 }
@@ -286,6 +319,11 @@ export interface AnggaranItem {
     nama_sumber_dana: string
     tahun: number
     pagu_sipd: string | number
+    // Flag akun_indikator_rkbmd — terkirim saat load paket (mode edit)
+    is_belanja_pengadaan?: boolean | null
+    is_rkbmd_pengadaan?: boolean | null
+    is_rkbmd_pemeliharaan_rehab?: boolean | null
+    is_rkbmd_pemeliharaan_rutin?: boolean | null
   }
   created_at?: string
 }

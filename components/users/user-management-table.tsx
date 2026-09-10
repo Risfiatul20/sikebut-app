@@ -28,6 +28,8 @@ import {
   UserCheck,
   RotateCcw,
   Loader2,
+  AlertCircle,
+  X,
 } from "lucide-react"
 
 export function UserManagementTable() {
@@ -75,6 +77,19 @@ export function UserManagementTable() {
   const [selectedUserForDetail, setSelectedUserForDetail] = useState<User | null>(null)
   const [isFormModalOpen, setIsFormModalOpen] = useState(false)
   const [editingUser, setEditingUser] = useState<User | null>(null)
+
+  // Error dari backend saat simpan (ditampilkan di dalam modal form)
+  const [formError, setFormError] = useState<string | null>(null)
+
+  // Notifikasi aksi (sukses/gagal) di atas tabel
+  const [actionNotice, setActionNotice] = useState<{ type: "success" | "error"; text: string } | null>(null)
+
+  // Auto-hilang notifikasi setelah 5 detik
+  useEffect(() => {
+    if (!actionNotice) return
+    const t = setTimeout(() => setActionNotice(null), 5000)
+    return () => clearTimeout(t)
+  }, [actionNotice])
   
   // Initial state with localStorage read if available in browser
   const [visibleColumns, setVisibleColumns] = useState<Record<string, boolean>>(() => {
@@ -197,49 +212,77 @@ export function UserManagementTable() {
     setIsFormModalOpen(true)
   }
 
-  const handleSaveUser = async (payload: CreateUserPayload | (UpdateUserPayload & { id: number })) => {
+  const handleSaveUser = async (payload: CreateUserPayload | (UpdateUserPayload & { id: number })): Promise<boolean> => {
+    const isUpdate = "id" in payload && !!payload.id
     try {
-      if ("id" in payload && payload.id) {
-        // Update user
-        const res = await fetch("/api/users", {
-          method: "PUT",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(payload),
-        })
-        if (res.ok) {
+      const res = await fetch("/api/users", {
+        method: isUpdate ? "PUT" : "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      })
+      if (res.ok) {
+        setFormError(null)
+        if (isUpdate) {
           setRefreshTrigger((prev) => prev + 1)
-        }
-      } else {
-        // Create user
-        const res = await fetch("/api/users", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(payload),
-        })
-        if (res.ok) {
+        } else {
           setCurrentPage(1)
           setRefreshTrigger((prev) => prev + 1)
         }
+        setActionNotice({
+          type: "success",
+          text: isUpdate ? "Pengguna berhasil diperbarui." : "Pengguna baru berhasil ditambahkan.",
+        })
+        setIsFormModalOpen(false)
+        setEditingUser(null)
+        return true
       }
+
+      // Gagal — ambil pesan error dari backend (Laravel: { message, errors })
+      let msg = "Terjadi kesalahan saat menyimpan data pengguna."
+      try {
+        const errJson = await res.json()
+        if (errJson?.errors) {
+          const first = Object.values(errJson.errors)[0]
+          if (Array.isArray(first) && first.length > 0) msg = first[0]
+        } else if (errJson?.message) {
+          msg = errJson.message
+        }
+      } catch {
+        // body bukan JSON
+      }
+      setFormError(msg)
+      return false
     } catch (err) {
       console.error("Failed to save user:", err)
-    } finally {
-      setIsFormModalOpen(false)
+      setFormError("Gagal terhubung ke server. Pastikan backend berjalan, lalu coba lagi.")
+      return false
     }
   }
 
   const handleDeleteUser = async (id: number) => {
-    if (confirm("Apakah Anda yakin ingin menghapus pengguna ini?")) {
-      try {
-        const res = await fetch(`/api/users?id=${id}`, {
-          method: "DELETE",
-        })
-        if (res.ok) {
-          setRefreshTrigger((prev) => prev + 1)
+    if (!confirm("Apakah Anda yakin ingin menghapus pengguna ini? Seluruh usulan, riwayat, dan notifikasi milik pengguna juga akan ikut terhapus.")) {
+      return
+    }
+    try {
+      const res = await fetch(`/api/users?id=${id}`, {
+        method: "DELETE",
+      })
+      if (res.ok) {
+        setRefreshTrigger((prev) => prev + 1)
+        setActionNotice({ type: "success", text: "Pengguna berhasil dihapus." })
+      } else {
+        let msg = "Gagal menghapus pengguna."
+        try {
+          const errJson = await res.json()
+          if (errJson?.message) msg = errJson.message
+        } catch {
+          // body bukan JSON
         }
-      } catch (err) {
-        console.error("Failed to delete user:", err)
+        setActionNotice({ type: "error", text: msg })
       }
+    } catch (err) {
+      console.error("Failed to delete user:", err)
+      setActionNotice({ type: "error", text: "Gagal terhubung ke server. Pastikan backend berjalan, lalu coba lagi." })
     }
   }
 
@@ -846,6 +889,29 @@ export function UserManagementTable() {
         </div>
       </section>
 
+      {/* Notifikasi aksi sukses/gagal */}
+      {actionNotice && (
+        <div
+          className={`flex items-center justify-between gap-3 px-4 py-2.5 rounded-lg border text-xs font-medium animate-in fade-in duration-200 ${
+            actionNotice.type === "success"
+              ? "bg-emerald-50 dark:bg-emerald-500/10 border-emerald-200 dark:border-emerald-500/30 text-emerald-700 dark:text-emerald-300"
+              : "bg-red-50 dark:bg-red-500/10 border-red-200 dark:border-red-500/30 text-red-700 dark:text-red-300"
+          }`}
+        >
+          <span className="flex items-center gap-2">
+            {actionNotice.type === "success" ? (
+              <CheckCircle2 className="h-3.5 w-3.5 shrink-0" />
+            ) : (
+              <AlertCircle className="h-3.5 w-3.5 shrink-0" />
+            )}
+            {actionNotice.text}
+          </span>
+          <button type="button" onClick={() => setActionNotice(null)} className="opacity-60 hover:opacity-100 transition-opacity" title="Tutup">
+            <X className="h-3.5 w-3.5" />
+          </button>
+        </div>
+      )}
+
       {/* Detail Modal */}
       <UserDetailModal
         user={selectedUserForDetail}
@@ -858,9 +924,12 @@ export function UserManagementTable() {
         onClose={() => {
           setIsFormModalOpen(false)
           setEditingUser(null)
+          setFormError(null)
         }}
         onSave={handleSaveUser}
         initialData={editingUser}
+        serverError={formError}
+        onClearServerError={() => setFormError(null)}
       />
     </div>
   )

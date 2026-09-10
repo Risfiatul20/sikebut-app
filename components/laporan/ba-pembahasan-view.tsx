@@ -1,9 +1,8 @@
 "use client"
 
 import { useCallback, useEffect, useState } from "react"
-import { Loader2, RefreshCw, Printer, FileText } from "lucide-react"
+import { Loader2, RefreshCw, Printer, FileText, FileSpreadsheet } from "lucide-react"
 import { BaPembahasanResponse } from "@/types/laporan-paket"
-import { statusLabel, statusBadgeClass } from "@/lib/status-paket"
 
 const fmtRp = (v: number | string) =>
   new Intl.NumberFormat("id-ID", {
@@ -80,12 +79,19 @@ export function BaPembahasanView({ jenis, cara, judul }: Props) {
           </p>
         </div>
         <div className="flex items-center gap-2">
+          <a
+            href={`/api/laporan/${jenis}/export`}
+            className="h-8 px-3 inline-flex items-center gap-1.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold shadow-xs transition-colors"
+            title="Unduh Berita Acara dalam format Excel"
+          >
+            <FileSpreadsheet className="h-3.5 w-3.5" /> Ekspor Excel
+          </a>
           <button
             type="button"
             onClick={handlePrint}
-            className="h-8 px-3 inline-flex items-center gap-1.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold shadow-xs transition-colors"
+            className="h-8 px-3 inline-flex items-center gap-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-white text-xs font-semibold shadow-xs transition-colors"
           >
-            <Printer className="h-3.5 w-3.5" /> Cetak
+            <Printer className="h-3.5 w-3.5" /> Cetak PDF
           </button>
           <button
             type="button"
@@ -149,39 +155,46 @@ export function BaPembahasanView({ jenis, cara, judul }: Props) {
               <span className="font-semibold"> {fmtRp(data.summary.total_pagu)}</span>, dengan rincian sebagai berikut:
             </p>
 
-            {/* Tabel Paket */}
-            <div className="overflow-x-auto border border-slate-300 dark:border-slate-700 rounded-lg">
-              <table className="w-full text-xs">
+            {/* Tabel Paket — sesuai template BA Pembahasan (table-fixed, muat 100%, tidak keluar tabel) */}
+            <div className="border border-slate-300 dark:border-slate-700 rounded-lg overflow-hidden">
+              <table className="w-full text-xs table-fixed border-collapse">
+                <colgroup>
+                  <col className="w-[6%]" />
+                  <col className="w-[33%]" />
+                  <col className="w-[14%]" />
+                  <col className="w-[14%]" />
+                  <col className="w-[14%]" />
+                  <col className="w-[19%]" />
+                </colgroup>
                 <thead>
                   <tr className="bg-slate-100 dark:bg-slate-800 text-left">
-                    <th className="font-semibold px-3 py-2 w-8">No</th>
-                    <th className="font-semibold px-3 py-2">Nama Paket</th>
-                    <th className="font-semibold px-3 py-2">Jenis Pengadaan</th>
-                    <th className="font-semibold px-3 py-2">SKPD</th>
-                    <th className="font-semibold px-3 py-2">Status</th>
-                    <th className="font-semibold px-3 py-2 text-right">Pagu</th>
-                    <th className="font-semibold px-3 py-2">PPK</th>
+                    <th className="font-semibold px-3 py-2.5">No</th>
+                    <th className="font-semibold px-3 py-2.5">OPD / Program / Kegiatan / Sub Kegiatan / Paket</th>
+                    <th className="font-semibold px-3 py-2.5 text-right">Pagu</th>
+                    <th className="font-semibold px-3 py-2.5 text-right">Belanja Non Pengadaan</th>
+                    <th className="font-semibold px-3 py-2.5 text-right">Belanja Pengadaan</th>
+                    <th className="font-semibold px-3 py-2.5">Catatan Pembahasan</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-200 dark:divide-slate-700">
                   {data.paket.length === 0 ? (
                     <tr>
-                      <td colSpan={7} className="px-3 py-6 text-center text-slate-400">Belum ada paket {cara} yang diajukan untuk pembahasan.</td>
+                      <td colSpan={6} className="px-3 py-6 text-center text-slate-400">Belum ada paket {cara} yang diajukan untuk pembahasan.</td>
                     </tr>
                   ) : (
                     data.paket.map((p, i) => (
-                      <tr key={p.id}>
+                      <tr key={p.id} className="align-top">
                         <td className="px-3 py-2">{i + 1}</td>
-                        <td className="px-3 py-2 font-medium">{p.nama_paket}</td>
-                        <td className="px-3 py-2">{p.jenis_pengadaan || "—"}</td>
-                        <td className="px-3 py-2">{p.nama_skpd || p.kode_skpd}</td>
-                        <td className="px-3 py-2">
-                          <span className={`px-2 py-0.5 rounded-full text-[10px] font-semibold border ${statusBadgeClass(p.status_review)}`}>
-                            {statusLabel(p.status_review)}
-                          </span>
+                        <td className="px-3 py-2 min-w-0 break-words">
+                          <p className="font-semibold break-words">{p.nama_paket}</p>
+                          <p className="text-[10px] text-slate-500 mt-0.5 leading-snug break-words">
+                            {[p.nama_skpd, p.nama_program, p.nama_kegiatan, p.nama_sub_kegiatan].filter(Boolean).join(" › ")}
+                          </p>
                         </td>
-                        <td className="px-3 py-2 text-right font-mono font-semibold">{fmtRp(p.total_pagu)}</td>
-                        <td className="px-3 py-2">{p.nama_user || "—"}</td>
+                        <td className="px-3 py-2 text-right font-mono font-semibold whitespace-nowrap">{fmtRp(p.pagu)}</td>
+                        <td className="px-3 py-2 text-right font-mono whitespace-nowrap">{fmtRp(p.belanja_non_pengadaan)}</td>
+                        <td className="px-3 py-2 text-right font-mono whitespace-nowrap">{fmtRp(p.belanja_pengadaan)}</td>
+                        <td className="px-3 py-2 text-slate-700 dark:text-slate-300 leading-snug break-words min-w-0">{p.catatan_pembahasan || "—"}</td>
                       </tr>
                     ))
                   )}
@@ -189,9 +202,9 @@ export function BaPembahasanView({ jenis, cara, judul }: Props) {
                 {data.paket.length > 0 && (
                   <tfoot>
                     <tr className="bg-slate-100 dark:bg-slate-800 font-semibold">
-                      <td colSpan={5} className="px-3 py-2 text-right">Total</td>
-                      <td className="px-3 py-2 text-right font-mono">{fmtRp(data.summary.total_pagu)}</td>
-                      <td />
+                      <td colSpan={2} className="px-3 py-2.5 text-right">Total</td>
+                      <td className="px-3 py-2.5 text-right font-mono whitespace-nowrap">{fmtRp(data.summary.total_pagu)}</td>
+                      <td colSpan={3} />
                     </tr>
                   </tfoot>
                 )}

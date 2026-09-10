@@ -14,9 +14,22 @@ interface Props {
   onChange: (data: FormIdentitas) => void
   userData: { nama: string; nama_skpd: string; kode_skpd: string; role: string }
   isAdmin?: boolean
+  /** Key field identitas yang kosong (highlight merah + pesan wajib diisi). */
+  missing?: string[]
 }
 
-export function StepIdentitas({ data, onChange, userData, isAdmin = false }: Props) {
+export function StepIdentitas({ data, onChange, userData, isAdmin = false, missing = [] }: Props) {
+  const isMiss = (k: string) => missing.includes(k)
+  const errRing = (k: string) =>
+    isMiss(k)
+      ? " ring-1 ring-rose-400/60 border-rose-400 dark:border-rose-500/70"
+      : ""
+  const errNote = (k: string) =>
+    isMiss(k) ? (
+      <p className="mt-1 flex items-center gap-1 text-[10px] font-medium text-rose-600 dark:text-rose-400">
+        <AlertCircle className="h-3 w-3 shrink-0" /> Wajib diisi
+      </p>
+    ) : null
   const { data: session } = useSession()
 
   // Selesaikan kode SKPD efektif (prioritas: pilihan admin di form > userData > session)
@@ -218,7 +231,7 @@ export function StepIdentitas({ data, onChange, userData, isAdmin = false }: Pro
         </p>
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
           <div>
-            <label className="block text-[11px] font-semibold text-slate-700 dark:text-slate-300 mb-1">Program <span className="text-red-500">*</span></label>
+            <label className={`block text-[11px] font-semibold mb-1 ${isMiss("kode_program") ? "text-rose-600 dark:text-rose-400" : "text-slate-700 dark:text-slate-300"}`}>Program <span className="text-red-500">*</span></label>
             <SearchableSelect
               options={programList.map((p) => ({
                 value: p.kode_program,
@@ -230,10 +243,12 @@ export function StepIdentitas({ data, onChange, userData, isAdmin = false }: Pro
               placeholder={loadingProgram ? "Memuat program..." : "-- Pilih Program --"}
               loading={loadingProgram}
               disabled={loadingProgram || (!displayedSkpdKode && !isAdmin)}
+              className={errRing("kode_program")}
             />
+            {errNote("kode_program")}
           </div>
           <div>
-            <label className="block text-[11px] font-semibold text-slate-700 dark:text-slate-300 mb-1">Kegiatan <span className="text-red-500">*</span></label>
+            <label className={`block text-[11px] font-semibold mb-1 ${isMiss("kode_kegiatan") ? "text-rose-600 dark:text-rose-400" : "text-slate-700 dark:text-slate-300"}`}>Kegiatan <span className="text-red-500">*</span></label>
             <SearchableSelect
               options={kegiatanList.map((k) => ({
                 value: k.kode_kegiatan,
@@ -244,10 +259,12 @@ export function StepIdentitas({ data, onChange, userData, isAdmin = false }: Pro
               placeholder={loadingKegiatan ? "Memuat kegiatan..." : "-- Pilih Kegiatan --"}
               disabled={!data.kode_program || loadingKegiatan}
               loading={loadingKegiatan}
+              className={errRing("kode_kegiatan")}
             />
+            {errNote("kode_kegiatan")}
           </div>
           <div>
-            <label className="block text-[11px] font-semibold text-slate-700 dark:text-slate-300 mb-1">Sub Kegiatan <span className="text-red-500">*</span></label>
+            <label className={`block text-[11px] font-semibold mb-1 ${isMiss("kode_sub_kegiatan") ? "text-rose-600 dark:text-rose-400" : "text-slate-700 dark:text-slate-300"}`}>Sub Kegiatan <span className="text-red-500">*</span></label>
             <SearchableSelect
               options={subKegiatanList.map((s) => ({
                 value: s.kode_sub_kegiatan,
@@ -258,17 +275,19 @@ export function StepIdentitas({ data, onChange, userData, isAdmin = false }: Pro
               placeholder={loadingSubKegiatan ? "Memuat sub kegiatan..." : "-- Pilih Sub Kegiatan --"}
               disabled={!data.kode_kegiatan || loadingSubKegiatan}
               loading={loadingSubKegiatan}
+              className={errRing("kode_sub_kegiatan")}
             />
+            {errNote("kode_sub_kegiatan")}
           </div>
         </div>
       </div>
 
       {/* Cara Pengadaan */}
       <div className="space-y-4">
-        <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500">Cara Pengadaan <span className="text-red-500">*</span></p>
+        <p className={`text-[10px] font-bold uppercase tracking-wider ${isMiss("cara_pengadaan") ? "text-rose-600 dark:text-rose-400" : "text-slate-400 dark:text-slate-500"}`}>Cara Pengadaan <span className="text-red-500">*</span></p>
         <div className="grid grid-cols-2 gap-3">
           {(["Penyedia", "Swakelola"] as CaraPengadaan[]).map((cara) => (
-            <button key={cara} type="button" onClick={() => { onChange({ ...data, cara_pengadaan: cara, jenis_pengadaan: "" }) }} className={`p-4 rounded-xl border-2 text-left transition-all ${data.cara_pengadaan === cara ? "border-blue-500 bg-blue-50/60 dark:bg-blue-500/10 shadow-sm" : "border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700"}`}>
+            <button key={cara} type="button" onClick={() => { onChange({ ...data, cara_pengadaan: cara, jenis_pengadaan: "" }) }} className={`p-4 rounded-xl border-2 text-left transition-all ${data.cara_pengadaan === cara ? "border-blue-500 bg-blue-50/60 dark:bg-blue-500/10 shadow-sm" : isMiss("cara_pengadaan") ? "border-rose-400 dark:border-rose-500/70 ring-1 ring-rose-400/40" : "border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700"}`}>
               <p className="text-xs font-semibold text-slate-900 dark:text-white">{cara}</p>
               <p className="text-[10px] text-slate-400 mt-0.5">{cara === "Penyedia" ? "Melalui penyedia barang/jasa" : "Dikerjakan sendiri oleh OPD"}</p>
             </button>
@@ -279,10 +298,10 @@ export function StepIdentitas({ data, onChange, userData, isAdmin = false }: Pro
       {/* Jenis Pengadaan (conditional) */}
       {data.cara_pengadaan === "Penyedia" && (
         <div className="space-y-4 animate-in fade-in duration-200">
-          <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500">Jenis Pengadaan <span className="text-red-500">*</span></p>
+          <p className={`text-[10px] font-bold uppercase tracking-wider ${isMiss("jenis_pengadaan") ? "text-rose-600 dark:text-rose-400" : "text-slate-400 dark:text-slate-500"}`}>Jenis Pengadaan <span className="text-red-500">*</span></p>
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
             {(["Barang", "Konstruksi", "Jasa Lainnya", "Konsultansi"] as JenisPengadaan[]).map((jenis) => (
-              <button key={jenis} type="button" onClick={() => onChange({ ...data, jenis_pengadaan: jenis })} className={`p-3 rounded-xl border-2 text-left transition-all ${data.jenis_pengadaan === jenis ? "border-blue-500 bg-blue-50/60 dark:bg-blue-500/10 shadow-sm" : "border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700"}`}>
+              <button key={jenis} type="button" onClick={() => onChange({ ...data, jenis_pengadaan: jenis })} className={`p-3 rounded-xl border-2 text-left transition-all ${data.jenis_pengadaan === jenis ? "border-blue-500 bg-blue-50/60 dark:bg-blue-500/10 shadow-sm" : isMiss("jenis_pengadaan") ? "border-rose-400 dark:border-rose-500/70 ring-1 ring-rose-400/40" : "border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700"}`}>
                 <p className="text-[11px] font-semibold text-slate-900 dark:text-white">{jenis}</p>
               </button>
             ))}

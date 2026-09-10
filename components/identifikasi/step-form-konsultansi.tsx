@@ -11,6 +11,8 @@ import {
 } from "@/types/identifikasi"
 import { useWilayah } from "@/hooks/useWilayah"
 import { SearchableSelect, SearchableSelectOption } from "@/components/ui/searchable-select"
+import { WaktuPicker } from "@/components/identifikasi/waktu-picker"
+import { FieldCatatanBadge } from "@/components/identifikasi/field-catatan-badge"
 import {
   Lightbulb,
   MapPin,
@@ -19,19 +21,21 @@ import {
   Banknote,
   Search,
   FileCheck,
-
   Plus,
   Trash2,
   ChevronDown,
   Users,
+  AlertTriangle,
 } from "lucide-react"
 
 interface Props {
   catatanReviewerDetail?: Record<string, string> | null
   data: FormKonsultansi
   onChange: (data: FormKonsultansi) => void
-  onOpenPagu: () => void
-  totalPagu: number
+  onOpenPagu?: () => void
+  totalPagu?: number
+  /** Key field yang kosong (validasi) — sorot merah + "Wajib diisi". */
+  missing?: string[]
 }
 
 const VOLUME_SATUAN_OPTIONS = ["Unit", "Paket", "Lot"] as const
@@ -63,21 +67,25 @@ function YaTidakSelect({
   label,
   value,
   onChange,
+  note,
 }: {
   label: string
   value: YaTidak
   onChange: (v: YaTidak) => void
+  note?: string | null
 }) {
   return (
     <div>
       <label className={labelCls}>{label}</label>
       <select value={value} onChange={(e) => onChange(e.target.value as YaTidak)} className={selectCls}>
+        <option value="">-- Pilih --</option>
         {YA_TIDAK_OPTIONS.map((o) => (
           <option key={o} value={o}>
             {o}
           </option>
         ))}
       </select>
+      <FieldCatatanBadge note={note} />
     </div>
   )
 }
@@ -268,7 +276,7 @@ function LokasiRow({
   )
 }
 
-export function StepFormKonsultansi({ data, onChange, onOpenPagu, totalPagu, catatanReviewerDetail }: Props) {
+export function StepFormKonsultansi({ data, onChange, catatanReviewerDetail, onOpenPagu, totalPagu, missing = [] }: Props) {
   const sumberDanaOptions: SearchableSelectOption[] = [
     { value: "DAU", label: "Dana Alokasi Umum (DAU)" },
     { value: "DAK-FISIK", label: "Dana Alokasi Khusus (DAK) Fisik" },
@@ -277,7 +285,6 @@ export function StepFormKonsultansi({ data, onChange, onOpenPagu, totalPagu, cat
     { value: "DBH-CHT", label: "Dana Bagi Hasil Cukai Hasil Tembakau (DBH-CHT)" },
     { value: "PAD", label: "Pendapatan Asli Daerah (PAD)" },
     { value: "BLUD", label: "Badan Layanan Umum Daerah (BLUD)" },
-    { value: "APBD", label: "APBD" },
   ]
 
   // Metode pemilihan penyedia untuk Jasa Konsultansi (Perpres PBJ): seleksi, pengadaan langsung, dll.
@@ -323,6 +330,18 @@ export function StepFormKonsultansi({ data, onChange, onOpenPagu, totalPagu, cat
     onChange({ ...data, lokasi: data.lokasi.filter((_, i) => i !== index) })
   }
 
+  // Validasi per-field: key yang kosong → border merah + pesan "Wajib diisi"
+  const missingSet = new Set(missing || [])
+  const isMiss = (k: string) => missingSet.has(k)
+  const errCls = (k: string, base: string) =>
+    isMiss(k) ? `${base} border-rose-400 dark:border-rose-500/70 ring-1 ring-rose-400/40` : base
+  const errNote = (k: string) =>
+    isMiss(k) ? (
+      <p className="mt-1 flex items-center gap-1 text-[10px] font-medium text-rose-600 dark:text-rose-400">
+        <AlertTriangle className="h-3 w-3 shrink-0" /> Wajib diisi
+      </p>
+    ) : null
+
   return (
     <div className="space-y-6">
       {/* Ã¢â€â‚¬Ã¢â€â‚¬ Informasi Paket Ã¢â€â‚¬Ã¢â€â‚¬ */}
@@ -338,38 +357,46 @@ export function StepFormKonsultansi({ data, onChange, onOpenPagu, totalPagu, cat
               value={data.nama_paket}
               onChange={(e) => update("nama_paket", e.target.value)}
               placeholder="Contoh: Konsultansi Studi Kelayakan"
-              className={inputCls}
+              className={errCls("nama_paket", inputCls)}
             />
+            {errNote("nama_paket")}
+            <FieldCatatanBadge note={catatanReviewerDetail?.["nama_paket"]} />
           </div>
           <div className="sm:col-span-2">
-            <label className={labelCls}>Target Sasaran</label>
+            <label className={labelCls}>Target/Sasaran yang Diharapkan</label>
             <input
               type="text"
               value={data.target_sasaran}
               onChange={(e) => update("target_sasaran", e.target.value)}
               placeholder="Target sasaran konsultansi"
-              className={inputCls}
+              className={errCls("target_sasaran", inputCls)}
             />
+            {errNote("target_sasaran")}
+            <FieldCatatanBadge note={catatanReviewerDetail?.["target_sasaran"]} />
           </div>
           <div className="sm:col-span-2">
-            <label className={labelCls}>Uraian</label>
+            <label className={labelCls}>Uraian Pekerjaan</label>
             <textarea
               rows={2}
               value={data.uraian}
               onChange={(e) => update("uraian", e.target.value)}
               placeholder="Uraian kebutuhan konsultansi"
-              className={inputCls + " resize-none"}
+              className={errCls("uraian", inputCls + " resize-none")}
             />
+            {errNote("uraian")}
+            <FieldCatatanBadge note={catatanReviewerDetail?.["uraian"]} />
           </div>
           <div className="sm:col-span-2">
-            <label className={labelCls}>Spesifikasi</label>
+            <label className={labelCls}>Spesifikasi Pekerjaan</label>
             <textarea
               rows={3}
               value={data.spesifikasi}
               onChange={(e) => update("spesifikasi", e.target.value)}
               placeholder="Spesifikasi teknis konsultansi"
-              className={inputCls + " resize-none"}
+              className={errCls("spesifikasi", inputCls + " resize-none")}
             />
+            {errNote("spesifikasi")}
+            <FieldCatatanBadge note={catatanReviewerDetail?.["spesifikasi"]} />
           </div>
         </div>
       </section>
@@ -383,7 +410,7 @@ export function StepFormKonsultansi({ data, onChange, onOpenPagu, totalPagu, cat
             <select
               value={data.jenis_penyedia}
               onChange={(e) => update("jenis_penyedia", e.target.value as JenisPenyedia)}
-              className={selectCls}
+              className={errCls("jenis_penyedia", selectCls)}
             >
               <option value="">-- Pilih Jenis --</option>
               {JENIS_PENYEDIA_OPTIONS.map((o) => (
@@ -392,20 +419,23 @@ export function StepFormKonsultansi({ data, onChange, onOpenPagu, totalPagu, cat
                 </option>
               ))}
             </select>
+            <FieldCatatanBadge note={catatanReviewerDetail?.["jenis_penyedia"]} />
           </div>
           <div>
-            <label className={labelCls}>Jumlah Pelaku</label>
+            <label className={labelCls}>Jumlah Pelaku Usaha Mampu & Memenuhi Syarat</label>
             <select
               value={data.jumlah_pelaku}
               onChange={(e) => update("jumlah_pelaku", e.target.value as BanyakTerbatas)}
-              className={selectCls}
+              className={errCls("jumlah_pelaku", selectCls)}
             >
+              <option value="">-- Pilih --</option>
               {JUMLAH_PELAKU_OPTIONS.map((o) => (
                 <option key={o} value={o}>
                   {o}
                 </option>
               ))}
             </select>
+            <FieldCatatanBadge note={catatanReviewerDetail?.["jumlah_pelaku"]} />
           </div>
         </div>
       </section>
@@ -422,7 +452,7 @@ export function StepFormKonsultansi({ data, onChange, onOpenPagu, totalPagu, cat
                 min={0}
                 value={data.volume || ""}
                 onChange={(e) => update("volume", Number(e.target.value))}
-                className={inputCls}
+                className={errCls("volume", inputCls)}
               />
               <select
                 value={data.volume_satuan}
@@ -436,9 +466,10 @@ export function StepFormKonsultansi({ data, onChange, onOpenPagu, totalPagu, cat
                 ))}
               </select>
             </div>
+            <FieldCatatanBadge note={catatanReviewerDetail?.["volume"]} />
           </div>
           <div>
-            <label className={labelCls}>PDN (Produk Dalam Negeri)</label>
+            <label className={labelCls}>PDN</label>
             <select
               value={data.pdn}
               onChange={(e) => update("pdn", e.target.value as YaTidak)}
@@ -450,6 +481,7 @@ export function StepFormKonsultansi({ data, onChange, onOpenPagu, totalPagu, cat
                 </option>
               ))}
             </select>
+            <FieldCatatanBadge note={catatanReviewerDetail?.["pdn"]} />
           </div>
           <div>
             <label className={labelCls}>Usaha Kecil</label>
@@ -464,6 +496,7 @@ export function StepFormKonsultansi({ data, onChange, onOpenPagu, totalPagu, cat
                 </option>
               ))}
             </select>
+            <FieldCatatanBadge note={catatanReviewerDetail?.["usaha_kecil"]} />
           </div>
           <div>
             <label className={labelCls}>Pra DPA</label>
@@ -478,6 +511,7 @@ export function StepFormKonsultansi({ data, onChange, onOpenPagu, totalPagu, cat
                 </option>
               ))}
             </select>
+            <FieldCatatanBadge note={catatanReviewerDetail?.["pra_dpa"]} />
           </div>
         </div>
       </section>
@@ -487,26 +521,31 @@ export function StepFormKonsultansi({ data, onChange, onOpenPagu, totalPagu, cat
         <SectionHeader icon={FileCheck} title="SPP (Sustainable Public Procurement)" />
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
           <YaTidakSelect
-            label="SPP Ekonomi"
+            label="Ekonomi"
             value={data.spp_ekonomi}
             onChange={(v) => update("spp_ekonomi", v)}
+            note={catatanReviewerDetail?.["spp_ekonomi"]}
           />
           <YaTidakSelect
-            label="SPP Sosial"
+            label="Sosial"
             value={data.spp_sosial}
             onChange={(v) => update("spp_sosial", v)}
+            note={catatanReviewerDetail?.["spp_sosial"]}
           />
           <YaTidakSelect
-            label="SPP Lingkungan"
+            label="Lingkungan"
             value={data.spp_lingkungan}
             onChange={(v) => update("spp_lingkungan", v)}
+            note={catatanReviewerDetail?.["spp_lingkungan"]}
           />
         </div>
       </section>
 
       {/* Ã¢â€â‚¬Ã¢â€â‚¬ Lokasi (Multi-Lokasi) Ã¢â€â‚¬Ã¢â€â‚¬ */}
-      <section className="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-4">
+      <section className={`rounded-xl border bg-white dark:bg-slate-900 p-4 ${isMiss("lokasi") ? "border-rose-300 dark:border-rose-500/50 ring-1 ring-rose-400/30" : "border-slate-200 dark:border-slate-800"}`}>
         <SectionHeader icon={MapPin} title="Lokasi (Multi-Lokasi)" />
+        {errNote("lokasi")}
+        <FieldCatatanBadge note={catatanReviewerDetail?.["lokasi"]} />
         <div className="space-y-3">
           {data.lokasi.map((lokasi, i) => (
             <LokasiRow
@@ -528,39 +567,36 @@ export function StepFormKonsultansi({ data, onChange, onOpenPagu, totalPagu, cat
       </section>
 
       {/* Ã¢â€â‚¬Ã¢â€â‚¬ Waktu Ã¢â€â‚¬Ã¢â€â‚¬ */}
-      <section className="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-4">
+      <section className={`rounded-xl border bg-white dark:bg-slate-900 p-4 ${["waktu_pemanfaatan_awal", "waktu_pemilihan_awal", "waktu_pelaksanaan_kontrak_awal"].some((k) => isMiss(k)) ? "border-rose-300 dark:border-rose-500/50 ring-1 ring-rose-400/30" : "border-slate-200 dark:border-slate-800"}`}>
         <SectionHeader icon={Calendar} title="Waktu" />
+        {["waktu_pemanfaatan_awal", "waktu_pemilihan_awal", "waktu_pelaksanaan_kontrak_awal"].filter((k) => isMiss(k)).map((k) => errNote(k))}
         <div className="space-y-3">
           {[
-            { label: "Pemanfaatan", awal: "waktu_pemanfaatan_awal", akhir: "waktu_pemanfaatan_akhir" },
-            { label: "Pemilihan", awal: "waktu_pemilihan_awal", akhir: "waktu_pemilihan_akhir" },
-            { label: "Pelaksanaan Kontrak", awal: "waktu_pelaksanaan_kontrak_awal", akhir: "waktu_pelaksanaan_kontrak_akhir" },
-            { label: "Pelaksanaan Pekerjaan", awal: "waktu_pelaksanaan_pekerjaan_awal", akhir: "waktu_pelaksanaan_pekerjaan_akhir" },
+            { label: "Pemilihan Penyedia", awal: "waktu_pemilihan_awal", akhir: "waktu_pemilihan_akhir", noteKey: "waktu_pemilihan" },
+            { label: "Pelaksanaan Kontrak", awal: "waktu_pelaksanaan_kontrak_awal", akhir: "waktu_pelaksanaan_kontrak_akhir", noteKey: "waktu_pelaksanaan" },
+            { label: "Waktu Pemanfaatan", awal: "waktu_pemanfaatan_awal", akhir: "waktu_pemanfaatan_akhir", noteKey: "waktu_pemanfaatan" },
           ].map((item) => (
             <div key={item.label}>
               <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1 block">
                 {item.label}
               </label>
-              <div className="grid grid-cols-2 gap-2">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                 <div>
                   <label className="block text-[10px] text-slate-500 dark:text-slate-400 mb-0.5">Awal</label>
-                  <input
-                    type="month"
-                    value={(data as unknown as Record<string, string>)[item.awal]}
-                    onChange={(e) => update(item.awal as keyof FormKonsultansi, e.target.value)}
-                    className={smallInputCls}
+                  <WaktuPicker
+                    value={(data as unknown as Record<string, string>)[item.awal] || ""}
+                    onChange={(v) => update(item.awal as keyof FormKonsultansi, v)}
                   />
                 </div>
                 <div>
                   <label className="block text-[10px] text-slate-500 dark:text-slate-400 mb-0.5">Akhir</label>
-                  <input
-                    type="month"
-                    value={(data as unknown as Record<string, string>)[item.akhir]}
-                    onChange={(e) => update(item.akhir as keyof FormKonsultansi, e.target.value)}
-                    className={smallInputCls}
+                  <WaktuPicker
+                    value={(data as unknown as Record<string, string>)[item.akhir] || ""}
+                    onChange={(v) => update(item.akhir as keyof FormKonsultansi, v)}
                   />
                 </div>
               </div>
+              <FieldCatatanBadge note={catatanReviewerDetail?.[item.noteKey]} />
             </div>
           ))}
         </div>
@@ -577,37 +613,44 @@ export function StepFormKonsultansi({ data, onChange, onOpenPagu, totalPagu, cat
               value={data.metode_pengadaan}
               onChange={(val) => update("metode_pengadaan", val as MetodePengadaan)}
               placeholder="-- Pilih Metode --"
+              className={errCls("metode_pengadaan", "")}
             />
+            {errNote("metode_pengadaan")}
+            <FieldCatatanBadge note={catatanReviewerDetail?.["metode_pengadaan"]} />
           </div>
           <YaTidakSelect
-            label="Tersedia di e-Katalog"
+            label="Tersedia di e-Katalog LKPP"
             value={data.tersedia_ekatalog}
             onChange={(v) => update("tersedia_ekatalog", v)}
+            note={catatanReviewerDetail?.["tersedia_ekatalog"]}
           />
         </div>
       </section>
 
       {/* Ã¢â€â‚¬Ã¢â€â‚¬ Pagu & Anggaran Ã¢â€â‚¬Ã¢â€â‚¬ */}
       <section className="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-4">
-        <SectionHeader icon={Banknote} title="Pagu & Anggaran" />
+        <SectionHeader icon={Banknote} title="Pagu Paket & Sumber Dana" />
         <div className="space-y-3">
-          <div className="flex items-center gap-3">
-            <button
-              type="button"
-              onClick={onOpenPagu}
-              className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-[11px] font-semibold shadow-xs transition-colors"
-            >
-              <Banknote className="h-3.5 w-3.5" /> Atur Pagu Anggaran
-            </button>
-            {totalPagu > 0 && (
-              <div className="px-3 py-2 rounded-lg bg-blue-50 dark:bg-blue-500/10 border border-blue-200 dark:border-blue-800/50">
-                <span className="text-[10px] text-blue-600 dark:text-blue-400 font-semibold">Total: </span>
-                <span className="text-xs font-mono font-bold text-blue-700 dark:text-blue-300">
-                  {formatRupiah(totalPagu)}
-                </span>
-              </div>
-            )}
-          </div>
+          {onOpenPagu && (
+            <div className="flex items-center gap-3 flex-wrap">
+              <button
+                type="button"
+                onClick={onOpenPagu}
+                className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-[11px] font-semibold shadow-xs transition-colors"
+              >
+                <Banknote className="h-3.5 w-3.5" />
+                {totalPagu && totalPagu > 0 ? "Ubah Pemilihan Pagu Paket" : "Atur Pagu Anggaran"}
+              </button>
+              {!!totalPagu && totalPagu > 0 && (
+                <div className="px-3 py-2 rounded-lg bg-blue-50 dark:bg-blue-500/10 border border-blue-200 dark:border-blue-800/50">
+                  <span className="text-[10px] text-blue-600 dark:text-blue-400 font-semibold">Total Pagu Paket: </span>
+                  <span className="text-xs font-mono font-bold text-blue-700 dark:text-blue-300">
+                    {formatRupiah(totalPagu)}
+                  </span>
+                </div>
+              )}
+            </div>
+          )}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
               <label className={labelCls}>Sumber Dana</label>
@@ -615,8 +658,10 @@ export function StepFormKonsultansi({ data, onChange, onOpenPagu, totalPagu, cat
                 options={sumberDanaOptions}
                 value={data.sumber_dana}
                 onChange={(val) => update("sumber_dana", val)}
-                placeholder="-- Pilih Sumber Dana --"
-              />
+                placeholder="-- Pilih Sumber Dana --"              className={errCls("sumber_dana", "")}
+            />
+            {errNote("sumber_dana")}
+            <FieldCatatanBadge note={catatanReviewerDetail?.["sumber_dana"]} />
             </div>
           </div>
         </div>
@@ -627,14 +672,16 @@ export function StepFormKonsultansi({ data, onChange, onOpenPagu, totalPagu, cat
         <SectionHeader icon={Layers} title="Konsolidasi" />
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <YaTidakSelect
-            label="Pengadaan Sejenis"
+            label="Ada Pengadaan Sejenis di Kegiatan Lain"
             value={data.pengadaan_sejenis}
             onChange={(v) => update("pengadaan_sejenis", v)}
+            note={catatanReviewerDetail?.["pengadaan_sejenis"]}
           />
           <YaTidakSelect
-            label="Indikasi Konsolidasi"
+            label="Indikasi Konsolidasi Pengadaan"
             value={data.indikasi_konsolidasi}
             onChange={(v) => update("indikasi_konsolidasi", v)}
+            note={catatanReviewerDetail?.["indikasi_konsolidasi"]}
           />
         </div>
       </section>

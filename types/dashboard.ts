@@ -23,3 +23,19 @@ export interface DashboardSummary {
 export interface DashboardSummaryResponse {
   data: DashboardSummary
 }
+
+export interface DashboardKeterisianPpk {
+  user_id: number
+  username: string
+  nama: string
+  total_sub_kegiatan: number
+  total_pagu_apbd: number
+  jumlah_paket: number
+  total_pagu_paket: number
+  keterisian_persen: number
+  tahun: number
+}
+
+export interface DashboardKeterisianPpkResponse {
+  data: DashboardKeterisianPpk[]
+}

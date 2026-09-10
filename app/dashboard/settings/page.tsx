@@ -1,12 +1,63 @@
 "use client"
 
-import { useState } from "react"
+import { useCallback, useEffect, useState } from "react"
 import { useSession } from "next-auth/react"
-import { Settings, User, Bell, Shield, Database, Server, CheckCircle2, RefreshCw, Layers, FolderTree } from "lucide-react"
+import { Settings, User, Bell, Shield, Database, Server, CheckCircle2, RefreshCw, Layers, FolderTree, Phone, Loader2 } from "lucide-react"
 
 export default function SettingsPage() {
   const [activeTab, setActiveTab] = useState<"akun" | "notifikasi" | "sistem">("akun")
-  const { data: session } = useSession()
+  const { data: session, update: updateSession } = useSession()
+  // Nomor dibaca LANGSUNG dari backend (bukan dari session cookie) supaya tetap tampil
+  // setelah refresh — data asli ada di DB (users.info->>'no_hp'), session hanya cache.
+  const [savedNoHp, setSavedNoHp] = useState<string>("")
+  const [noHp, setNoHp] = useState<string | null>(null)
+  const [savingNoHp, setSavingNoHp] = useState(false)
+  const [noHpMsg, setNoHpMsg] = useState<{ ok: boolean; text: string } | null>(null)
+
+  // Muat nomor dari backend setiap halaman dibuka (refresh pun tetap muncul).
+  const loadNoHp = useCallback(async () => {
+    try {
+      const res = await fetch("/api/auth/me", { cache: "no-store" })
+      if (res.ok) {
+        const json = await res.json()
+        const hp = json?.user?.info?.no_hp
+        if (hp) {
+          setSavedNoHp(String(hp))
+          setNoHp(String(hp))
+        }
+      }
+    } catch {
+      // abaikan — fallback ke session
+    }
+  }, [])
+
+  useEffect(() => {
+    loadNoHp()
+  }, [loadNoHp])
+
+  const saveNoHp = async () => {
+    setSavingNoHp(true)
+    setNoHpMsg(null)
+    try {
+      const res = await fetch("/api/auth/me", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ no_hp: noHp ?? "" }),
+        cache: "no-store",
+      })
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}))
+        throw new Error(err?.message || "Gagal menyimpan nomor")
+      }
+      setSavedNoHp(noHp ?? "")
+      await updateSession()
+      setNoHpMsg({ ok: true, text: "Nomor WhatsApp berhasil disimpan. Notifikasi web juga akan dikirim ke WhatsApp Anda." })
+    } catch (e) {
+      setNoHpMsg({ ok: false, text: e instanceof Error ? e.message : "Gagal menyimpan nomor" })
+    } finally {
+      setSavingNoHp(false)
+    }
+  }
 
   const tabs = [
     { id: "akun" as const, label: "Akun Saya", icon: User },
@@ -116,6 +167,41 @@ export default function SettingsPage() {
                   )}
                 </div>
               )}
+
+              {/* Notifikasi WhatsApp — nomor tujuan notifikasi WA */}
+              <div className="p-4 rounded-xl border border-emerald-200 dark:border-emerald-800/50 bg-emerald-50/30 dark:bg-emerald-950/10 space-y-3">
+                <div className="flex items-center gap-2">
+                  <Phone className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
+                  <h3 className="text-xs font-semibold text-slate-800 dark:text-slate-200">Nomor WhatsApp (Notifikasi WA)</h3>
+                </div>
+                <p className="text-[11px] text-slate-500 dark:text-slate-400">
+                  Isi nomor WhatsApp aktif Anda (contoh: 0812xxxxxxxx). Setiap notifikasi penting — paket diajukan, disetujui, atau
+                  dikembalikan — akan dikirim ke nomor ini selain muncul di aplikasi.
+                </p>
+                <div className="flex flex-col sm:flex-row gap-2">
+                  <input
+                    type="text"
+                    value={noHp ?? savedNoHp ?? String(userInfo?.no_hp || "")}
+                    onChange={(e) => setNoHp(e.target.value)}
+                    placeholder="0812xxxxxxxx"
+                    className="flex-1 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-950 px-3 py-2 text-xs font-mono focus:ring-2 focus:ring-emerald-500/40 focus:border-emerald-500 transition-colors"
+                  />
+                  <button
+                    type="button"
+                    onClick={saveNoHp}
+                    disabled={savingNoHp}
+                    className="inline-flex items-center justify-center gap-1.5 h-9 px-4 rounded-lg bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white text-xs font-semibold transition-colors"
+                  >
+                    {savingNoHp ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Phone className="h-3.5 w-3.5" />}
+                    Simpan Nomor
+                  </button>
+                </div>
+                {noHpMsg && (
+                  <p className={`text-[11px] font-medium ${noHpMsg.ok ? "text-emerald-600 dark:text-emerald-400" : "text-rose-600 dark:text-rose-400"}`}>
+                    {noHpMsg.text}
+                  </p>
+                )}
+              </div>
 
               <div className="p-4 rounded-xl border border-slate-200 dark:border-slate-800 space-y-3">
                 <h3 className="text-xs font-semibold text-slate-800 dark:text-slate-200">Ubah Kata Sandi</h3>

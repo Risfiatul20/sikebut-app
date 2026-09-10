@@ -1,7 +1,7 @@
 import { auth } from "@/auth"
 import { redirect } from "next/navigation"
 import { getApi } from "@/lib/api"
-import { DashboardSummary } from "@/types/dashboard"
+import { DashboardSummary, DashboardKeterisianPpk } from "@/types/dashboard"
 import { statusLabel, statusBadgeClass } from "@/lib/status-paket"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -26,6 +26,7 @@ export default async function DashboardPage() {
   if (!session) redirect("/login")
 
   let summary: DashboardSummary | null = null
+  let keterisianPpk: DashboardKeterisianPpk[] | null = null
   let errorMessage: string | null = null
 
   try {
@@ -34,6 +35,13 @@ export default async function DashboardPage() {
   } catch (err) {
     errorMessage = err instanceof Error ? err.message : "Gagal memuat ringkasan dashboard"
     console.error("[dashboard] Gagal memuat data:", err)
+  }
+
+  try {
+    const res = await getApi<{ data: DashboardKeterisianPpk[] }>("/api/v1/dashboard/keterisian-ppk")
+    keterisianPpk = res?.data ?? null
+  } catch (err) {
+    console.error("[dashboard] Gagal memuat keterisian PPK:", err)
   }
 
   const perStatus = summary?.paket_per_status ?? {}
@@ -88,11 +96,13 @@ export default async function DashboardPage() {
               <Download className="h-3.5 w-3.5 mr-1.5" /> Lihat Laporan
             </Button>
           </Link>
-          <Link href="/dashboard/identifikasi" passHref>
-            <Button size="sm" className="h-8 text-[11px] bg-blue-600 hover:bg-blue-700 text-white">
-              <Layers className="h-3.5 w-3.5 mr-1.5" /> Buat Usulan Baru
-            </Button>
-          </Link>
+          {(session.user?.role || "").toLowerCase() === "ppk" && (
+            <Link href="/dashboard/identifikasi" passHref>
+              <Button size="sm" className="h-8 text-[11px] bg-blue-600 hover:bg-blue-700 text-white">
+                <Layers className="h-3.5 w-3.5 mr-1.5" /> Buat Usulan Baru
+              </Button>
+            </Link>
+          )}
         </div>
       </div>
 
@@ -214,6 +224,64 @@ export default async function DashboardPage() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Keterisian per Akun PPK — arahan atasan: count sub kegiatan, pagu, paket dibuat */}
+      {keterisianPpk && keterisianPpk.length > 0 && (
+        <Card className="border-slate-200 dark:border-slate-800 shadow-2xs">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-sm font-semibold flex items-center gap-2">
+              <Wallet className="h-4 w-4 text-blue-600" /> Keterisian per Akun PPK
+            </CardTitle>
+            <CardDescription className="text-[11px]">
+              Sub kegiatan ter-mapping, pagu APBD, dan paket yang sudah dibuat per PPK (tahun {keterisianPpk[0]?.tahun ?? "—"})
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="overflow-x-auto custom-scrollbar">
+            <table className="w-full text-xs">
+              <thead className="bg-slate-50/80 dark:bg-slate-800/50 border-b border-slate-100 dark:border-slate-800">
+                <tr className="text-[10px] uppercase text-slate-400">
+                  <th className="font-semibold px-3 py-2 text-left">PPK</th>
+                  <th className="font-semibold px-3 py-2 text-center">Sub Kegiatan</th>
+                  <th className="font-semibold px-3 py-2 text-right">Total Pagu APBD</th>
+                  <th className="font-semibold px-3 py-2 text-center">Paket Dibuat</th>
+                  <th className="font-semibold px-3 py-2 text-right">Pagu Paket Dibuat</th>
+                  <th className="font-semibold px-3 py-2 text-left min-w-[180px]">Keterisian</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+                {keterisianPpk.map((row) => {
+                  const pct = Math.min(100, Math.max(0, row.keterisian_persen))
+                  return (
+                    <tr key={row.user_id} className="hover:bg-slate-50 dark:hover:bg-slate-800/40">
+                      <td className="px-3 py-2.5">
+                        <p className="font-semibold text-slate-900 dark:text-white">{row.nama}</p>
+                        <p className="font-mono text-[9px] text-slate-400">@{row.username}</p>
+                      </td>
+                      <td className="px-3 py-2.5 text-center font-mono font-semibold text-slate-700 dark:text-slate-200">{row.total_sub_kegiatan}</td>
+                      <td className="px-3 py-2.5 text-right font-mono text-slate-700 dark:text-slate-200">{fmtRp(row.total_pagu_apbd)}</td>
+                      <td className="px-3 py-2.5 text-center font-mono font-semibold text-blue-700 dark:text-blue-300">{row.jumlah_paket}</td>
+                      <td className="px-3 py-2.5 text-right font-mono text-slate-700 dark:text-slate-200">{fmtRp(row.total_pagu_paket)}</td>
+                      <td className="px-3 py-2.5">
+                        <div className="flex items-center gap-2">
+                          <div className="flex-1 h-2 rounded-full bg-slate-200 dark:bg-slate-700 overflow-hidden">
+                            <div
+                              className={`h-full rounded-full ${pct >= 100 ? "bg-emerald-500" : pct >= 50 ? "bg-blue-500" : "bg-amber-500"}`}
+                              style={{ width: `${pct}%` }}
+                            />
+                          </div>
+                          <span className="font-mono text-[10px] font-semibold text-slate-600 dark:text-slate-300 w-12 text-right">
+                            {row.keterisian_persen.toLocaleString("id-ID", { maximumFractionDigits: 2 })}%
+                          </span>
+                        </div>
+                      </td>
+                    </tr>
+                  )
+                })}
+              </tbody>
+            </table>
+          </CardContent>
+        </Card>
+      )}
     </div>
   )
 }

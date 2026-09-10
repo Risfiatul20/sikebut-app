@@ -4,6 +4,8 @@ import { useMemo, useEffect } from "react"
 import { FormSwakelola, LokasiItem, TipeSwakelola } from "@/types/identifikasi"
 import { useWilayah } from "@/hooks/useWilayah"
 import { SearchableSelect, SearchableSelectOption } from "@/components/ui/searchable-select"
+import { WaktuPicker } from "@/components/identifikasi/waktu-picker"
+import { FieldCatatanBadge } from "@/components/identifikasi/field-catatan-badge"
 import {
   HardHat,
   MapPin,
@@ -13,19 +15,22 @@ import {
   Plus,
   Trash2,
   ChevronDown,
+  AlertTriangle,
 } from "lucide-react"
 
 interface Props {
   catatanReviewerDetail?: Record<string, string> | null
   data: FormSwakelola
   onChange: (data: FormSwakelola) => void
-  onOpenPagu: () => void
-  totalPagu: number
+  onOpenPagu?: () => void
+  totalPagu?: number
+  /** Key field yang kosong (validasi) — sorot merah + "Wajib diisi". */
+  missing?: string[]
 }
 
-const TIPE_SWAKELOLA_OPTIONS: TipeSwakelola[] = ["Tipe I", "Tipe II", "Tipe III", "Tipe IV"]
+const TIPE_SWAKELOLA_OPTIONS: Exclude<TipeSwakelola, "">[] = ["Tipe I", "Tipe II", "Tipe III", "Tipe IV"]
 
-const TIPE_SWAKELOLA_INFO: Record<TipeSwakelola, string> = {
+const TIPE_SWAKELOLA_INFO: Record<Exclude<TipeSwakelola, "">, string> = {
   "Tipe I": "Pekerjaan dengan nilai paling banyak Rp 50 juta (swakelola sendiri)",
   "Tipe II": "Pekerjaan dengan nilai paling banyak Rp 200 juta dengan melibatkan masyarakat",
   "Tipe III": "Pekerjaan dengan nilai paling banyak Rp 500 juta dengan melibatkan masyarakat",
@@ -236,7 +241,7 @@ function LokasiRow({
   )
 }
 
-export function StepFormSwakelola({ data, onChange, onOpenPagu, totalPagu, catatanReviewerDetail }: Props) {
+export function StepFormSwakelola({ data, onChange, catatanReviewerDetail, onOpenPagu, totalPagu, missing = [] }: Props) {
   const sumberDanaOptions: SearchableSelectOption[] = [
     { value: "DAU", label: "Dana Alokasi Umum (DAU)" },
     { value: "DAK-FISIK", label: "Dana Alokasi Khusus (DAK) Fisik" },
@@ -245,7 +250,6 @@ export function StepFormSwakelola({ data, onChange, onOpenPagu, totalPagu, catat
     { value: "DBH-CHT", label: "Dana Bagi Hasil Cukai Hasil Tembakau (DBH-CHT)" },
     { value: "PAD", label: "Pendapatan Asli Daerah (PAD)" },
     { value: "BLUD", label: "Badan Layanan Umum Daerah (BLUD)" },
-    { value: "APBD", label: "APBD" },
   ]
 
   const update = useMemo(() => {
@@ -283,8 +287,21 @@ export function StepFormSwakelola({ data, onChange, onOpenPagu, totalPagu, catat
     onChange({ ...data, lokasi: data.lokasi.filter((_, i) => i !== index) })
   }
 
+  // Validasi per-field: key yang kosong → border merah + pesan "Wajib diisi"
+  const missingSet = new Set(missing || [])
+  const isMiss = (k: string) => missingSet.has(k)
+  const errCls = (k: string, base: string) =>
+    isMiss(k) ? `${base} border-rose-400 dark:border-rose-500/70 ring-1 ring-rose-400/40` : base
+  const errNote = (k: string) =>
+    isMiss(k) ? (
+      <p className="mt-1 flex items-center gap-1 text-[10px] font-medium text-rose-600 dark:text-rose-400">
+        <AlertTriangle className="h-3 w-3 shrink-0" /> Wajib diisi
+      </p>
+    ) : null
+
   return (
     <div className="space-y-6">
+
       {/* Ã¢â€â‚¬Ã¢â€â‚¬ Informasi Paket Ã¢â€â‚¬Ã¢â€â‚¬ */}
       <section className="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-4">
         <SectionHeader icon={HardHat} title="Informasi Paket" />
@@ -298,8 +315,10 @@ export function StepFormSwakelola({ data, onChange, onOpenPagu, totalPagu, catat
               value={data.nama_paket}
               onChange={(e) => update("nama_paket", e.target.value)}
               placeholder="Contoh: Pengecatan Fasilitas Kantor"
-              className={inputCls}
+              className={errCls("nama_paket", inputCls)}
             />
+            {errNote("nama_paket")}
+            <FieldCatatanBadge note={catatanReviewerDetail?.["nama_paket"]} />
           </div>
           <div className="sm:col-span-2">
             <label className={labelCls}>Uraian Pekerjaan</label>
@@ -308,8 +327,10 @@ export function StepFormSwakelola({ data, onChange, onOpenPagu, totalPagu, catat
               value={data.uraian_pekerjaan}
               onChange={(e) => update("uraian_pekerjaan", e.target.value)}
               placeholder="Uraian pekerjaan swakelola"
-              className={inputCls + " resize-none"}
+              className={errCls("uraian_pekerjaan", inputCls + " resize-none")}
             />
+            {errNote("uraian_pekerjaan")}
+            <FieldCatatanBadge note={catatanReviewerDetail?.["uraian_pekerjaan"]} />
           </div>
           <div className="sm:col-span-2">
             <label className={labelCls}>Spesifikasi Pekerjaan</label>
@@ -318,15 +339,19 @@ export function StepFormSwakelola({ data, onChange, onOpenPagu, totalPagu, catat
               value={data.spesifikasi_pekerjaan}
               onChange={(e) => update("spesifikasi_pekerjaan", e.target.value)}
               placeholder="Spesifikasi teknis pekerjaan"
-              className={inputCls + " resize-none"}
+              className={errCls("spesifikasi_pekerjaan", inputCls + " resize-none")}
             />
+            {errNote("spesifikasi_pekerjaan")}
+            <FieldCatatanBadge note={catatanReviewerDetail?.["spesifikasi_pekerjaan"]} />
           </div>
         </div>
       </section>
 
       {/* Ã¢â€â‚¬Ã¢â€â‚¬ Tipe Swakelola Ã¢â€â‚¬Ã¢â€â‚¬ */}
-      <section className="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-4">
+      <section className={`rounded-xl border bg-white dark:bg-slate-900 p-4 ${isMiss("tipe_swakelola") ? "border-rose-300 dark:border-rose-500/50 ring-1 ring-rose-400/30" : "border-slate-200 dark:border-slate-800"}`}>
         <SectionHeader icon={Info} title="Tipe Swakelola" />
+        {errNote("tipe_swakelola")}
+        <FieldCatatanBadge note={catatanReviewerDetail?.["tipe_swakelola"]} />
         <div className="space-y-3">
           <div>
             <label className={labelCls}>Tipe Swakelola</label>
@@ -362,8 +387,10 @@ export function StepFormSwakelola({ data, onChange, onOpenPagu, totalPagu, catat
       </section>
 
       {/* Ã¢â€â‚¬Ã¢â€â‚¬ Lokasi (Multi-Lokasi) Ã¢â€â‚¬Ã¢â€â‚¬ */}
-      <section className="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-4">
+      <section className={`rounded-xl border bg-white dark:bg-slate-900 p-4 ${isMiss("lokasi") ? "border-rose-300 dark:border-rose-500/50 ring-1 ring-rose-400/30" : "border-slate-200 dark:border-slate-800"}`}>
         <SectionHeader icon={MapPin} title="Lokasi (Multi-Lokasi)" />
+        {errNote("lokasi")}
+        <FieldCatatanBadge note={catatanReviewerDetail?.["lokasi"]} />
         <div className="space-y-3">
           {data.lokasi.map((lokasi, i) => (
             <LokasiRow
@@ -385,51 +412,46 @@ export function StepFormSwakelola({ data, onChange, onOpenPagu, totalPagu, catat
       </section>
 
       {/* Ã¢â€â‚¬Ã¢â€â‚¬ Waktu Pelaksanaan Ã¢â€â‚¬Ã¢â€â‚¬ */}
-      <section className="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-4">
-        <SectionHeader icon={Calendar} title="Waktu Pelaksanaan" />
-        <div className="grid grid-cols-2 gap-3">
+      <section className={`rounded-xl border bg-white dark:bg-slate-900 p-4 ${isMiss("waktu_awal") ? "border-rose-300 dark:border-rose-500/50 ring-1 ring-rose-400/30" : "border-slate-200 dark:border-slate-800"}`}>
+        <SectionHeader icon={Calendar} title="Waktu Pelaksanaan Pekerjaan" />
+        {errNote("waktu_awal")}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div>
             <label className={labelCls}>Waktu Awal</label>
-            <input
-              type="month"
-              value={data.waktu_awal}
-              onChange={(e) => update("waktu_awal", e.target.value)}
-              className={smallInputCls}
-            />
+            <WaktuPicker value={data.waktu_awal || ""} onChange={(v) => update("waktu_awal", v)} />
+            <FieldCatatanBadge note={catatanReviewerDetail?.["waktu_pelaksanaan"]} />
           </div>
           <div>
             <label className={labelCls}>Waktu Akhir</label>
-            <input
-              type="month"
-              value={data.waktu_akhir}
-              onChange={(e) => update("waktu_akhir", e.target.value)}
-              className={smallInputCls}
-            />
+            <WaktuPicker value={data.waktu_akhir || ""} onChange={(v) => update("waktu_akhir", v)} />
           </div>
         </div>
       </section>
 
       {/* Ã¢â€â‚¬Ã¢â€â‚¬ Anggaran Ã¢â€â‚¬Ã¢â€â‚¬ */}
       <section className="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-4">
-        <SectionHeader icon={Banknote} title="Anggaran" />
+        <SectionHeader icon={Banknote} title="Pagu Paket & Sumber Dana" />
         <div className="space-y-3">
-          <div className="flex items-center gap-3">
-            <button
-              type="button"
-              onClick={onOpenPagu}
-              className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-[11px] font-semibold shadow-xs transition-colors"
-            >
-              <Banknote className="h-3.5 w-3.5" /> Atur Pagu Anggaran
-            </button>
-            {totalPagu > 0 && (
-              <div className="px-3 py-2 rounded-lg bg-blue-50 dark:bg-blue-500/10 border border-blue-200 dark:border-blue-800/50">
-                <span className="text-[10px] text-blue-600 dark:text-blue-400 font-semibold">Total: </span>
-                <span className="text-xs font-mono font-bold text-blue-700 dark:text-blue-300">
-                  {formatRupiah(totalPagu)}
-                </span>
-              </div>
-            )}
-          </div>
+          {onOpenPagu && (
+            <div className="flex items-center gap-3 flex-wrap">
+              <button
+                type="button"
+                onClick={onOpenPagu}
+                className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-[11px] font-semibold shadow-xs transition-colors"
+              >
+                <Banknote className="h-3.5 w-3.5" />
+                {totalPagu && totalPagu > 0 ? "Ubah Pemilihan Pagu Paket" : "Atur Pagu Anggaran"}
+              </button>
+              {!!totalPagu && totalPagu > 0 && (
+                <div className="px-3 py-2 rounded-lg bg-blue-50 dark:bg-blue-500/10 border border-blue-200 dark:border-blue-800/50">
+                  <span className="text-[10px] text-blue-600 dark:text-blue-400 font-semibold">Total Pagu Paket: </span>
+                  <span className="text-xs font-mono font-bold text-blue-700 dark:text-blue-300">
+                    {formatRupiah(totalPagu)}
+                  </span>
+                </div>
+              )}
+            </div>
+          )}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
               <label className={labelCls}>Sumber Dana</label>
@@ -437,8 +459,10 @@ export function StepFormSwakelola({ data, onChange, onOpenPagu, totalPagu, catat
                 options={sumberDanaOptions}
                 value={data.sumber_dana}
                 onChange={(val) => update("sumber_dana", val)}
-                placeholder="-- Pilih Sumber Dana --"
-              />
+                placeholder="-- Pilih Sumber Dana --"              className={errCls("sumber_dana", "")}
+            />
+            {errNote("sumber_dana")}
+            <FieldCatatanBadge note={catatanReviewerDetail?.["sumber_dana"]} />
             </div>
           </div>
         </div>

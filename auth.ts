@@ -81,7 +81,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
     authorized({ auth: session }) {
       return !!session?.user
     },
-    jwt({ token, user }) {
+    async jwt({ token, user, trigger }) {
       if (user) {
         token.id = user.id
         token.username = user.username
@@ -93,6 +93,29 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         token.subKegiatan = user.subKegiatan
         token.kegiatans = user.kegiatans
         token.programs = user.programs
+      }
+
+      // Saat updateSession() dipanggil (mis. simpan No. WhatsApp) — ambil ulang info dari backend.
+      if (trigger === "update" && token.apiToken) {
+        try {
+          const res = await fetch(`${process.env.API_URL || "http://127.0.0.1:8000"}/api/v1/auth/me`, {
+            headers: {
+              Accept: "application/json",
+              Authorization: `Bearer ${token.apiToken}`,
+            },
+            cache: "no-store",
+          })
+          if (res.ok) {
+            const json = await res.json()
+            const fresh = json?.user
+            if (fresh) {
+              if (fresh.info) token.info = fresh.info
+              if (fresh.nama) token.name = fresh.nama
+            }
+          }
+        } catch {
+          // Jangan gagalkan session kalau backend sedang tidak bisa diakses.
+        }
       }
       return token
     },

@@ -85,14 +85,6 @@ export default async function Home() {
           </nav>
 
           <div className="flex items-center gap-3">
-            {!session && (
-              <Link
-                href="/login"
-                className="hidden sm:inline-flex text-[13px] font-semibold text-slate-700 dark:text-slate-200 hover:text-slate-900 dark:hover:text-white transition-colors"
-              >
-                Masuk
-              </Link>
-            )}
             <Link
               href={dashboardHref}
               className={cn(
@@ -369,17 +361,6 @@ export default async function Home() {
                 >
                   {dashboardLabel} <ArrowRight className="ml-2 h-4 w-4" />
                 </Link>
-                {!session && (
-                  <Link
-                    href="/login"
-                    className={cn(
-                      buttonVariants({ size: "lg" }),
-                      "rounded-full px-7 bg-white text-blue-700 hover:bg-blue-50 shadow-lg text-sm w-full sm:w-auto"
-                    )}
-                  >
-                    Masuk sebagai OPD <ArrowRight className="ml-2 h-4 w-4" />
-                  </Link>
-                )}
               </div>
             </div>
           </div>

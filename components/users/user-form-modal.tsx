@@ -11,18 +11,24 @@ import { X, UserPlus, Pencil, Save, Building2, Shield, Briefcase, AlertCircle, C
 interface UserFormModalProps {
   isOpen: boolean
   onClose: () => void
-  onSave: (payload: CreateUserPayload | (UpdateUserPayload & { id: number })) => void
+  onSave: (payload: CreateUserPayload | (UpdateUserPayload & { id: number })) => Promise<boolean>
   initialData?: User | null
+  serverError?: string | null
+  onClearServerError?: () => void
 }
 
 function UserFormContent({
   onClose,
   onSave,
   initialData,
+  serverError,
+  onClearServerError,
 }: {
   onClose: () => void
-  onSave: (payload: CreateUserPayload | (UpdateUserPayload & { id: number })) => void
+  onSave: (payload: CreateUserPayload | (UpdateUserPayload & { id: number })) => Promise<boolean>
   initialData?: User | null
+  serverError?: string | null
+  onClearServerError?: () => void
 }) {
   const isEditMode = !!initialData
   const { creatableRoles } = usePermission()
@@ -113,8 +119,9 @@ function UserFormContent({
     })
   }
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    if (onClearServerError) onClearServerError()
     const newErrors: Record<string, string> = {}
     if (!formData.nama.trim()) newErrors.nama = "Nama lengkap wajib diisi"
     if (!formData.username.trim()) newErrors.username = "Username wajib diisi"
@@ -128,7 +135,7 @@ function UserFormContent({
       return
     }
 
-    onSave({
+    const ok = await onSave({
       ...(initialData ? { id: initialData.id } : {}),
       nama: formData.nama,
       username: formData.username,
@@ -146,7 +153,9 @@ function UserFormContent({
         email_dinas: formData.email_dinas,
       },
     })
-    onClose()
+
+    // Hanya tutup modal kalau backend menyimpan dengan sukses
+    if (ok) onClose()
   }
 
   return (
@@ -290,6 +299,18 @@ function UserFormContent({
           </div>
         </div>
 
+        {serverError && (
+          <div className="flex items-start gap-2 px-3 py-2.5 rounded-lg bg-red-50 dark:bg-red-500/10 border border-red-200 dark:border-red-500/30 text-red-700 dark:text-red-300 text-[11px] font-medium">
+            <AlertCircle className="h-3.5 w-3.5 shrink-0 mt-0.5" />
+            <span className="flex-1">{serverError}</span>
+            {onClearServerError && (
+              <button type="button" onClick={onClearServerError} className="opacity-60 hover:opacity-100 transition-opacity" title="Tutup">
+                <X className="h-3.5 w-3.5" />
+              </button>
+            )}
+          </div>
+        )}
+
         <div className="flex items-center justify-end gap-2 pt-4 border-t border-slate-100 dark:border-slate-800">
           <button type="button" onClick={onClose} className="px-4 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors">Batal</button>
           <button type="submit" className={`px-4 py-2 inline-flex items-center gap-1.5 rounded-lg text-white text-xs font-semibold shadow-xs transition-colors ${isEditMode ? "bg-amber-600 hover:bg-amber-700" : "bg-blue-600 hover:bg-blue-700"}`}>
@@ -302,11 +323,11 @@ function UserFormContent({
   )
 }
 
-export function UserFormModal({ isOpen, onClose, onSave, initialData }: UserFormModalProps) {
+export function UserFormModal({ isOpen, onClose, onSave, initialData, serverError, onClearServerError }: UserFormModalProps) {
   if (!isOpen) return null
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-xs animate-in fade-in duration-150">
-      <UserFormContent key={initialData ? `edit-${initialData.id}` : "create-user"} onClose={onClose} onSave={onSave} initialData={initialData} />
+      <UserFormContent key={initialData ? `edit-${initialData.id}` : "create-user"} onClose={onClose} onSave={onSave} initialData={initialData} serverError={serverError} onClearServerError={onClearServerError} />
     </div>
   )
 }

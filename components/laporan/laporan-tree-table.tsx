@@ -36,39 +36,20 @@ const formatNumber = (val: number): string => {
   return new Intl.NumberFormat("id-ID").format(val || 0)
 }
 
-// Badge level style & icon helper
+// Badge level style & icon helper (hitam-putih)
 const getLevelBadge = (type: LaporanLevelType, level: number) => {
+  const bg = "bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300 border-slate-300 dark:border-slate-600"
   switch (type) {
     case "opd":
-      return {
-        label: "OPD",
-        bg: "bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300 border-blue-200 dark:border-blue-800",
-        icon: Building2,
-      }
+      return { label: "OPD", bg, icon: Building2 }
     case "sub_unit":
-      return {
-        label: "Sub Unit",
-        bg: "bg-indigo-100 text-indigo-800 dark:bg-indigo-900/40 dark:text-indigo-300 border-indigo-200 dark:border-indigo-800",
-        icon: FolderTree,
-      }
+      return { label: "Sub Unit", bg, icon: FolderTree }
     case "program":
-      return {
-        label: "Program",
-        bg: "bg-purple-100 text-purple-800 dark:bg-purple-900/40 dark:text-purple-300 border-purple-200 dark:border-purple-800",
-        icon: FolderKanban,
-      }
+      return { label: "Program", bg, icon: FolderKanban }
     case "kegiatan":
-      return {
-        label: "Kegiatan",
-        bg: "bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800",
-        icon: ListTree,
-      }
+      return { label: "Kegiatan", bg, icon: ListTree }
     case "sub_kegiatan":
-      return {
-        label: "Sub Kegiatan",
-        bg: "bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300 border-amber-200 dark:border-amber-800",
-        icon: FileSpreadsheet,
-      }
+      return { label: "Sub Kegiatan", bg, icon: FileSpreadsheet }
   }
 }
 
@@ -82,31 +63,22 @@ const getRowShadingClass = (level: number): string => {
       // Level 2: Sub Unit - Slate-50/80, Semi-bold
       return "bg-slate-50/80 dark:bg-slate-850/50 font-semibold text-slate-850 dark:text-slate-100 border-t border-slate-200 dark:border-slate-800"
     case 3:
-      // Level 3: Program - Clean with subtle indigo hint
-      return "bg-white dark:bg-slate-900/90 font-medium text-slate-800 dark:text-slate-200 border-t border-slate-100 dark:border-slate-800/60 hover:bg-blue-50/40 dark:hover:bg-blue-950/20"
+      // Level 3: Program
+      return "bg-white dark:bg-slate-900/90 font-medium text-slate-800 dark:text-slate-200 border-t border-slate-200 dark:border-slate-700/60 hover:bg-slate-50 dark:hover:bg-slate-800/30"
     case 4:
-      // Level 4: Kegiatan - Subtle styling
-      return "bg-white dark:bg-slate-900 font-normal text-slate-700 dark:text-slate-300 border-t border-slate-100 dark:border-slate-800/50 hover:bg-slate-50 dark:hover:bg-slate-800/30"
+      // Level 4: Kegiatan
+      return "bg-white dark:bg-slate-900 font-normal text-slate-700 dark:text-slate-300 border-t border-slate-200 dark:border-slate-700/50 hover:bg-slate-50 dark:hover:bg-slate-800/30"
     case 5:
-      // Level 5: Sub Kegiatan - Leaf node, light contrast
-      return "bg-amber-50/20 dark:bg-amber-950/10 font-normal text-slate-700 dark:text-slate-300 border-t border-slate-100 dark:border-slate-800/40 hover:bg-amber-50/40 dark:hover:bg-amber-950/20"
+      // Level 5: Sub Kegiatan
+      return "bg-white dark:bg-slate-900 font-normal text-slate-700 dark:text-slate-300 border-t border-slate-200 dark:border-slate-700/40 hover:bg-slate-50 dark:hover:bg-slate-800/30"
     default:
       return "bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300"
   }
 }
 
-// Keterisian Badge Style
+// Keterisian Badge Style (hitam-putih)
 const getKeterisianBadge = (persen: number) => {
-  if (persen >= 90) {
-    return "bg-emerald-50 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300 border-emerald-200 dark:border-emerald-500/30"
-  }
-  if (persen >= 75) {
-    return "bg-blue-50 text-blue-700 dark:bg-blue-500/15 dark:text-blue-300 border-blue-200 dark:border-blue-500/30"
-  }
-  if (persen >= 50) {
-    return "bg-amber-50 text-amber-700 dark:bg-amber-500/15 dark:text-amber-300 border-amber-200 dark:border-amber-500/30"
-  }
-  return "bg-red-50 text-red-700 dark:bg-red-500/15 dark:text-red-300 border-red-200 dark:border-red-500/30"
+  return "bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300 border-slate-300 dark:border-slate-600"
 }
 
 // Helper to collect all node IDs
@@ -269,7 +241,7 @@ export function LaporanTreeTable({ data, tahun = 2026 }: LaporanTreeTableProps) 
             </td>
 
             {/* 2. Hierarchical Name (OPD / Sub Unit / Program / Kegiatan / Sub Kegiatan) */}
-            <td className="px-3 py-2.5 align-middle">
+            <td className="px-3 py-2.5 align-middle min-w-0 break-words">
               <div
                 className="flex items-center gap-1.5 min-w-0"
                 style={{ paddingLeft: `${indentPadding}px` }}
@@ -284,7 +256,7 @@ export function LaporanTreeTable({ data, tahun = 2026 }: LaporanTreeTableProps) 
                   >
                     <ChevronRight
                       className={`h-3.5 w-3.5 transition-transform duration-200 ${
-                        isExpanded ? "rotate-90 text-blue-600 dark:text-blue-400 font-bold" : ""
+                        isExpanded ? "rotate-90 text-slate-700 dark:text-slate-300 font-bold" : ""
                       }`}
                     />
                   </button>
@@ -333,17 +305,17 @@ export function LaporanTreeTable({ data, tahun = 2026 }: LaporanTreeTableProps) 
             </td>
 
             {/* 5. Belanja Pengadaan */}
-            <td className="px-3 py-2.5 text-right font-mono text-[11px] whitespace-nowrap align-middle font-semibold text-blue-700 dark:text-blue-400">
+            <td className="px-3 py-2.5 text-right font-mono text-[11px] whitespace-nowrap align-middle font-semibold text-slate-900 dark:text-white">
               {formatRupiah(node.belanjaPengadaan)}
             </td>
 
             {/* 6. Identifikasi Kebutuhan - Jumlah: Paket */}
-            <td className="px-2.5 py-2.5 text-right font-mono text-[11px] whitespace-nowrap align-middle bg-blue-50/30 dark:bg-blue-950/10 text-slate-800 dark:text-slate-200">
+            <td className="px-2.5 py-2.5 text-right font-mono text-[11px] whitespace-nowrap align-middle bg-slate-50/60 dark:bg-slate-800/30 text-slate-800 dark:text-slate-200">
               {formatNumber(node.identifikasi.jumlah.paket)}
             </td>
 
             {/* 7. Identifikasi Kebutuhan - Jumlah: Pagu */}
-            <td className="px-3 py-2.5 text-right font-mono text-[11px] whitespace-nowrap align-middle bg-blue-50/30 dark:bg-blue-950/10 font-semibold text-slate-900 dark:text-white">
+            <td className="px-3 py-2.5 text-right font-mono text-[11px] whitespace-nowrap align-middle bg-slate-50/60 dark:bg-slate-800/30 font-semibold text-slate-900 dark:text-white">
               {formatRupiah(node.identifikasi.jumlah.pagu)}
             </td>
 
@@ -353,7 +325,7 @@ export function LaporanTreeTable({ data, tahun = 2026 }: LaporanTreeTableProps) 
             </td>
 
             {/* 9. Identifikasi Kebutuhan - Penyedia: Pagu */}
-            <td className="px-3 py-2.5 text-right font-mono text-[11px] whitespace-nowrap align-middle text-indigo-700 dark:text-indigo-400">
+            <td className="px-3 py-2.5 text-right font-mono text-[11px] whitespace-nowrap align-middle text-slate-800 dark:text-slate-200">
               {formatRupiah(node.identifikasi.penyedia.pagu)}
             </td>
 
@@ -363,7 +335,7 @@ export function LaporanTreeTable({ data, tahun = 2026 }: LaporanTreeTableProps) 
             </td>
 
             {/* 11. Identifikasi Kebutuhan - Swakelola: Pagu */}
-            <td className="px-3 py-2.5 text-right font-mono text-[11px] whitespace-nowrap align-middle text-amber-700 dark:text-amber-400">
+            <td className="px-3 py-2.5 text-right font-mono text-[11px] whitespace-nowrap align-middle text-slate-800 dark:text-slate-200">
               {formatRupiah(node.identifikasi.swakelola.pagu)}
             </td>
 
@@ -410,7 +382,7 @@ export function LaporanTreeTable({ data, tahun = 2026 }: LaporanTreeTableProps) 
             className="h-8 px-2.5 inline-flex items-center gap-1.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-850 text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors shadow-2xs cursor-pointer"
             title="Bentangkan seluruh tingkatan hierarki"
           >
-            <Maximize2 className="h-3.5 w-3.5 text-blue-600 dark:text-blue-400" />
+            <Maximize2 className="h-3.5 w-3.5 text-slate-600 dark:text-slate-300" />
             <span>Expand All</span>
           </button>
 
@@ -427,7 +399,7 @@ export function LaporanTreeTable({ data, tahun = 2026 }: LaporanTreeTableProps) 
           <button
             type="button"
             onClick={handleExportCSV}
-            className="h-8 px-3 inline-flex items-center gap-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold transition-colors shadow-2xs cursor-pointer"
+            className="h-8 px-3 inline-flex items-center gap-1.5 rounded-lg bg-slate-800 hover:bg-slate-900 text-white text-xs font-semibold transition-colors shadow-2xs cursor-pointer"
             title="Unduh laporan dalam format CSV"
           >
             <Download className="h-3.5 w-3.5" />
@@ -437,17 +409,17 @@ export function LaporanTreeTable({ data, tahun = 2026 }: LaporanTreeTableProps) 
       </div>
 
       {/* Main Hierarchical Multi-Level Table */}
-      <div className="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-2xs overflow-hidden">
+      <div className="rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 shadow-2xs overflow-hidden">
         <div className="overflow-x-auto custom-scrollbar">
-          <table className="w-full text-xs text-left border-collapse">
+          <table className="w-full text-xs text-left border-collapse laporan-rekap-table print:table-fixed print:w-full">
             {/* MULTI-LEVEL HEADER (3 ROWS PERSIS SESUAI SPESIFIKASI) */}
             <thead>
               {/* Baris Header 1 */}
-              <tr className="bg-slate-900 text-white dark:bg-slate-950 text-[11px] font-semibold tracking-tight border-b border-slate-800 select-none">
+              <tr className="bg-slate-200 text-slate-900 dark:bg-slate-800 dark:text-slate-100 text-[11px] font-semibold tracking-tight border-b border-slate-400 dark:border-slate-600 select-none">
                 {/* No (rowspan=3) */}
                 <th
                   rowSpan={3}
-                  className="px-3 py-2.5 text-center font-bold border-r border-slate-800/80 w-12 align-middle uppercase text-[10px] tracking-wider"
+                  className="px-3 py-2.5 text-center font-bold border-r border-slate-300 dark:border-slate-700 w-12 align-middle uppercase text-[10px] tracking-wider"
                 >
                   No
                 </th>
@@ -455,7 +427,7 @@ export function LaporanTreeTable({ data, tahun = 2026 }: LaporanTreeTableProps) 
                 {/* OPD / Sub Unit / Program / Kegiatan / Sub Kegiatan (rowspan=3) */}
                 <th
                   rowSpan={3}
-                  className="px-4 py-2.5 text-left font-bold border-r border-slate-800/80 min-w-[340px] max-w-[440px] align-middle uppercase text-[10px] tracking-wider"
+                  className="px-4 py-2.5 text-left font-bold border-r border-slate-300 dark:border-slate-700 min-w-[300px] max-w-[440px] align-middle uppercase text-[10px] tracking-wider print:min-w-0"
                 >
                   OPD / Sub Unit / Program / Kegiatan / Sub Kegiatan
                 </th>
@@ -463,7 +435,7 @@ export function LaporanTreeTable({ data, tahun = 2026 }: LaporanTreeTableProps) 
                 {/* Pagu (rowspan=3) */}
                 <th
                   rowSpan={3}
-                  className="px-3 py-2.5 text-right font-bold border-r border-slate-800/80 min-w-[140px] align-middle uppercase text-[10px] tracking-wider"
+                  className="px-3 py-2.5 text-right font-bold border-r border-slate-300 dark:border-slate-700 min-w-[110px] align-middle uppercase text-[10px] tracking-wider print:min-w-0"
                 >
                   Pagu
                 </th>
@@ -471,7 +443,7 @@ export function LaporanTreeTable({ data, tahun = 2026 }: LaporanTreeTableProps) 
                 {/* Belanja Non Pengadaan (rowspan=3) */}
                 <th
                   rowSpan={3}
-                  className="px-3 py-2.5 text-right font-bold border-r border-slate-800/80 min-w-[140px] align-middle uppercase text-[10px] tracking-wider text-slate-300"
+                  className="px-3 py-2.5 text-right font-bold border-r border-slate-300 dark:border-slate-600 min-w-[110px] align-middle uppercase text-[10px] tracking-wider text-slate-900 dark:text-slate-100 print:min-w-0"
                 >
                   Belanja Non Pengadaan
                 </th>
@@ -479,7 +451,7 @@ export function LaporanTreeTable({ data, tahun = 2026 }: LaporanTreeTableProps) 
                 {/* Belanja Pengadaan (rowspan=3) */}
                 <th
                   rowSpan={3}
-                  className="px-3 py-2.5 text-right font-bold border-r border-slate-800/80 min-w-[140px] align-middle uppercase text-[10px] tracking-wider text-blue-300"
+                  className="px-3 py-2.5 text-right font-bold border-r border-slate-300 dark:border-slate-700 min-w-[110px] align-middle uppercase text-[10px] tracking-wider text-slate-900 dark:text-slate-100 print:min-w-0"
                 >
                   Belanja Pengadaan
                 </th>
@@ -487,7 +459,7 @@ export function LaporanTreeTable({ data, tahun = 2026 }: LaporanTreeTableProps) 
                 {/* Identifikasi Kebutuhan (colspan=6) */}
                 <th
                   colSpan={6}
-                  className="px-3 py-2 text-center font-bold border-r border-slate-800/80 bg-blue-950/80 text-blue-200 uppercase text-[10px] tracking-wider border-b border-blue-900/60"
+                  className="px-3 py-2 text-center font-bold border-r border-slate-300 dark:border-slate-600 bg-slate-200 text-slate-900 dark:text-slate-100 uppercase text-[10px] tracking-wider border-b border-slate-400 dark:border-slate-600"
                 >
                   Identifikasi Kebutuhan
                 </th>
@@ -495,18 +467,18 @@ export function LaporanTreeTable({ data, tahun = 2026 }: LaporanTreeTableProps) 
                 {/* Keterisian (rowspan=3) */}
                 <th
                   rowSpan={3}
-                  className="px-3 py-2.5 text-center font-bold min-w-[90px] align-middle uppercase text-[10px] tracking-wider text-emerald-300"
+                  className="px-3 py-2.5 text-center font-bold min-w-[90px] align-middle uppercase text-[10px] tracking-wider text-slate-900 dark:text-slate-100 print:min-w-0"
                 >
                   Keterisian
                 </th>
               </tr>
 
               {/* Baris Header 2 (di bawah Identifikasi Kebutuhan) */}
-              <tr className="bg-slate-850 text-slate-200 dark:bg-slate-900 text-[10px] font-semibold uppercase tracking-wider border-b border-slate-800 select-none">
+              <tr className="bg-slate-100 text-slate-900 dark:bg-slate-900 dark:text-slate-100 text-[10px] font-semibold uppercase tracking-wider border-b border-slate-300 dark:border-slate-600 select-none">
                 {/* Jumlah (colspan=2) */}
                 <th
                   colSpan={2}
-                  className="px-2 py-1.5 text-center border-r border-slate-800 bg-blue-900/40 text-blue-200 font-bold"
+                  className="px-2 py-1.5 text-center border-r border-slate-300 dark:border-slate-600 bg-slate-100 text-slate-900 dark:bg-slate-900 dark:text-slate-100 font-bold"
                 >
                   Jumlah
                 </th>
@@ -514,7 +486,7 @@ export function LaporanTreeTable({ data, tahun = 2026 }: LaporanTreeTableProps) 
                 {/* Penyedia (colspan=2) */}
                 <th
                   colSpan={2}
-                  className="px-2 py-1.5 text-center border-r border-slate-800 bg-indigo-900/30 text-indigo-200 font-bold"
+                  className="px-2 py-1.5 text-center border-r border-slate-300 dark:border-slate-600 bg-slate-100 text-slate-900 dark:bg-slate-900 dark:text-slate-100 font-bold"
                 >
                   Penyedia
                 </th>
@@ -522,35 +494,35 @@ export function LaporanTreeTable({ data, tahun = 2026 }: LaporanTreeTableProps) 
                 {/* Swakelola (colspan=2) */}
                 <th
                   colSpan={2}
-                  className="px-2 py-1.5 text-center border-r border-slate-800 bg-amber-900/30 text-amber-200 font-bold"
+                  className="px-2 py-1.5 text-center border-r border-slate-300 dark:border-slate-600 bg-slate-100 text-slate-900 dark:bg-slate-900 dark:text-slate-100 font-bold"
                 >
                   Swakelola
                 </th>
               </tr>
 
               {/* Baris Header 3 (Sub-kolom Paket | Pagu) */}
-              <tr className="bg-slate-800/95 text-slate-300 dark:bg-slate-900/95 text-[9px] font-bold uppercase tracking-wider border-b border-slate-700 select-none">
+              <tr className="bg-slate-100 text-slate-900 dark:bg-slate-900 dark:text-slate-100 text-[9px] font-bold uppercase tracking-wider border-b border-slate-300 dark:border-slate-600 select-none">
                 {/* Jumlah: Paket | Pagu */}
-                <th className="px-2.5 py-1 text-right border-r border-slate-700/60 w-16 bg-blue-950/40">
+                <th className="px-2.5 py-1 text-right border-r border-slate-300 dark:border-slate-600 w-16 bg-slate-100">
                   Paket
                 </th>
-                <th className="px-3 py-1 text-right border-r border-slate-700 bg-blue-950/40 min-w-[120px]">
+                <th className="px-3 py-1 text-right border-r border-slate-300 dark:border-slate-600 bg-slate-100 min-w-[110px] print:min-w-0">
                   Pagu
                 </th>
 
                 {/* Penyedia: Paket | Pagu */}
-                <th className="px-2.5 py-1 text-right border-r border-slate-700/60 w-16 bg-indigo-950/40">
+                <th className="px-2.5 py-1 text-right border-r border-slate-300 dark:border-slate-600 w-16 bg-slate-100">
                   Paket
                 </th>
-                <th className="px-3 py-1 text-right border-r border-slate-700 bg-indigo-950/40 min-w-[120px]">
+                <th className="px-3 py-1 text-right border-r border-slate-300 dark:border-slate-600 bg-slate-100 min-w-[110px] print:min-w-0">
                   Pagu
                 </th>
 
                 {/* Swakelola: Paket | Pagu */}
-                <th className="px-2.5 py-1 text-right border-r border-slate-700/60 w-16 bg-amber-950/40">
+                <th className="px-2.5 py-1 text-right border-r border-slate-300 dark:border-slate-600 w-16 bg-slate-100">
                   Paket
                 </th>
-                <th className="px-3 py-1 text-right border-r border-slate-800 bg-amber-950/40 min-w-[120px]">
+                <th className="px-3 py-1 text-right border-r border-slate-300 dark:border-slate-600 bg-slate-100 min-w-[110px] print:min-w-0">
                   Pagu
                 </th>
               </tr>
@@ -561,41 +533,41 @@ export function LaporanTreeTable({ data, tahun = 2026 }: LaporanTreeTableProps) 
 
             {/* FOOTER TOTAL KESELURUHAN (GRAND TOTAL) */}
             <tfoot>
-              <tr className="bg-slate-900 text-white dark:bg-slate-950 font-bold text-xs border-t-2 border-slate-700">
+              <tr className="bg-slate-200 text-slate-900 dark:bg-slate-800 dark:text-white font-bold text-xs border-t-2 border-slate-400 dark:border-slate-500">
                 <td colSpan={2} className="px-4 py-3 text-left uppercase tracking-wider text-[11px]">
-                  <span className="inline-flex items-center gap-1.5 text-amber-400">
+                  <span className="inline-flex items-center gap-1.5 text-slate-900 dark:text-white">
                     <Sparkles className="h-3.5 w-3.5" /> Total Keseluruhan
                   </span>
                 </td>
-                <td className="px-3 py-3 text-right font-mono text-[12px] text-white">
+                <td className="px-3 py-3 text-right font-mono text-[12px] text-slate-900 dark:text-white">
                   {formatRupiah(grandTotal.pagu)}
                 </td>
-                <td className="px-3 py-3 text-right font-mono text-[12px] text-slate-300">
+                <td className="px-3 py-3 text-right font-mono text-[12px] text-slate-700 dark:text-slate-200">
                   {formatRupiah(grandTotal.belanjaNonPengadaan)}
                 </td>
-                <td className="px-3 py-3 text-right font-mono text-[12px] text-blue-300">
+                <td className="px-3 py-3 text-right font-mono text-[12px] text-slate-900 dark:text-white">
                   {formatRupiah(grandTotal.belanjaPengadaan)}
                 </td>
-                <td className="px-2.5 py-3 text-right font-mono text-[12px] text-slate-200">
+                <td className="px-2.5 py-3 text-right font-mono text-[12px] text-slate-700 dark:text-slate-200">
                   {formatNumber(grandTotal.identifikasiJumlahPaket)}
                 </td>
-                <td className="px-3 py-3 text-right font-mono text-[12px] text-white">
+                <td className="px-3 py-3 text-right font-mono text-[12px] text-slate-900 dark:text-white">
                   {formatRupiah(grandTotal.identifikasiJumlahPagu)}
                 </td>
-                <td className="px-2.5 py-3 text-right font-mono text-[12px] text-slate-300">
+                <td className="px-2.5 py-3 text-right font-mono text-[12px] text-slate-700 dark:text-slate-200">
                   {formatNumber(grandTotal.identifikasiPenyediaPaket)}
                 </td>
-                <td className="px-3 py-3 text-right font-mono text-[12px] text-indigo-300">
+                <td className="px-3 py-3 text-right font-mono text-[12px] text-slate-700 dark:text-slate-200">
                   {formatRupiah(grandTotal.identifikasiPenyediaPagu)}
                 </td>
-                <td className="px-2.5 py-3 text-right font-mono text-[12px] text-slate-300">
+                <td className="px-2.5 py-3 text-right font-mono text-[12px] text-slate-700 dark:text-slate-200">
                   {formatNumber(grandTotal.identifikasiSwakelolaPaket)}
                 </td>
-                <td className="px-3 py-3 text-right font-mono text-[12px] text-amber-300">
+                <td className="px-3 py-3 text-right font-mono text-[12px] text-slate-700 dark:text-slate-200">
                   {formatRupiah(grandTotal.identifikasiSwakelolaPagu)}
                 </td>
                 <td className="px-3 py-3 text-center align-middle whitespace-nowrap">
-                  <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-mono font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/40">
+                  <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-mono font-bold bg-slate-200 text-slate-900 border border-slate-400 dark:bg-slate-700 dark:text-white">
                     {grandKeterisian.toFixed(1)}%
                   </span>
                 </td>
