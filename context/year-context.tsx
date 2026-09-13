@@ -1,12 +1,13 @@
 "use client"
 
-import React, { createContext, useContext, useEffect, useState } from "react"
+import React, { createContext, useContext, useEffect, useState, useTransition } from "react"
 import { useRouter } from "next/navigation"
 
 interface YearContextType {
   year: number
   setYear: (year: number) => void
   availableYears: number[]
+  isYearChanging: boolean
 }
 
 const START_YEAR = 2026
@@ -39,6 +40,7 @@ const YearContext = createContext<YearContextType | undefined>(undefined)
 
 export function YearProvider({ children }: { children: React.ReactNode }) {
   const router = useRouter()
+  const [isPending, startTransition] = useTransition()
   const availableYears = getAvailableYears()
   const [year, setYearState] = useState<number>(() => getInitialYear(availableYears))
 
@@ -49,11 +51,16 @@ export function YearProvider({ children }: { children: React.ReactNode }) {
   const setYear = (newYear: number) => {
     setYearState(newYear)
     document.cookie = `sikebut_year=${newYear}; path=/; max-age=31536000; SameSite=Lax`
-    router.refresh()
+    startTransition(() => {
+      router.refresh()
+    })
   }
 
   return (
-    <YearContext.Provider value={{ year, setYear, availableYears }}>
+    <YearContext.Provider value={{ year, setYear, availableYears, isYearChanging: isPending }}>
+      {isPending && (
+        <div className="fixed top-0 left-0 right-0 h-0.5 z-50 bg-blue-600 animate-pulse" />
+      )}
       {children}
     </YearContext.Provider>
   )

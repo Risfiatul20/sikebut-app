@@ -2,7 +2,7 @@
 
 import { usePathname } from "next/navigation"
 import { useSession } from "next-auth/react"
-import { Calendar } from "lucide-react"
+import { Calendar, Loader2 } from "lucide-react"
 import { useYear } from "@/context/year-context"
 import { ThemeToggle } from "@/components/theme-toggle"
 import { LogoutButton } from "@/components/logout-button"
@@ -11,7 +11,7 @@ import { NotificationBell } from "@/components/notification-bell"
 export function Header() {
   const pathname = usePathname()
   const { data: session } = useSession()
-  const { year, setYear, availableYears } = useYear()
+  const { year, setYear, availableYears, isYearChanging } = useYear()
 
   // Format breadcrumb from pathname
   const paths = pathname.split("/").filter(Boolean)
@@ -42,12 +42,19 @@ export function Header() {
 
       <div className="flex items-center gap-3">
         <div className="relative flex items-center">
-          <Calendar className="h-3.5 w-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+          {isYearChanging ? (
+            <Loader2 className="h-3.5 w-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-blue-600 animate-spin pointer-events-none" />
+          ) : (
+            <Calendar className="h-3.5 w-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+          )}
           <select
             value={year}
+            disabled={isYearChanging}
             onChange={(e) => setYear(Number(e.target.value))}
             aria-label="Pilih Periode Anggaran"
-            className="h-8 pl-8 pr-7 rounded-md border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 text-xs font-medium text-slate-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500 transition-colors cursor-pointer appearance-none"
+            className={`h-8 pl-8 pr-7 rounded-md border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 text-xs font-medium text-slate-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500 transition-all cursor-pointer appearance-none ${
+              isYearChanging ? "opacity-60 cursor-wait" : ""
+            }`}
           >
             {availableYears.map((y) => (
               <option key={y} value={y} className="bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-200">

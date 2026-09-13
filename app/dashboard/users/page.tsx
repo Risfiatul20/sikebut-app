@@ -21,7 +21,7 @@ export default function UsersManagementPage() {
             </h1>
           </div>
           <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-            Pengelolaan akun operator OPD, verifikator, dan administrator terintegrasi SIPD-RI (<code className="font-mono text-[11px]">dev.users</code>).
+            Pengelolaan akun sistem
           </p>
         </div>
       </div>

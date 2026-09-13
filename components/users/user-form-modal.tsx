@@ -170,7 +170,7 @@ function UserFormContent({
               {isEditMode ? `Edit Pengguna: ${initialData?.nama}` : "Tambah Pengguna Baru"}
             </h2>
             <p className="text-xs text-slate-500 dark:text-slate-400">
-              {isEditMode ? "Perbarui data pengguna" : "Data disimpan ke tabel dev.users"}
+              {isEditMode ? "Perbarui data pengguna" : "Isikan data pengguna"}
             </p>
           </div>
         </div>

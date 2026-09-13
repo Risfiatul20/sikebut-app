@@ -1,6 +1,7 @@
 import { auth } from "@/auth"
 import { redirect } from "next/navigation"
 import { getApi } from "@/lib/api"
+import { getSelectedYear } from "@/lib/year"
 import { DashboardSummary, DashboardKeterisianPpk } from "@/types/dashboard"
 import { statusLabel, statusBadgeClass } from "@/lib/status-paket"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -25,12 +26,14 @@ export default async function DashboardPage() {
   const session = await auth()
   if (!session) redirect("/login")
 
+  const selectedYear = await getSelectedYear()
+
   let summary: DashboardSummary | null = null
   let keterisianPpk: DashboardKeterisianPpk[] | null = null
   let errorMessage: string | null = null
 
   try {
-    const res = await getApi<{ data: DashboardSummary }>("/api/v1/dashboard/summary")
+    const res = await getApi<{ data: DashboardSummary }>(`/api/v1/dashboard/summary?tahun=${selectedYear}`)
     summary = res?.data ?? null
   } catch (err) {
     errorMessage = err instanceof Error ? err.message : "Gagal memuat ringkasan dashboard"
@@ -38,7 +41,7 @@ export default async function DashboardPage() {
   }
 
   try {
-    const res = await getApi<{ data: DashboardKeterisianPpk[] }>("/api/v1/dashboard/keterisian-ppk")
+    const res = await getApi<{ data: DashboardKeterisianPpk[] }>(`/api/v1/dashboard/keterisian-ppk?tahun=${selectedYear}`)
     keterisianPpk = res?.data ?? null
   } catch (err) {
     console.error("[dashboard] Gagal memuat keterisian PPK:", err)
@@ -87,7 +90,7 @@ export default async function DashboardPage() {
         <div>
           <h1 className="text-xl font-display font-semibold tracking-tight text-slate-900 dark:text-white">Ikhtisar Kebutuhan</h1>
           <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-            Ringkasan usulan pengadaan dari data asli ({new Date().toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" })})
+            Ringkasan usulan pengadaan tahun {selectedYear} ({new Date().toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" })})
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -284,4 +287,4 @@ export default async function DashboardPage() {
       )}
     </div>
   )
-}
+}
