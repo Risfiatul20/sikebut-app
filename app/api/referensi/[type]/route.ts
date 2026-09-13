@@ -1,5 +1,6 @@
 import { auth } from "@/auth"
 import { NextResponse } from "next/server"
+import { getSelectedYear } from "@/lib/year"
 
 const VALID = ["program", "kegiatan", "sub-kegiatan"] as const
 type RefType = (typeof VALID)[number]
@@ -26,6 +27,11 @@ export async function GET(req: Request, { params }: { params: Promise<{ type: st
   // Jika kode_skpd belum dikirim via query param, otomatis ambil dari session user login
   if (!finalParams.get("kode_skpd") && session.user.kodeSkpd) {
     finalParams.set("kode_skpd", session.user.kodeSkpd)
+  }
+
+  // Jika tahun belum dikirim, gunakan tahun terpilih dari cookie
+  if (!finalParams.get("tahun")) {
+    finalParams.set("tahun", await getSelectedYear())
   }
 
   // Meneruskan request ke backend Laravel: /api/v1/ref-program | ref-kegiatan | ref-sub-kegiatan
@@ -55,4 +61,4 @@ export async function GET(req: Request, { params }: { params: Promise<{ type: st
   // Teruskan error backend apa adanya — jangan pernah memakai data cadangan.
   const errText = await backendRes.text()
   return new NextResponse(errText, { status: backendRes.status, headers: { "Content-Type": "application/json" } })
-}
+}

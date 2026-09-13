@@ -1,5 +1,6 @@
 import { auth } from "@/auth"
 import { NextResponse } from "next/server"
+import { getSelectedYear } from "@/lib/year"
 
 const API_URL = process.env.API_URL || "http://127.0.0.1:8000"
 
@@ -28,7 +29,11 @@ export async function GET(req: Request, { params }: { params: Promise<{ jenis: s
   }
 
   const { searchParams } = new URL(req.url)
-  const qs = searchParams.toString() ? `?${searchParams.toString()}` : ""
+  const finalParams = new URLSearchParams(searchParams)
+  if (!finalParams.get("tahun")) {
+    finalParams.set("tahun", await getSelectedYear())
+  }
+  const qs = `?${finalParams.toString()}`
 
   try {
     const backendRes = await fetch(`${API_URL}/api/v1/laporan/${jenis}/export${qs}`, {

@@ -1,5 +1,6 @@
 import { auth } from "@/auth"
 import { NextResponse } from "next/server"
+import { getSelectedYear } from "@/lib/year"
 
 // Route proxy Next.js: meneruskan GET /api/laporan/kebutuhan ke backend Laravel
 // (token Sanctum dari session NextAuth). Tanpa fallback mock — data harus asli.
@@ -10,9 +11,13 @@ export async function GET(req: Request) {
   }
 
   const { searchParams } = new URL(req.url)
+  const finalParams = new URLSearchParams(searchParams)
+  if (!finalParams.get("tahun")) {
+    finalParams.set("tahun", await getSelectedYear())
+  }
 
   try {
-    const backendUrl = `${process.env.API_URL || "http://127.0.0.1:8000"}/api/v1/laporan/kebutuhan?${searchParams.toString()}`
+    const backendUrl = `${process.env.API_URL || "http://127.0.0.1:8000"}/api/v1/laporan/kebutuhan?${finalParams.toString()}`
     const backendRes = await fetch(backendUrl, {
       headers: {
         Accept: "application/json",

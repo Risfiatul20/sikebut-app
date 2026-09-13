@@ -1,6 +1,7 @@
 import { auth } from "@/auth"
 import { NextResponse } from "next/server"
 import { SipdItem } from "@/types/sipd"
+import { getSelectedYear } from "@/lib/year"
 
 interface RawSipdRow {
   id: number | string
@@ -97,7 +98,12 @@ export async function GET(req: Request) {
   // Teruskan ke backend Laravel: /api/v1/sipd-penetapan-apbd — TANPA fallback mock.
   let backendRes: Response
   try {
-    const params = new URLSearchParams({ per_page: "0", kode_sub_kegiatan: kodeSubKegiatan })
+    const tahun = searchParams.get("tahun") || (await getSelectedYear())
+    const params = new URLSearchParams({
+      per_page: "0",
+      kode_sub_kegiatan: kodeSubKegiatan,
+      tahun,
+    })
     backendRes = await fetch(
       `${process.env.API_URL || "http://127.0.0.1:8000"}/api/v1/sipd-penetapan-apbd?${params.toString()}`,
       {

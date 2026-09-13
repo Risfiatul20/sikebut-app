@@ -1,6 +1,7 @@
 import { auth } from "@/auth"
 import { NextResponse } from "next/server"
 import { IdentifikasiListResponse } from "@/types/identifikasi"
+import { getSelectedYear } from "@/lib/year"
 
 // Catatan: route ini TIDAK punya data cadangan (mock). Semua data harus dari
 // backend Laravel (database). Kalau backend tidak terjangkau → error ditampilkan
@@ -42,8 +43,13 @@ export async function GET(req: Request) {
   // Ambil data langsung dari backend Laravel — TANPA fallback data dummy.
   let backendRes: Response
   try {
+    const params = new URLSearchParams(searchParams)
+    if (!params.get("tahun")) {
+      params.set("tahun", await getSelectedYear())
+    }
+
     backendRes = await fetch(
-      `${process.env.API_URL || "http://127.0.0.1:8000"}/api/v1/identifikasi-kebutuhan?${searchParams.toString()}`,
+      `${process.env.API_URL || "http://127.0.0.1:8000"}/api/v1/identifikasi-kebutuhan?${params.toString()}`,
       {
         headers: {
           Accept: "application/json",
