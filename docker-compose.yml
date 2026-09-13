@@ -20,7 +20,6 @@ services:
       - "3000"
     networks:
       - app-network
-      - nginx-proxy
     healthcheck:
       test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:3000/ >/dev/null 2>&1 || exit 1"]
       interval: 30s
@@ -30,7 +29,4 @@ services:
 
 networks:
   app-network:
-    driver: bridge
-  nginx-proxy:
     external: true
-    name: nginx-proxy
