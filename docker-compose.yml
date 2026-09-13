@@ -3,6 +3,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
+    image: sikebut-app:1.0.0
     container_name: sikebut-app
     restart: unless-stopped
     env_file:

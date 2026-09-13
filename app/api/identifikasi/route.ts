@@ -84,6 +84,11 @@ export async function POST(req: Request) {
   try {
     const body = await req.json()
 
+    // Jika tahun tidak dikirim dari form payload, isi otomatis dari sesi cookie tahun aktif
+    if (!body.tahun) {
+      body.tahun = Number(await getSelectedYear())
+    }
+
     // Validasi SKPD: hanya Admin yang boleh memilih SKPD selain miliknya
     const isAdmin = (session.user.role || "").toLowerCase() === "admin"
     if (!isAdmin && session.user.kodeSkpd) {
