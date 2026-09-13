@@ -96,7 +96,8 @@ export async function POST(req: Request) {
     }
 
     // Mencoba kirim langsung ke backend Laravel (POST /api/v1/identifikasi-kebutuhan)
-    try {
+   try {
+     console.log(body)
       const backendUrl = `${process.env.API_URL || "http://127.0.0.1:8000"}/api/v1/identifikasi-kebutuhan`
       const backendRes = await fetch(backendUrl, {
         method: "POST",

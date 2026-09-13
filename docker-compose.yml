@@ -27,6 +27,14 @@ services:
       timeout: 10s
       retries: 5
       start_period: 45s
+    deploy:
+      resources:
+        limits:
+          cpus: "2.0"
+          memory: 1024M
+        reservations:
+          cpus: "0.25"
+          memory: 256M
 
 networks:
   app-network:
