@@ -1,12 +1,16 @@
 "use client"
 
 import { useState, useRef, useEffect, useMemo, useCallback } from "react"
-import { Search, ChevronDown, X, Loader2 } from "lucide-react"
+import { Search, ChevronDown, X, Loader2, Info } from "lucide-react"
 import { cn } from "@/lib/utils"
 
 export interface SearchableSelectOption {
   value: string
   label: string
+  /** Kode/identitas singkat di bawah label (mis. kode nomenklatur SIPD). */
+  subLabel?: string
+  /** Keterangan tambahan yang tampil saat tombol "lihat detail" dibuka. */
+  detail?: { label: string; value: string }[]
   group?: string
   disabled?: boolean
 }
@@ -39,14 +43,17 @@ export function SearchableSelect({
   const [isOpen, setIsOpen] = useState(false)
   const [search, setSearch] = useState("")
   const [highlightedIndex, setHighlightedIndex] = useState(0)
+  const [detailKey, setDetailKey] = useState<string | null>(null)
   const inputRef = useRef<HTMLInputElement>(null)
   const listRef = useRef<HTMLDivElement>(null)
   const wrapperRef = useRef<HTMLDivElement>(null)
 
-  const selectedLabel = useMemo(
-    () => options.find((o) => o.value === value)?.label || "",
+  const selectedOption = useMemo(
+    () => options.find((o) => o.value === value),
     [options, value]
   )
+  const selectedLabel = selectedOption?.label || ""
+  const selectedSubLabel = selectedOption?.subLabel || ""
 
   const filtered = useMemo(() => {
     if (!search.trim()) return options
@@ -55,6 +62,7 @@ export function SearchableSelect({
       (o) =>
         o.label.toLowerCase().includes(q) ||
         o.value.toLowerCase().includes(q) ||
+        o.subLabel?.toLowerCase().includes(q) ||
         o.group?.toLowerCase().includes(q)
     )
   }, [options, search])
@@ -75,6 +83,7 @@ export function SearchableSelect({
     setIsOpen(true)
     setSearch("")
     setHighlightedIndex(0)
+    setDetailKey(null)
     setTimeout(() => inputRef.current?.focus(), 50)
   }, [disabled, loading])
 
@@ -82,6 +91,7 @@ export function SearchableSelect({
     setIsOpen(false)
     setSearch("")
     setHighlightedIndex(0)
+    setDetailKey(null)
   }, [])
 
   const selectOption = useCallback(
@@ -172,7 +182,7 @@ export function SearchableSelect({
         {loading ? (
           <Loader2 className="h-3.5 w-3.5 animate-spin text-slate-400 shrink-0" />
         ) : (
-          <span className="truncate flex-1">{selectedLabel || placeholder}</span>
+          <span className="truncate flex-1">{selectedLabel || placeholder}{selectedLabel && selectedSubLabel && <span className="ml-1.5 font-mono text-[10px] text-slate-400">{selectedSubLabel}</span>}</span>
         )}
         {value && !disabled && (
           <span
@@ -244,28 +254,76 @@ export function SearchableSelect({
                     const idx = filtered.indexOf(opt)
                     const isHighlighted = idx === highlightedIndex
                     const isSelected = opt.value === value
+                    const isDetailOpen = detailKey === opt.value
                     return (
-                      <button
+                      <div
                         key={opt.value}
-                        type="button"
-                        disabled={opt.disabled}
-                        onClick={() => selectOption(opt.value)}
+                        role="button"
+                        tabIndex={-1}
+                        onClick={() => !opt.disabled && selectOption(opt.value)}
                         onMouseEnter={() => setHighlightedIndex(idx)}
                         className={cn(
-                          "w-full text-left px-3 py-1.5 text-xs flex items-center gap-2 transition-colors",
+                          "w-full text-left px-3 py-1.5 text-xs transition-colors cursor-pointer",
                           opt.disabled && "opacity-40 cursor-not-allowed",
                           isSelected
-                            ? "bg-blue-50 dark:bg-blue-500/10 text-blue-700 dark:text-blue-300 font-semibold"
+                            ? "bg-blue-50 dark:bg-blue-500/10 text-blue-700 dark:text-blue-300"
                             : isHighlighted
                               ? "bg-slate-100 dark:bg-slate-800"
                               : "text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800/50"
                         )}
                       >
-                        <span className="truncate">{opt.label}</span>
-                        {isSelected && (
-                          <span className="ml-auto h-1.5 w-1.5 rounded-full bg-blue-500 shrink-0" />
+                        <div className="flex items-start gap-2">
+                          <div className="min-w-0 flex-1">
+                            <p className={cn("leading-snug break-words", isSelected && "font-semibold")}>{opt.label}</p>
+                            {opt.subLabel && (
+                              <p className="font-mono text-[10px] text-slate-400 dark:text-slate-500 mt-0.5">{opt.subLabel}</p>
+                            )}
+                          </div>
+                          {opt.detail && opt.detail.length > 0 && (
+                            <span
+                              role="button"
+                              tabIndex={0}
+                              title="Lihat detail"
+                              aria-label="Lihat detail"
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                setDetailKey((prev) => (prev === opt.value ? null : opt.value))
+                              }}
+                              onKeyDown={(e) => {
+                                if (e.key === "Enter" || e.key === " ") {
+                                  e.preventDefault()
+                                  e.stopPropagation()
+                                  setDetailKey((prev) => (prev === opt.value ? null : opt.value))
+                                }
+                              }}
+                              className={cn(
+                                "h-5 w-5 shrink-0 rounded flex items-center justify-center transition-colors",
+                                isDetailOpen
+                                  ? "bg-blue-100 dark:bg-blue-500/20 text-blue-600 dark:text-blue-300"
+                                  : "text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700 hover:text-slate-600 dark:hover:text-slate-200"
+                              )}
+                            >
+                              <Info className="h-3.5 w-3.5" />
+                            </span>
+                          )}
+                          {isSelected && (
+                            <span className="mt-1.5 h-1.5 w-1.5 rounded-full bg-blue-500 shrink-0" />
+                          )}
+                        </div>
+                        {opt.detail && opt.detail.length > 0 && isDetailOpen && (
+                          <dl
+                            onClick={(e) => e.stopPropagation()}
+                            className="mt-1.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-950 p-2 space-y-0.5"
+                          >
+                            {opt.detail.map((d) => (
+                              <div key={d.label} className="flex gap-2">
+                                <dt className="w-[92px] shrink-0 text-[10px] uppercase tracking-wide text-slate-400">{d.label}</dt>
+                                <dd className="flex-1 text-[10px] font-mono text-slate-700 dark:text-slate-200 break-words">{d.value}</dd>
+                              </div>
+                            ))}
+                          </dl>
                         )}
-                      </button>
+                      </div>
                     )
                   })}
                 </div>

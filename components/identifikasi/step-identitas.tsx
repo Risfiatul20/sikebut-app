@@ -236,6 +236,11 @@ export function StepIdentitas({ data, onChange, userData, isAdmin = false, missi
               options={programList.map((p) => ({
                 value: p.kode_program,
                 label: p.nama_program,
+                subLabel: p.kode_program,
+                detail: [
+                  { label: "Kode Program", value: p.kode_program },
+                  { label: "Bidang Urusan", value: `${p.kode_bidang_urusan} — ${p.nama_bidang_urusan}` },
+                ],
                 group: p.nama_bidang_urusan || "Program",
               }))}
               value={data.kode_program}
@@ -250,10 +255,19 @@ export function StepIdentitas({ data, onChange, userData, isAdmin = false, missi
           <div>
             <label className={`block text-[11px] font-semibold mb-1 ${isMiss("kode_kegiatan") ? "text-rose-600 dark:text-rose-400" : "text-slate-700 dark:text-slate-300"}`}>Kegiatan <span className="text-red-500">*</span></label>
             <SearchableSelect
-              options={kegiatanList.map((k) => ({
-                value: k.kode_kegiatan,
-                label: k.nama_kegiatan,
-              }))}
+              options={kegiatanList.map((k) => {
+                const prog = programList.find((p) => p.kode_program === k.kode_program)
+                return {
+                  value: k.kode_kegiatan,
+                  label: k.nama_kegiatan,
+                  subLabel: k.kode_kegiatan,
+                  detail: [
+                    { label: "Kode Kegiatan", value: k.kode_kegiatan },
+                    { label: "Program", value: prog ? `${prog.kode_program} — ${prog.nama_program}` : k.kode_program },
+                    { label: "Bidang Urusan", value: prog ? `${prog.kode_bidang_urusan} — ${prog.nama_bidang_urusan}` : "-" },
+                  ],
+                }
+              })}
               value={data.kode_kegiatan}
               onChange={(val) => update("kode_kegiatan", val)}
               placeholder={loadingKegiatan ? "Memuat kegiatan..." : "-- Pilih Kegiatan --"}
@@ -266,10 +280,21 @@ export function StepIdentitas({ data, onChange, userData, isAdmin = false, missi
           <div>
             <label className={`block text-[11px] font-semibold mb-1 ${isMiss("kode_sub_kegiatan") ? "text-rose-600 dark:text-rose-400" : "text-slate-700 dark:text-slate-300"}`}>Sub Kegiatan <span className="text-red-500">*</span></label>
             <SearchableSelect
-              options={subKegiatanList.map((s) => ({
-                value: s.kode_sub_kegiatan,
-                label: s.nama_sub_kegiatan,
-              }))}
+              options={subKegiatanList.map((s) => {
+                const keg = kegiatanList.find((k) => k.kode_kegiatan === s.kode_kegiatan)
+                const prog = programList.find((p) => p.kode_program === (keg?.kode_program || data.kode_program))
+                return {
+                  value: s.kode_sub_kegiatan,
+                  label: s.nama_sub_kegiatan,
+                  subLabel: s.kode_sub_kegiatan,
+                  detail: [
+                    { label: "Kode Sub Keg.", value: s.kode_sub_kegiatan },
+                    { label: "Kegiatan", value: keg ? `${keg.kode_kegiatan} — ${keg.nama_kegiatan}` : s.kode_kegiatan },
+                    { label: "Program", value: prog ? `${prog.kode_program} — ${prog.nama_program}` : (data.kode_program || "-") },
+                    { label: "Bidang Urusan", value: prog ? `${prog.kode_bidang_urusan} — ${prog.nama_bidang_urusan}` : "-" },
+                  ],
+                }
+              })}
               value={data.kode_sub_kegiatan}
               onChange={(val) => update("kode_sub_kegiatan", val)}
               placeholder={loadingSubKegiatan ? "Memuat sub kegiatan..." : "-- Pilih Sub Kegiatan --"}

@@ -287,12 +287,13 @@ export function StepFormKonsultansi({ data, onChange, catatanReviewerDetail, onO
     { value: "BLUD", label: "Badan Layanan Umum Daerah (BLUD)" },
   ]
 
-  // Metode pemilihan penyedia untuk Jasa Konsultansi (Perpres PBJ): seleksi, pengadaan langsung, dll.
+  // Metode pemilihan penyedia — disamakan dengan Barang, Jasa Lainnya, dan Konstruksi (arahan atasan).
   const metodePengadaanOptions: SearchableSelectOption[] = [
-    { value: "Seleksi", label: "Seleksi" },
-    { value: "Seleksi Cepat", label: "Seleksi Cepat" },
+    { value: "Tender", label: "Tender" },
+    { value: "Tender Cepat", label: "Tender Cepat" },
     { value: "Pengadaan Langsung", label: "Pengadaan Langsung" },
     { value: "Penunjukan Langsung", label: "Penunjukan Langsung" },
+    { value: "ePurchasing", label: "ePurchasing" },
   ]
 
   const update = useMemo(() => {

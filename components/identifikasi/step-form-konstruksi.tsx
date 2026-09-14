@@ -318,6 +318,7 @@ export function StepFormKonstruksi({ data, onChange, catatanReviewerDetail, kode
     { value: "Tender Cepat", label: "Tender Cepat" },
     { value: "Pengadaan Langsung", label: "Pengadaan Langsung" },
     { value: "Penunjukan Langsung", label: "Penunjukan Langsung" },
+    { value: "ePurchasing", label: "ePurchasing" },
   ]
 
   const update = useMemo(() => {
@@ -932,7 +933,7 @@ export function StepFormKonstruksi({ data, onChange, catatanReviewerDetail, kode
           <div className="mt-3 flex items-start gap-2 px-3.5 py-2.5 rounded-lg border border-amber-200 dark:border-amber-500/30 bg-amber-50 dark:bg-amber-500/10 text-[11px] text-amber-800 dark:text-amber-200">
             <AlertTriangle className="h-3.5 w-3.5 shrink-0 mt-0.5" />
             <span>
-              Pilih <b>Pagu Paket</b> terlebih dahulu (section <b>"Pagu Paket & Sumber Dana"</b>) —
+              Pilih <b>Pagu Paket</b> terlebih dahulu (section <b>&quot;Pagu Paket & Sumber Dana&quot;</b>) —
               pertanyaan RKBMD mengikuti <b>kode rekening</b> dari Pagu Paket.
             </span>
           </div>

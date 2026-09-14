@@ -84,6 +84,13 @@ export function ModalPagu({ isOpen, onClose, onSelect, currentSelections, kodeSu
     const items: PaguPaketItem[] = []
     selected.forEach((pagu, id) => {
       const source = standarHarga.find((s) => s.id_sipd_penetapan === id)
+      // Pengaman: bila item lama tidak lagi muncul di daftar (mis. rekening non-pengadaan),
+      // pertahankan pilihan lama apa adanya agar pagu paket tidak hilang.
+      if (!source) {
+        const lama = currentSelections.find((c) => c.id_sipd_penetapan === id)
+        if (lama) items.push(lama)
+        return
+      }
       if (source) {
         items.push({
           id: `pagu-${Date.now()}-${id}`,
@@ -108,6 +115,13 @@ export function ModalPagu({ isOpen, onClose, onSelect, currentSelections, kodeSu
   }
 
   const fmt = (v: number | string) => new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", minimumFractionDigits: 0 }).format(Number(v ?? 0))
+
+  // Format ribuan pada input pagu: pengguna melihat "25.000.000", sistem tetap menyimpan angka murni (25000000).
+  const formatRibuan = (v: number) => (v ? new Intl.NumberFormat("id-ID", { maximumFractionDigits: 0 }).format(v) : "")
+  const parseRibuan = (s: string) => {
+    const digit = s.replace(/[^\d]/g, "")
+    return digit ? Number(digit) : 0
+  }
 
   if (!isOpen) return null
 
@@ -259,7 +273,7 @@ export function ModalPagu({ isOpen, onClose, onSelect, currentSelections, kodeSu
                               </td>
                               <td className="px-3 py-2 text-right" onClick={(e) => e.stopPropagation()}>
                                 {isSelected ? (
-                                  <input type="number" value={selected.get(item.id_sipd_penetapan) || 0} onChange={(e) => updatePagu(item.id_sipd_penetapan, Number(e.target.value))} min={0} max={Number(item.sisa_pagu)} className="w-36 rounded-lg border border-blue-300 dark:border-blue-700 bg-white dark:bg-slate-950 px-2 py-1.5 text-[11px] font-mono text-right focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500" />
+                                  <input type="text" inputMode="numeric" placeholder="0" value={formatRibuan(selected.get(item.id_sipd_penetapan) || 0)} onChange={(e) => updatePagu(item.id_sipd_penetapan, parseRibuan(e.target.value))} title={`Maksimal Rp ${formatRibuan(Number(item.sisa_pagu))}`} className="w-36 rounded-lg border border-blue-300 dark:border-blue-700 bg-white dark:bg-slate-950 px-2 py-1.5 text-[11px] font-mono text-right focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500" />
                                 ) : (
                                   <span className="text-slate-300 dark:text-slate-700">â€”</span>
                                 )}

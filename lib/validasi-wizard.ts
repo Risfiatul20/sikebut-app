@@ -62,6 +62,15 @@ const WAKTU_PASANGAN_SWAKELOLA: Array<[string, string, string]> = [
   ["waktu_awal", "waktu_akhir", "Waktu Pelaksanaan Pekerjaan"],
 ]
 
+// Urutan lintas tahap (arahan butir 4):
+// Pemilihan Penyedia → Pelaksanaan Kontrak → Pemanfaatan Barang/Jasa.
+// Tanggal AWAL tiap tahap tidak boleh mendahului tanggal AWAL tahap sebelumnya.
+const TAHAP_URUT: Array<[string, string]> = [
+  ["waktu_pemilihan_awal", "Waktu Pemilihan Penyedia"],
+  ["waktu_pelaksanaan_kontrak_awal", "Waktu Pelaksanaan Kontrak"],
+  ["waktu_pemanfaatan_awal", "Waktu Pemanfaatan"],
+]
+
 /** Parsing nilai waktu (YYYY-MM / YYYY-MM-DD / MM/YYYY / MM-YYYY) → { year, month } | null. */
 function parseWaktu(v: unknown): { year: number; month: number } | null {
   if (typeof v !== "string" || !v.trim()) return null
@@ -83,6 +92,27 @@ function cekUrutanWaktu(fd: Record<string, unknown>, pasangan: Array<[string, st
     if (akhir.year < awal.year || (akhir.year === awal.year && akhir.month < awal.month)) {
       errs.push({ key: keyAwal, label, pesan: `${label}: tanggal Akhir tidak boleh sebelum tanggal Awal` })
     }
+  }
+  return errs
+}
+
+/** Cek urutan lintas tahap: awal tahap berikutnya tidak boleh mendahului awal tahap sebelumnya. */
+function cekUrutanLintasTahap(fd: Record<string, unknown>): Array<{ key: string; label: string; pesan: string }> {
+  const errs: Array<{ key: string; label: string; pesan: string }> = []
+  let labelSebelum: string | null = null
+  let nilaiSebelum: { year: number; month: number } | null = null
+
+  for (const [key, label] of TAHAP_URUT) {
+    const nilai = parseWaktu(fd[key])
+    if (!nilai) continue
+    if (
+      nilaiSebelum &&
+      (nilai.year < nilaiSebelum.year || (nilai.year === nilaiSebelum.year && nilai.month < nilaiSebelum.month))
+    ) {
+      errs.push({ key, label, pesan: `${label} tidak boleh mendahului ${labelSebelum}` })
+    }
+    labelSebelum = label
+    nilaiSebelum = nilai
   }
   return errs
 }
@@ -169,6 +199,13 @@ export function validasiFormWajib(jenis: string | undefined | null, fd: Record<s
     jenis === "Swakelola" ? WAKTU_PASANGAN_SWAKELOLA : WAKTU_PASANGAN
   for (const e of cekUrutanWaktu(fd, pasangan)) {
     missing.push({ step: 1, key: e.key, label: e.pesan })
+  }
+
+  // Urutan lintas tahap: Pemilihan Penyedia → Pelaksanaan Kontrak → Pemanfaatan
+  if (jenis !== "Swakelola") {
+    for (const e of cekUrutanLintasTahap(fd)) {
+      missing.push({ step: 1, key: e.key, label: e.pesan })
+    }
   }
 
   return missing
