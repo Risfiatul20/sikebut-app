@@ -1,5 +1,9 @@
 "use client"
 
+/* Aset brand (logo) berupa file statis yang sudah dioptimasi (WebP 2x, <35 KB) sehingga
+   tidak perlu optimizer gambar runtime — sengaja memakai <img> agar tidak ada dependensi tambahan. */
+/* eslint-disable @next/next/no-img-element */
+
 import { useState } from "react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
@@ -12,7 +16,6 @@ import {
   Users, 
   FileText, 
   ChevronDown,
-  Landmark,
   Database,
   PieChart,
   Map,
@@ -138,22 +141,27 @@ export function Sidebar() {
       animate={{ width: isCollapsed ? 64 : 256 }}
       className="relative flex flex-col h-full bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-slate-800 z-10 shrink-0"
     >
-      {/* Brand Header */}
-      <div className="flex items-center h-14 px-4 border-b border-slate-200 dark:border-slate-800 overflow-hidden shrink-0">
-        <div className="flex items-center gap-2.5 min-w-max">
-          <div className="h-8 w-8 rounded-lg bg-blue-600 flex items-center justify-center shrink-0">
-            <Landmark className="h-4 w-4 text-white" />
-          </div>
-          {!isCollapsed && (
-            <motion.div 
-              initial={{ opacity: 0 }} 
-              animate={{ opacity: 1 }} 
-              exit={{ opacity: 0 }}
-              className="leading-tight whitespace-nowrap"
-            >
-              <p className="font-display font-semibold text-sm tracking-tight text-slate-900 dark:text-white">Sikebut PBJ</p>
-              <p className="text-[9px] font-medium text-slate-500 dark:text-slate-400">Pemerintah Daerah</p>
-            </motion.div>
+      {/* Brand Header — logo resmi (sidebar.webp saat terbuka, icon.webp saat ringkas).
+          Logo aslinya biru navy berlatar transparan, jadi ditempel pada plate putih
+          membulat agar tetap terbaca di mode gelap (sidebar gelap). */}
+      <div className="shrink-0 border-b border-slate-200 dark:border-slate-800 px-3 py-2.5">
+        <div className="flex items-center justify-center rounded-xl bg-white p-1.5 ring-1 ring-slate-900/5 dark:ring-white/10">
+          {isCollapsed ? (
+            <img
+              src="/brand/icon.webp"
+              alt="SIKEBUT"
+              width={28}
+              height={28}
+              className="h-7 w-7 object-contain"
+            />
+          ) : (
+            <img
+              src="/brand/sidebar.webp"
+              alt="SIKEBUT — Biro Pengadaan Barang dan Jasa Provinsi Sumatera Barat"
+              width={440}
+              height={159}
+              className="h-[68px] w-full object-contain"
+            />
           )}
         </div>
       </div>
