@@ -1,6 +1,7 @@
 "use client"
 
 import React, { useState, useMemo, useEffect, useCallback } from "react"
+import { useYear } from "@/context/year-context"
 import {
   ChevronRight,
   ChevronDown,
@@ -255,9 +256,10 @@ function transformBackendTree(skpds: LaporanSkpdNode[]): LaporanTreeNode[] {
 }
 
 export function LaporanPenyediaTreeTable() {
+  const { year } = useYear()
   const [dataTree, setDataTree] = useState<LaporanTreeNode[]>([])
   const [summary, setSummary] = useState<{ total_skpd: number; total_paket: number; total_pagu: number } | null>(null)
-  const [loading, setLoading] = useState(false)
+  const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
   // Default tertutup semua
@@ -267,7 +269,7 @@ export function LaporanPenyediaTreeTable() {
     setLoading(true)
     setError(null)
     try {
-      const res = await fetch("/api/laporan/penyedia", { cache: "no-store" })
+      const res = await fetch(`/api/laporan/penyedia?tahun=${year}`, { cache: "no-store" })
       if (!res.ok) {
         const text = await res.text().catch(() => "")
         throw new Error(text || `Gagal memuat data (HTTP ${res.status})`)
@@ -285,44 +287,48 @@ export function LaporanPenyediaTreeTable() {
     } finally {
       setLoading(false)
     }
-  }, [])
+  }, [year])
 
   useEffect(() => {
     let ignore = false
-    const run = async () => {
+    const timer = setTimeout(() => {
       setLoading(true)
       setError(null)
-      try {
-        const res = await fetch("/api/laporan/penyedia", { cache: "no-store" })
-        if (!res.ok) {
-          const text = await res.text().catch(() => "")
-          throw new Error(text || `Gagal memuat data (HTTP ${res.status})`)
-        }
-        const json: LaporanTreeResponse = await res.json()
-        if (!ignore) {
-          if (json?.data?.tree) {
-            setDataTree(transformBackendTree(json.data.tree))
-            setSummary(json.data.summary || null)
-          } else {
-            setDataTree([])
-            setSummary(null)
+      fetch(`/api/laporan/penyedia?tahun=${year}`, { cache: "no-store" })
+        .then(async (res) => {
+          if (!res.ok) {
+            const text = await res.text().catch(() => "")
+            throw new Error(text || `Gagal memuat data (HTTP ${res.status})`)
           }
-        }
-      } catch (err) {
-        if (!ignore) {
-          setError(err instanceof Error ? err.message : "Gagal memuat data laporan")
-        }
-      } finally {
-        if (!ignore) {
-          setLoading(false)
-        }
-      }
-    }
-    run()
+          return res.json()
+        })
+        .then((json: LaporanTreeResponse) => {
+          if (!ignore) {
+            if (json?.data?.tree) {
+              setDataTree(transformBackendTree(json.data.tree))
+              setSummary(json.data.summary || null)
+            } else {
+              setDataTree([])
+              setSummary(null)
+            }
+          }
+        })
+        .catch((err) => {
+          if (!ignore) {
+            setError(err instanceof Error ? err.message : "Gagal memuat data laporan")
+          }
+        })
+        .finally(() => {
+          if (!ignore) {
+            setLoading(false)
+          }
+        })
+    }, 0)
     return () => {
       ignore = true
+      clearTimeout(timer)
     }
-  }, [])
+  }, [year])
 
   const toggle = (id: string) => {
     setExpanded((prev) => ({ ...prev, [id]: !prev[id] }))

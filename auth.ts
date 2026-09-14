@@ -51,10 +51,23 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
           const kodeSkpd = String(user.kode_skpd || user.skpd?.kode_skpd || "")
           const namaSkpd = String(user.skpd?.nama_skpd || user.nama_skpd || "-")
 
-          // Ambil data programs & subkegiatans dari response login (terutama saat role PPK)
-          const subkegiatanData = (user.sub_kegiatan || []) as AuthSubKegiatan[]
-          const kegiatanData = (user.kegiatans || []) as AuthKegiatan[]
-          const programsData = (user.programs || []) as AuthProgram[]
+          // Simpan hanya field esensial untuk memangkas ukuran JWT Cookie (< 4KB)
+          // Array detail seperti sub_kegiatan/programs dirampingkan agar Nginx tidak 494 Request Header Or Cookie Too Large
+          const subkegiatanData = ((user.sub_kegiatan || []) as AuthSubKegiatan[]).map((s) => ({
+            id: s.id,
+            kode_sub_kegiatan: s.kode_sub_kegiatan,
+            nama_sub_kegiatan: s.nama_sub_kegiatan,
+          }))
+          const kegiatanData = ((user.kegiatans || []) as AuthKegiatan[]).map((k) => ({
+            id: k.id,
+            kode_kegiatan: k.kode_kegiatan,
+            nama_kegiatan: k.nama_kegiatan,
+          }))
+          const programsData = ((user.programs || []) as AuthProgram[]).map((p) => ({
+            id: p.id,
+            kode_program: p.kode_program,
+            nama_program: p.nama_program,
+          }))
 
           return {
             id: String(user.id ?? ""),
