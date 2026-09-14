@@ -1,4 +1,4 @@
-import { LaporanRincianView } from "@/components/laporan/laporan-rincian-view"
+import { LaporanPaketTree } from "@/components/laporan/laporan-paket-tree"
 
 export const metadata = {
   title: "Laporan Penyedia — Sikebut PBJ",
@@ -7,10 +7,10 @@ export const metadata = {
 
 export default function LaporanPenyediaPage() {
   return (
-    <LaporanRincianView
+    <LaporanPaketTree
       jenis="penyedia"
       title="Laporan Rencana Kebutuhan — Penyedia"
-      description="Rincian paket identifikasi kebutuhan dengan cara pengadaan melalui Penyedia (lokasi, volume, spesifikasi, persyaratan, jadwal & anggaran)."
+      description="Tabel bertingkat OPD › Sub Unit › Program › Kegiatan › Sub Kegiatan › Paket › Rekening, dengan kolom sesuai template Laporan.xlsx (lokasi, volume, uraian, spesifikasi, PDN, SPP, MAK, pagu & jadwal)."
     />
   )
 }

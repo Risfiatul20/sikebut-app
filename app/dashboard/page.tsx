@@ -21,16 +21,25 @@ const fmtRp = (v: number) =>
     maximumFractionDigits: 0,
   }).format(v || 0)
 
-export default async function DashboardPage() {
+export default async function DashboardPage({
+  searchParams,
+}: {
+  searchParams?: { tahun?: string }
+}) {
   const session = await auth()
   if (!session) redirect("/login")
+
+  // Tahun anggaran dari URL (?tahun=) — di-set oleh pemilih tahun di navbar.
+  const tahunUrl = searchParams?.tahun
+  const tahun = tahunUrl && /^\d{4}$/.test(tahunUrl) ? parseInt(tahunUrl, 10) : null
+  const tahunQuery = tahun ? `?tahun=${tahun}` : ""
 
   let summary: DashboardSummary | null = null
   let keterisianPpk: DashboardKeterisianPpk[] | null = null
   let errorMessage: string | null = null
 
   try {
-    const res = await getApi<{ data: DashboardSummary }>("/api/v1/dashboard/summary")
+    const res = await getApi<{ data: DashboardSummary }>("/api/v1/dashboard/summary" + tahunQuery)
     summary = res?.data ?? null
   } catch (err) {
     errorMessage = err instanceof Error ? err.message : "Gagal memuat ringkasan dashboard"
@@ -38,7 +47,7 @@ export default async function DashboardPage() {
   }
 
   try {
-    const res = await getApi<{ data: DashboardKeterisianPpk[] }>("/api/v1/dashboard/keterisian-ppk")
+    const res = await getApi<{ data: DashboardKeterisianPpk[] }>("/api/v1/dashboard/keterisian-ppk" + tahunQuery)
     keterisianPpk = res?.data ?? null
   } catch (err) {
     console.error("[dashboard] Gagal memuat keterisian PPK:", err)

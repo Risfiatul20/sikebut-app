@@ -10,12 +10,21 @@ export const metadata = {
   description: "Tabel laporan berjenjang (Hierarchical Tree Table) rekapitulasi identifikasi kebutuhan OPD s/d Sub Kegiatan.",
 }
 
-export default async function LaporanRekapPage() {
+export default async function LaporanRekapPage({
+  searchParams,
+}: {
+  searchParams?: { tahun?: string }
+}) {
   const session = await auth()
 
   if (!session) {
     redirect("/login")
   }
+
+  // Tahun anggaran dari URL (?tahun=) — di-set oleh pemilih tahun di navbar
+  const tahunUrl = searchParams?.tahun
+  const tahunAnggaran =
+    tahunUrl && /^\d{4}$/.test(tahunUrl) ? parseInt(tahunUrl, 10) : new Date().getFullYear()
 
   // Data diambil dari API backend (Laravel) — rekap berjenjang 5 level dari pagu RKA SIPD.
   let dataRekap: LaporanRekapResponse["data"]["tree"] = []
@@ -23,7 +32,6 @@ export default async function LaporanRekapPage() {
   let totalPengadaan = 0
   let totalTeridentifikasi = 0
   let totalPaket = 0
-  const tahunAnggaran = 2026
   let errorMessage: string | null = null
 
   try {

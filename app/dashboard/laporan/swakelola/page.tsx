@@ -1,4 +1,4 @@
-import { LaporanRincianView } from "@/components/laporan/laporan-rincian-view"
+import { LaporanPaketTree } from "@/components/laporan/laporan-paket-tree"
 
 export const metadata = {
   title: "Laporan Swakelola — Sikebut PBJ",
@@ -7,10 +7,10 @@ export const metadata = {
 
 export default function LaporanSwakelolaPage() {
   return (
-    <LaporanRincianView
+    <LaporanPaketTree
       jenis="swakelola"
       title="Laporan Rencana Kebutuhan — Swakelola"
-      description="Rincian paket identifikasi kebutuhan dengan cara Swakelola (lokasi, volume, spesifikasi, tipe, jadwal & anggaran)."
+      description="Tabel bertingkat OPD › Sub Unit › Program › Kegiatan › Sub Kegiatan › Paket › Rekening, dengan kolom sesuai template Laporan.xlsx (lokasi, volume, uraian, spesifikasi, tipe, MAK, pagu & jadwal)."
     />
   )
 }

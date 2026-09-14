@@ -3,11 +3,13 @@
 import { useState, useEffect } from "react"
 import { PieChart, BarChart3, TrendingUp, Download, FileText, Layers } from "lucide-react"
 import { LaporanKebutuhanResponse } from "@/types/laporan"
+import { useTahunAktif } from "@/components/tahun-provider"
 
 type ViewMode = "ringkasan" | "per-program" | "per-sumber-dana"
 
 export default function LaporanKebutuhanPage() {
-  const [selectedYear, setSelectedYear] = useState(2026)
+  // Tahun mengikuti pemilih tahun di navbar (sticky, default tahun berjalan)
+  const { tahun: selectedYear, setTahun: setSelectedYear, tahunOptions } = useTahunAktif()
   const [viewMode, setViewMode] = useState<ViewMode>("ringkasan")
 
   // Data agregat diambil dari backend (Laravel) melalui route proxy Next.js.
@@ -82,8 +84,11 @@ export default function LaporanKebutuhanPage() {
       {/* Controls */}
       <div className="flex flex-wrap items-center gap-3">
         <select value={selectedYear} onChange={(e) => setSelectedYear(Number(e.target.value))} className="h-8 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 text-xs font-mono font-bold focus:ring-2 focus:ring-blue-500/40">
-          <option value={2026}>Tahun 2026</option>
-          <option value={2025}>Tahun 2025</option>
+          {tahunOptions.map((t) => (
+            <option key={t} value={t}>
+              Tahun {t}
+            </option>
+          ))}
         </select>
         <div className="flex items-center bg-slate-100 dark:bg-slate-800 rounded-lg p-0.5">
           {(["ringkasan", "per-program", "per-sumber-dana"] as ViewMode[]).map((mode) => (

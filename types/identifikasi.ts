@@ -331,6 +331,7 @@ export interface AnggaranItem {
 export interface IdentifikasiKebutuhan {
   id: number
   user_id: number
+  tahun?: number | null
   pembuat?: PembuatUser
   nama_user?: string
   kode_klpd?: string | null

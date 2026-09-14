@@ -12,6 +12,7 @@ import { StepFormJasaLainnya } from "@/components/identifikasi/step-form-jasa-la
 import { StepFormKonsultansi } from "@/components/identifikasi/step-form-konsultansi"
 import { StepFormSwakelola } from "@/components/identifikasi/step-form-swakelola"
 import { ModalPagu } from "@/components/identifikasi/modal-pagu"
+import { useTahunAktif } from "@/components/tahun-provider"
 import { StepReview } from "@/components/identifikasi/step-review"
 import { CatatanVerifikatorPanel } from "@/components/identifikasi/catatan-verifikator-panel"
 import { PayloadPreviewModal } from "@/components/identifikasi/payload-preview-modal"
@@ -35,6 +36,9 @@ function IdentifikasiPageContent() {
   const searchParams = useSearchParams()
   const editIdStr = searchParams.get("id")
   const isEditMode = Boolean(editIdStr)
+
+  // Tahun anggaran aktif dari navbar — disimpan ke paket saat simpan/ajukan
+  const { tahun: tahunAktif } = useTahunAktif()
 
   const [currentStep, setCurrentStep] = useState(0)
   const [identitas, setIdentitas] = useState<FormIdentitas>(() => ({
@@ -60,6 +64,8 @@ function IdentifikasiPageContent() {
   const [catatanReviewer, setCatatanReviewer] = useState<string | null>(null)
   const [catatanReviewerDetail, setCatatanReviewerDetail] = useState<Record<string, string> | null>(null)
   const [statusReview, setStatusReview] = useState<string | null>(null)
+  // Tahun asli paket saat edit — dipertahankan supaya paket tidak pindah tahun
+  const [editTahun, setEditTahun] = useState<number | null>(null)
   const [previewOpen, setPreviewOpen] = useState(false)
   const [toastMsg, setToastMsg] = useState<string | null>(null)
 
@@ -114,6 +120,7 @@ function IdentifikasiPageContent() {
           setCatatanReviewer(item.catatan_reviewer || null)
           setCatatanReviewerDetail((item.catatan_reviewer_detail as Record<string, string> | null) || null)
           setStatusReview(item.status_review || null)
+          setEditTahun(item.tahun || null)
 
           const mappedAnggaran: PaguPaketItem[] = (item.anggaran || []).map((ag, idx) => ({
             id: `pagu-${Date.now()}-${idx}-${ag.id_sipd_penetapan}`,
@@ -249,6 +256,7 @@ function IdentifikasiPageContent() {
 
     return {
       ...(isEditMode && editIdStr ? { id: parseInt(editIdStr, 10) } : {}),
+      tahun: isEditMode && editTahun ? editTahun : tahunAktif,
       nama_paket: namaPaket,
       cara_pengadaan: effectiveIdentitas.cara_pengadaan,
       jenis_pengadaan: isSwakelola ? null : effectiveIdentitas.jenis_pengadaan || null,
@@ -271,7 +279,7 @@ function IdentifikasiPageContent() {
       catatan_reviewer_detail: catatanReviewerDetail,
       anggaran: anggaranPayload,
     }
-  }, [effectiveIdentitas, formData, anggaran, userData, isEditMode, editIdStr, catatanReviewer, catatanReviewerDetail])
+  }, [effectiveIdentitas, formData, anggaran, userData, isEditMode, editIdStr, catatanReviewer, catatanReviewerDetail, tahunAktif, editTahun])
 
   const handleIdentitasChange = (data: FormIdentitas) => {
     setValidasiErrors([])

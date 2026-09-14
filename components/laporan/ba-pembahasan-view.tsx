@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react"
 import { Loader2, RefreshCw, Printer, FileText, FileSpreadsheet } from "lucide-react"
 import { BaPembahasanResponse } from "@/types/laporan-paket"
+import { useTahunAktif } from "@/components/tahun-provider"
 
 const fmtRp = (v: number | string) =>
   new Intl.NumberFormat("id-ID", {
@@ -34,10 +35,13 @@ export function BaPembahasanView({ jenis, cara, judul }: Props) {
   const [nomorBa, setNomorBa] = useState("")
   const [tanggal, setTanggal] = useState(() => new Date().toISOString().slice(0, 10))
 
+  // Tahun mengikuti pemilih tahun di navbar
+  const { tahun } = useTahunAktif()
+
   const load = useCallback(async () => {
     setLoading(true)
     try {
-      const res = await fetch(`/api/laporan/${jenis}`, { cache: "no-store" })
+      const res = await fetch(`/api/laporan/${jenis}?tahun=${tahun}`, { cache: "no-store" })
       if (!res.ok) throw new Error(`HTTP ${res.status}`)
       const json = await res.json()
       setData(json?.data ?? null)
@@ -47,7 +51,7 @@ export function BaPembahasanView({ jenis, cara, judul }: Props) {
     } finally {
       setLoading(false)
     }
-  }, [jenis])
+  }, [jenis, tahun])
 
   useEffect(() => {
     load()
@@ -80,7 +84,7 @@ export function BaPembahasanView({ jenis, cara, judul }: Props) {
         </div>
         <div className="flex items-center gap-2">
           <a
-            href={`/api/laporan/${jenis}/export`}
+            href={`/api/laporan/${jenis}/export?tahun=${tahun}`}
             className="h-8 px-3 inline-flex items-center gap-1.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold shadow-xs transition-colors"
             title="Unduh Berita Acara dalam format Excel"
           >

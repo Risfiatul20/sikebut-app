@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState, type ReactNode } from "react"
 import { Loader2, RefreshCw, Inbox, Wallet, Building2, Layers, FileSpreadsheet, Printer, MapPin, Package, BadgeCheck, Coins, CalendarRange, GitBranch } from "lucide-react"
 import { LaporanPaketResponse, RincianPaketRow } from "@/types/laporan-paket"
+import { useTahunAktif } from "@/components/tahun-provider"
 
 const fmtRp = (v: number | string) =>
   new Intl.NumberFormat("id-ID", {
@@ -45,10 +46,13 @@ export function LaporanRincianView({ jenis, title, description }: Props) {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
+  // Tahun mengikuti pemilih tahun di navbar
+  const { tahun } = useTahunAktif()
+
   const load = useCallback(async () => {
     setLoading(true)
     try {
-      const res = await fetch(`/api/laporan/${jenis}`, { cache: "no-store" })
+      const res = await fetch(`/api/laporan/${jenis}?tahun=${tahun}`, { cache: "no-store" })
       if (!res.ok) throw new Error(`HTTP ${res.status}`)
       const json = await res.json()
       setData(json?.data ?? null)
@@ -58,7 +62,7 @@ export function LaporanRincianView({ jenis, title, description }: Props) {
     } finally {
       setLoading(false)
     }
-  }, [jenis])
+  }, [jenis, tahun])
 
   useEffect(() => {
     load()
@@ -102,7 +106,7 @@ export function LaporanRincianView({ jenis, title, description }: Props) {
             <Printer className="h-3.5 w-3.5" /> Cetak PDF
           </button>
           <a
-            href={`/api/laporan/${jenis}/export`}
+            href={`/api/laporan/${jenis}/export?tahun=${tahun}`}
             className="h-8 px-3 inline-flex items-center gap-1.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold shadow-xs transition-colors"
             title="Unduh laporan dalam format Excel"
           >
@@ -159,7 +163,7 @@ export function LaporanRincianView({ jenis, title, description }: Props) {
           <>
             <div className="flex items-center justify-between print:hidden">
               <p className="text-xs font-semibold text-slate-900 dark:text-white">Rincian Paket ({rincian.length})</p>
-              <span className="text-[10px] text-slate-400">T.A. 2026 · semua status non-Draft</span>
+              <span className="text-[10px] text-slate-400">T.A. {tahun} · semua status non-Draft</span>
             </div>
 
             {rincian.map((r, i) => (

@@ -4,6 +4,7 @@ import { useState } from "react"
 import Link from "next/link"
 import { AuthSubKegiatan } from "@/types/next-auth"
 import { usePermission } from "@/hooks/usePermission"
+import { useTahunAktif } from "@/components/tahun-provider"
 import { useIdentifikasiList } from "@/hooks/useIdentifikasiList"
 import { IdentifikasiKebutuhan } from "@/types/identifikasi"
 import { statusLabel, statusBadgeClass } from "@/lib/status-paket"
@@ -46,6 +47,7 @@ export interface IdentifikasiDataClientSession {
 
 export function IdentifikasiDataClient({ session }: { session: IdentifikasiDataClientSession }) {
     const { can } = usePermission()
+  const { tahun } = useTahunAktif()
 
   const userRole = (session?.user?.role || "").toLowerCase()
   const isUserPpk = userRole === "ppk"
@@ -81,6 +83,7 @@ export function IdentifikasiDataClient({ session }: { session: IdentifikasiDataC
     statusReview,
     caraPengadaan,
     jenisPengadaan,
+    tahun,
     sortBy,
     sortDirection,
     page,

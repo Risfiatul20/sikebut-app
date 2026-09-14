@@ -4,6 +4,7 @@ import { useState, useMemo } from "react"
 import { PaguPaketItem } from "@/types/identifikasi"
 import { X, Search, Pencil, AlertTriangle, Layers, Loader2 } from "lucide-react"
 import { useSipdModal } from "@/hooks/useSipdModal"
+import { useTahunAktif } from "@/components/tahun-provider"
 import type { SipdModalLevel } from "@/types/sipd-modal"
 
 interface Props {
@@ -32,8 +33,12 @@ export function ModalPagu({ isOpen, onClose, onSelect, currentSelections, kodeSu
   })
   const [search, setSearch] = useState("")
 
+  // Tahun dari navbar (context) lebih berkuasa; prop tahun sebagai fallback lama.
+  const { tahun: tahunAktif } = useTahunAktif()
+  const tahunEfektif = tahunAktif ? String(tahunAktif) : tahun
+
   // Data modal RKA SIPD dari API (docs/modal_sipd.md)
-  const { data: modal, isLoading } = useSipdModal(kodeSubKegiatan, kodeSkpd, tahun)
+  const { data: modal, isLoading } = useSipdModal(kodeSubKegiatan, kodeSkpd, tahunEfektif)
 
   const standarHarga = useMemo(() => modal?.standar_harga ?? [], [modal])
 

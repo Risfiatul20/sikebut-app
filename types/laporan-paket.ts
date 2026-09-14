@@ -27,7 +27,14 @@ export interface RincianPaketRow {
   kode_sub_kegiatan: string
   nama_sub_kegiatan: string
   nama_user: string
+  /** OPD induk (untuk pengelompokan pohon laporan). */
+  kode_opd: string
+  nama_opd: string
   lokasi: string[]
+  /** Lokasi terpisah sesuai template: Provinsi | Kab/Kota | Detil Lokasi. */
+  lokasi_provinsi: string
+  lokasi_kabupaten: string
+  lokasi_detail: string
   volume: number
   volume_satuan: string
   uraian: string
@@ -73,6 +80,7 @@ export interface AgregatStatusRow {
 
 export interface LaporanPaketResponse {
   data: {
+    tahun: number
     cara_pengadaan: string
     summary: {
       total_paket: number

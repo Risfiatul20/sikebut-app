@@ -12,6 +12,7 @@ export interface UseIdentifikasiListOptions {
   kodeKegiatan?: string
   kodeSubKegiatan?: string
   kodeSkpd?: string
+  tahun?: number
   sortBy?: string
   sortDirection?: "asc" | "desc"
   page?: number
@@ -33,6 +34,7 @@ export function useIdentifikasiList(options?: UseIdentifikasiListOptions) {
   const kodeKegiatan = options?.kodeKegiatan
   const kodeSubKegiatan = options?.kodeSubKegiatan
   const kodeSkpd = options?.kodeSkpd
+  const tahun = options?.tahun
   const sortBy = options?.sortBy ?? "id"
   const sortDirection = options?.sortDirection ?? "desc"
   const page = options?.page ?? 1
@@ -54,6 +56,7 @@ export function useIdentifikasiList(options?: UseIdentifikasiListOptions) {
         if (kodeKegiatan) params.set("kode_kegiatan", kodeKegiatan)
         if (kodeSubKegiatan) params.set("kode_sub_kegiatan", kodeSubKegiatan)
         if (kodeSkpd && kodeSkpd !== "ALL") params.set("kode_skpd", kodeSkpd)
+        if (tahun) params.set("tahun", String(tahun))
 
         params.set("sort_by", sortBy)
         params.set("sort_direction", sortDirection)
@@ -92,6 +95,7 @@ export function useIdentifikasiList(options?: UseIdentifikasiListOptions) {
     kodeKegiatan,
     kodeSubKegiatan,
     kodeSkpd,
+    tahun,
     sortBy,
     sortDirection,
     page,

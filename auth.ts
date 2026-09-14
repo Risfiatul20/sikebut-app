@@ -1,6 +1,7 @@
 import NextAuth from "next-auth"
 import Credentials from "next-auth/providers/credentials"
 import { sanctumLogin, sanctumLogout, SanctumUserData } from "@/lib/sanctum"
+import { getSessionRefs, invalidateSessionRefs } from "@/lib/session-refs"
 import { AuthProgram, AuthKegiatan, AuthSubKegiatan, AuthUserInfo } from "@/types/next-auth"
 
 /**
@@ -90,10 +91,19 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         token.kodeSkpd = user.kodeSkpd
         token.namaSkpd = user.namaSkpd
         token.info = user.info
-        token.subKegiatan = user.subKegiatan
-        token.kegiatans = user.kegiatans
-        token.programs = user.programs
       }
+
+      // PENENTING: hanya data kecil yang disimpan di cookie sesi.
+      // Daftar program/kegiatan/sub kegiatan (bisa puluhan KB untuk PPK) sengaja
+      // TIDAK disimpan di cookie — kalau disimpan, cookie terpecah jadi banyak
+      // bagian (`authjs.session-token.0/.1/...`) dan memicu 400
+      // "Request Header Or Cookie Too Large" di nginx. Daftar itu diambil ulang
+      // server-side melalui lib/session-refs.ts. Baris `delete` di bawah juga
+      // menyusutkan cookie milik sesi lama yang masih menyimpan data besar.
+      delete token.subKegiatan
+      delete token.subkegiatans
+      delete token.kegiatans
+      delete token.programs
 
       // Saat updateSession() dipanggil (mis. simpan No. WhatsApp) — ambil ulang info dari backend.
       if (trigger === "update" && token.apiToken) {
@@ -113,13 +123,15 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
               if (fresh.nama) token.name = fresh.nama
             }
           }
+          // Profil berubah -> cache daftar referensi ikut disegarkan.
+          invalidateSessionRefs(token.apiToken as string)
         } catch {
           // Jangan gagalkan session kalau backend sedang tidak bisa diakses.
         }
       }
       return token
     },
-    session({ session, token }) {
+    async session({ session, token }) {
       if (token.id) session.user.id = token.id as string
       if (token.username) session.user.username = token.username as string
       if (token.apiToken) session.user.apiToken = token.apiToken as string
@@ -127,9 +139,19 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       if (token.kodeSkpd) session.user.kodeSkpd = token.kodeSkpd as string
       if (token.namaSkpd) session.user.namaSkpd = token.namaSkpd as string
       if (token.info) session.user.info = token.info
-      if (token.subKegiatan) session.user.subKegiatan = token.subKegiatan
-      if (token.kegiatans) session.user.kegiatans = token.kegiatans
-      if (token.programs) session.user.programs = token.programs
+
+      // Data referensi diambil dari cache server (bukan dari cookie).
+      // Kalau backend sedang tidak bisa diakses, session dibiarkan seperti adanya.
+      if (token.apiToken) {
+        const { ok, refs } = await getSessionRefs(token.apiToken as string)
+        if (ok) {
+          session.user.programs = refs.programs
+          session.user.kegiatans = refs.kegiatans
+          session.user.subKegiatan = refs.subKegiatan
+          session.user.subkegiatans = refs.subKegiatan
+        }
+      }
+
       return session
     },
   },
