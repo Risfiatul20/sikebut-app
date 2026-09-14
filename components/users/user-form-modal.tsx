@@ -1,12 +1,12 @@
 "use client"
 
-import { useState } from "react"
+import { useMemo, useState } from "react"
 import { User, UserRole, CreateUserPayload, UpdateUserPayload } from "@/types/user"
 import { useSkpd } from "@/hooks/useSkpd"
 import { useRefSubKegiatan } from "@/hooks/useReferensi"
 import { usePermission } from "@/hooks/usePermission"
 import { SearchableSelect, SearchableSelectOption } from "@/components/ui/searchable-select"
-import { X, UserPlus, Pencil, Save, Building2, Shield, Briefcase, AlertCircle, CheckCircle2, Check, Loader2 } from "lucide-react"
+import { X, UserPlus, Pencil, Save, Building2, Shield, Briefcase, AlertCircle, CheckCircle2, Check, Loader2, Search, ListChecks } from "lucide-react"
 
 interface UserFormModalProps {
   isOpen: boolean
@@ -69,6 +69,7 @@ function UserFormContent({
   })
 
   const [errors, setErrors] = useState<Record<string, string>>({})
+  const [subSearch, setSubSearch] = useState("")
   const isRolePpk = formData.role === "PPK"
   const { skpdList, isLoading: isSkpdLoading } = useSkpd()
   const { data: subKegiatanList, isLoading: isSubLoading } = useRefSubKegiatan(formData.kode_skpd || "")
@@ -85,6 +86,7 @@ function UserFormContent({
       kode_skpd: kodeSkpd,
       sub_kegiatan_ids: [],
     }))
+    setSubSearch("")
   }
 
   const handleRoleChange = (newRole: UserRole) => {
@@ -117,6 +119,53 @@ function UserFormContent({
       delete next.sub_kegiatan_ids
       return next
     })
+  }
+
+  // Pencarian sub kegiatan (nama atau kode) — agar tidak perlu menggulir daftar panjang.
+  const filteredSubKegiatan = useMemo(() => {
+    const q = subSearch.toLowerCase().trim()
+    if (!q) return subKegiatanList
+    return subKegiatanList.filter(
+      (sub) =>
+        sub.nama_sub_kegiatan.toLowerCase().includes(q) ||
+        sub.kode_sub_kegiatan.toLowerCase().includes(q)
+    )
+  }, [subKegiatanList, subSearch])
+
+  // Bernilai true bila seluruh item yang sedang tampil sudah terpilih.
+  const semuaTerpilih =
+    filteredSubKegiatan.length > 0 &&
+    filteredSubKegiatan.every((sub) => formData.sub_kegiatan_ids.includes(sub.kode_sub_kegiatan))
+
+  const hapusErrorSubKegiatan = () =>
+    setErrors((prev) => {
+      const next = { ...prev }
+      delete next.sub_kegiatan_ids
+      return next
+    })
+
+  // "Pilih Semua"/"Batalkan Semua" hanya berlaku pada item yang sedang tampil (hasil pencarian).
+  const togglePilihSemua = () => {
+    setFormData((prev) => {
+      if (semuaTerpilih) {
+        const buang = new Set(filteredSubKegiatan.map((s) => s.kode_sub_kegiatan))
+        return { ...prev, sub_kegiatan_ids: prev.sub_kegiatan_ids.filter((k) => !buang.has(k)) }
+      }
+      const gabung = new Set(prev.sub_kegiatan_ids)
+      filteredSubKegiatan.forEach((s) => gabung.add(s.kode_sub_kegiatan))
+      return { ...prev, sub_kegiatan_ids: Array.from(gabung) }
+    })
+    hapusErrorSubKegiatan()
+  }
+
+  const bersihkanPilihan = () => {
+    if (filteredSubKegiatan.length === 0) return
+    const buang = new Set(filteredSubKegiatan.map((s) => s.kode_sub_kegiatan))
+    setFormData((prev) => ({
+      ...prev,
+      sub_kegiatan_ids: prev.sub_kegiatan_ids.filter((k) => !buang.has(k)),
+    }))
+    hapusErrorSubKegiatan()
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -229,7 +278,7 @@ function UserFormContent({
             <div>
               <div className="flex items-center justify-between mb-1">
                 <label className="block text-[11px] font-semibold text-slate-700 dark:text-slate-300">Daftar Sub Kegiatan (Multi-Pilih) {isRolePpk && <span className="text-red-500 font-bold">* (Wajib untuk PPK)</span>}</label>
-                {isRolePpk && <span className="text-[10px] text-slate-400">Klik item untuk memilih</span>}
+                {isRolePpk && <span className="text-[10px] text-slate-400">{formData.sub_kegiatan_ids.length} dari {subKegiatanList.length} dipilih</span>}
               </div>
               {isRolePpk ? (
                 <div className="space-y-2">
@@ -240,8 +289,25 @@ function UserFormContent({
                   ) : subKegiatanList.length === 0 ? (
                     <div className="text-center py-6 rounded-xl border border-dashed border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 text-xs text-slate-400">Tidak ada sub kegiatan untuk SKPD ini.</div>
                   ) : (
-                    <div className="max-h-48 overflow-y-auto custom-scrollbar border border-slate-200 dark:border-slate-800 rounded-xl p-2 bg-slate-50/50 dark:bg-slate-950 divide-y divide-slate-100 dark:divide-slate-800/80">
-                      {subKegiatanList.map((sub) => {
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-2">
+                        <div className="relative flex-1">
+                          <Search className="h-3 w-3 text-slate-400 absolute left-2.5 top-1/2 -translate-y-1/2" />
+                          <input type="text" value={subSearch} onChange={(e) => setSubSearch(e.target.value)} placeholder="Cari nama / kode sub kegiatan..." className="w-full rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-950 pl-7 pr-2 py-1.5 text-[11px] focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500 transition-colors" />
+                        </div>
+                        <button type="button" onClick={togglePilihSemua} className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg border border-amber-300 dark:border-amber-500/40 bg-amber-50 dark:bg-amber-500/10 text-[10px] font-semibold text-amber-700 dark:text-amber-300 hover:bg-amber-100 dark:hover:bg-amber-500/20 transition-colors whitespace-nowrap">
+                          <ListChecks className="h-3 w-3" /> {semuaTerpilih ? "Batalkan Semua" : "Pilih Semua"}
+                        </button>
+                        <button type="button" onClick={bersihkanPilihan} className="px-2.5 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-[10px] font-semibold text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors whitespace-nowrap">Bersihkan</button>
+                      </div>
+                      {subSearch.trim() !== "" && (
+                        <p className="text-[10px] text-slate-400">Menampilkan {filteredSubKegiatan.length} dari {subKegiatanList.length} sub kegiatan</p>
+                      )}
+                      {filteredSubKegiatan.length === 0 && (
+                        <p className="text-[10px] text-amber-600 dark:text-amber-400">Tidak ada sub kegiatan yang cocok dengan pencarian.</p>
+                      )}
+                      <div className="max-h-48 overflow-y-auto custom-scrollbar border border-slate-200 dark:border-slate-800 rounded-xl p-2 bg-slate-50/50 dark:bg-slate-950 divide-y divide-slate-100 dark:divide-slate-800/80">
+                      {filteredSubKegiatan.map((sub) => {
                         const isSelected = formData.sub_kegiatan_ids.includes(sub.kode_sub_kegiatan)
                         return (
                           <div key={sub.kode_sub_kegiatan} onClick={() => toggleSubKegiatan(sub.kode_sub_kegiatan)} className={`p-2 rounded-lg cursor-pointer transition-colors flex items-start justify-between gap-3 ${isSelected ? "bg-amber-50/80 dark:bg-amber-500/15 border border-amber-200/80 dark:border-amber-500/30" : "hover:bg-slate-100 dark:hover:bg-slate-850"}`}>
@@ -253,6 +319,7 @@ function UserFormContent({
                           </div>
                         )
                       })}
+                      </div>
                     </div>
                   )}
                   {errors.sub_kegiatan_ids && <p className="text-[10px] text-red-500">{errors.sub_kegiatan_ids}</p>}

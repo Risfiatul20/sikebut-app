@@ -5,7 +5,7 @@ import { NextResponse } from "next/server"
 // diteruskan ke backend Laravel (database). Kalau backend tidak terjangkau →
 // error ditampilkan ke pengguna, bukan hasil review palsu di memori.
 
-type ReviewAction = "submit" | "approve" | "return" | "note"
+type ReviewAction = "submit" | "approve" | "return" | "note" | "withdraw"
 
 interface ReviewPayload {
   action?: ReviewAction
@@ -13,6 +13,8 @@ interface ReviewPayload {
   status_review?: string | null
   catatan_reviewer?: string | null
   catatan_reviewer_detail?: Record<string, unknown> | null
+  /** Alasan penarikan paket (dipakai aksi "withdraw"). */
+  catatan?: string | null
 }
 
 const API_URL = process.env.API_URL || "http://127.0.0.1:8000"
@@ -51,10 +53,13 @@ async function forwardToBackend(
     approve: `/api/v1/identifikasi-kebutuhan/${paketId}/verify`,
     return: `/api/v1/identifikasi-kebutuhan/${paketId}/return`,
     note: `/api/v1/identifikasi-kebutuhan/${paketId}/note`,
+    withdraw: `/api/v1/identifikasi-kebutuhan/${paketId}/withdraw`,
   }
 
   const payload: Record<string, unknown> = {}
-  if (action !== "submit") {
+  if (action === "withdraw") {
+    if (body.catatan) payload.catatan = body.catatan
+  } else if (action !== "submit") {
     if (body.catatan_reviewer !== undefined) payload.catatan_reviewer = body.catatan_reviewer
     if (body.catatan_reviewer_detail !== undefined) payload.catatan_reviewer_detail = body.catatan_reviewer_detail
   }
@@ -103,9 +108,9 @@ export async function PATCH(
   const action = resolveAction(body)
 
   // ---- Role check (sama dengan kebijakan backend) ----
-  if (isPpk && action !== "submit") {
+  if (isPpk && action !== "submit" && action !== "withdraw") {
     return NextResponse.json(
-      { error: "PPK hanya dapat mengajukan usulan (submit)." },
+      { error: "PPK hanya dapat mengajukan usulan (submit) atau menariknya kembali (withdraw)." },
       { status: 403 }
     )
   }
@@ -117,9 +122,9 @@ export async function PATCH(
     )
   }
 
-  if (isVerifikator && action === "submit") {
+  if (isVerifikator && (action === "submit" || action === "withdraw")) {
     return NextResponse.json(
-      { error: "Verifikator tidak dapat mengajukan paket." },
+      { error: "Verifikator tidak dapat mengajukan atau menarik kembali paket." },
       { status: 403 }
     )
   }

@@ -22,6 +22,7 @@ import {
   Tag,
   ArrowUpDown,
   Send,
+  Undo2,
   Trash2,
   CheckCircle2,
   AlertCircle,
@@ -142,6 +143,38 @@ export function IdentifikasiDataClient({ session }: { session: IdentifikasiDataC
       }
     } catch {
       showToast("Gagal mengajukan paket, terjadi kesalahan jaringan", "error")
+    } finally {
+      setIsActionLoading(null)
+    }
+  }
+
+  // Aksi Tarik Kembali (PPK & Admin) — paket Diajukan kembali ke Draft agar bisa diperbaiki
+  const handleTarikKembali = async (item: IdentifikasiKebutuhan) => {
+    if (
+      !confirm(
+        `Tarik kembali paket "${item.nama_paket}" dari Verifikator?\n\nStatus akan kembali ke DRAFT sehingga Anda dapat memperbaiki lalu mengajukan ulang.`
+      )
+    ) {
+      return
+    }
+
+    setIsActionLoading(item.id)
+    try {
+      const res = await fetch(`/api/identifikasi/${item.id}/review`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "withdraw" }),
+      })
+
+      const json = await res.json()
+      if (res.ok) {
+        showToast(`Paket "${item.nama_paket}" ditarik kembali ke Draft`)
+        reload()
+      } else {
+        showToast(json.error || json.message || "Gagal menarik kembali paket", "error")
+      }
+    } catch {
+      showToast("Gagal menarik kembali paket, terjadi kesalahan jaringan", "error")
     } finally {
       setIsActionLoading(null)
     }
@@ -479,6 +512,8 @@ export function IdentifikasiDataClient({ session }: { session: IdentifikasiDataC
                   // Cek izin aksi via permissions — Verifikator hanya bisa mereview paket yang Diajukan
                   const canReview = can("paket:review") && item.status_review === "Diajukan"
                   const canAjukan = can("paket:ajukan") && (isDraft || isPerluPerbaikan)
+                  // Tarik Kembali: hanya pengaju (PPK/Admin) dan hanya saat paket sedang Diajukan.
+                  const canTarikKembali = can("paket:ajukan") && item.status_review === "Diajukan"
                   const canDelete = isUserAdmin || (can("paket:delete") && isDraft)
                   const canEdit = can("paket:edit") && (isDraft || isPerluPerbaikan) && (isUserAdmin || item.user_id === Number(session?.user?.id) || ppkSubCodes.includes(item.kode_sub_kegiatan))
 
@@ -609,6 +644,24 @@ export function IdentifikasiDataClient({ session }: { session: IdentifikasiDataC
                                 <Send className="h-3.5 w-3.5" />
                               )}
                               <span>Ajukan</span>
+                            </button>
+                          )}
+
+                          {/* Tombol Tarik Kembali (PPK & Admin saat status Diajukan) */}
+                          {canTarikKembali && (
+                            <button
+                              type="button"
+                              onClick={() => handleTarikKembali(item)}
+                              disabled={isActionLoading === item.id}
+                              className="h-7 px-2.5 inline-flex items-center gap-1 rounded bg-slate-100 hover:bg-slate-200 text-slate-700 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700 disabled:opacity-50 border border-slate-200 dark:border-slate-700 text-[11px] font-medium transition-colors"
+                              title="Tarik kembali paket agar dapat diperbaiki lalu diajukan ulang"
+                            >
+                              {isActionLoading === item.id ? (
+                                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                              ) : (
+                                <Undo2 className="h-3.5 w-3.5" />
+                              )}
+                              <span>Tarik Kembali</span>
                             </button>
                           )}
 

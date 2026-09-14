@@ -24,13 +24,14 @@ const fmtRp = (v: number) =>
 export default async function DashboardPage({
   searchParams,
 }: {
-  searchParams?: { tahun?: string }
+  searchParams?: Promise<{ tahun?: string }>
 }) {
   const session = await auth()
   if (!session) redirect("/login")
 
   // Tahun anggaran dari URL (?tahun=) — di-set oleh pemilih tahun di navbar.
-  const tahunUrl = searchParams?.tahun
+  const params = await searchParams
+  const tahunUrl = params?.tahun
   const tahun = tahunUrl && /^\d{4}$/.test(tahunUrl) ? parseInt(tahunUrl, 10) : null
   const tahunQuery = tahun ? `?tahun=${tahun}` : ""
 
@@ -293,4 +294,4 @@ export default async function DashboardPage({
       )}
     </div>
   )
-}
+}
