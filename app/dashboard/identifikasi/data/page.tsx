@@ -19,7 +19,6 @@ export default async function IdentifikasiDataPage() {
           role: session.user.role || "",
           kodeSkpd: session.user.kodeSkpd || "",
           namaSkpd: session.user.namaSkpd || "-",
-          subKegiatan: session.user.subkegiatans ?? session.user.subKegiatan ?? [],
         },
       }}
     />

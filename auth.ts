@@ -1,7 +1,7 @@
 import NextAuth from "next-auth"
 import Credentials from "next-auth/providers/credentials"
 import { sanctumLogin, sanctumLogout, SanctumUserData } from "@/lib/sanctum"
-import { AuthProgram, AuthKegiatan, AuthSubKegiatan, AuthUserInfo } from "@/types/next-auth"
+import { AuthUserInfo } from "@/types/next-auth"
 
 /**
  * Backend mengirim role lowercase ("admin", "ppk", dst).
@@ -51,24 +51,9 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
           const kodeSkpd = String(user.kode_skpd || user.skpd?.kode_skpd || "")
           const namaSkpd = String(user.skpd?.nama_skpd || user.nama_skpd || "-")
 
-          // Simpan hanya field esensial untuk memangkas ukuran JWT Cookie (< 4KB)
-          // Array detail seperti sub_kegiatan/programs dirampingkan agar Nginx tidak 494 Request Header Or Cookie Too Large
-          const subkegiatanData = ((user.sub_kegiatan || []) as AuthSubKegiatan[]).map((s) => ({
-            id: s.id,
-            kode_sub_kegiatan: s.kode_sub_kegiatan,
-            nama_sub_kegiatan: s.nama_sub_kegiatan,
-          }))
-          const kegiatanData = ((user.kegiatans || []) as AuthKegiatan[]).map((k) => ({
-            id: k.id,
-            kode_kegiatan: k.kode_kegiatan,
-            nama_kegiatan: k.nama_kegiatan,
-          }))
-          const programsData = ((user.programs || []) as AuthProgram[]).map((p) => ({
-            id: p.id,
-            kode_program: p.kode_program,
-            nama_program: p.nama_program,
-          }))
-
+          // Sesi hanya menyimpan data user dan SKPD esensial.
+          // Data program, kegiatan, dan subkegiatan TIDAK disimpan di JWT cookie
+          // agar ukuran cookie tetap sangat kecil dan mencegah error Nginx 494.
           return {
             id: String(user.id ?? ""),
             username: user.username || usernameStr,
@@ -79,9 +64,6 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
             kodeSkpd: kodeSkpd || "",
             namaSkpd: namaSkpd || "-",
             info: (user.info || {}) as AuthUserInfo,
-            subKegiatan: subkegiatanData,
-            kegiatans: kegiatanData,
-            programs: programsData,
           }
         } catch (error) {
           console.error("Backend login error:", error)
@@ -103,9 +85,6 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         token.kodeSkpd = user.kodeSkpd
         token.namaSkpd = user.namaSkpd
         token.info = user.info
-        token.subKegiatan = user.subKegiatan
-        token.kegiatans = user.kegiatans
-        token.programs = user.programs
       }
 
       // Saat updateSession() dipanggil (mis. simpan No. WhatsApp) — ambil ulang info dari backend.
@@ -140,9 +119,6 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       if (token.kodeSkpd) session.user.kodeSkpd = token.kodeSkpd as string
       if (token.namaSkpd) session.user.namaSkpd = token.namaSkpd as string
       if (token.info) session.user.info = token.info
-      if (token.subKegiatan) session.user.subKegiatan = token.subKegiatan
-      if (token.kegiatans) session.user.kegiatans = token.kegiatans
-      if (token.programs) session.user.programs = token.programs
       return session
     },
   },
