@@ -89,10 +89,6 @@ export default function KodeAkunViewPage() {
               Master Kode Akun (Tampilan Flat)
             </h1>
           </div>
-          <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-            Format berjenjang sejajar per baris dari{" "}
-            <code className="font-mono text-[11px] text-blue-600 dark:text-blue-400">GET /api/v1/ref-akun/view</code>.
-          </p>
         </div>
         <div className="flex items-center gap-2">
           <Link

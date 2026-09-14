@@ -41,7 +41,7 @@ export async function GET(req: Request) {
           Accept: "application/json",
           Authorization: `Bearer ${session.user.apiToken}`,
         },
-        next: { revalidate: 300, tags: ["sipd-modal"] },
+        cache: "no-store",
       }
     )
   } catch {

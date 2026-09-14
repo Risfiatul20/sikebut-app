@@ -94,7 +94,11 @@ export async function GET(req: Request) {
 
   const { searchParams } = new URL(req.url)
   const finalParams = new URLSearchParams(searchParams)
-  if (!finalParams.get("per_page")) finalParams.set("per_page", "0")
+  // Ikuti per_page dari client / datatable (default 10 jika tidak ditentukan)
+  const perPage = finalParams.get("per_page")
+  if (!perPage || perPage === "0") {
+    finalParams.set("per_page", "10")
+  }
 
   // Teruskan ke backend: GET /api/v1/sipd-penetapan-apbd (list rincian) — TANPA fallback mock.
   let backendRes: Response
@@ -106,7 +110,7 @@ export async function GET(req: Request) {
           Accept: "application/json",
           Authorization: `Bearer ${session.user.apiToken}`,
         },
-        next: { revalidate: 3600, tags: ["sipd-list"] },
+        cache: "no-store",
       }
     )
   } catch {
@@ -118,7 +122,13 @@ export async function GET(req: Request) {
 
   if (backendRes.ok) {
     const json = await backendRes.json()
-    const rows: RawSipdRow[] = json.data ?? []
+    const rows: RawSipdRow[] = Array.isArray(json?.data)
+      ? json.data
+      : Array.isArray(json?.data?.data)
+        ? json.data.data
+        : Array.isArray(json)
+          ? json
+          : []
     const normalized = rows.map(normalizeRow)
     return NextResponse.json({
       data: normalized,
@@ -129,5 +139,6 @@ export async function GET(req: Request) {
 
   // Teruskan error backend apa adanya — jangan pernah memakai data cadangan.
   const errText = await backendRes.text()
+  console.error(`[SIPD List Backend Error ${backendRes.status}]:`, errText.slice(0, 500))
   return new NextResponse(errText, { status: backendRes.status, headers: { "Content-Type": "application/json" } })
 }

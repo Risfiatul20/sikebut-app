@@ -14,9 +14,9 @@ export async function GET(req: Request) {
 
   const { searchParams } = new URL(req.url)
   const finalParams = new URLSearchParams(searchParams)
-  if (!finalParams.get("tahun")) {
-    finalParams.set("tahun", await getSelectedYear())
-  }
+  const activeYear = finalParams.get("periode") || finalParams.get("tahun") || (await getSelectedYear())
+  if (!finalParams.get("periode")) finalParams.set("periode", activeYear)
+  if (!finalParams.get("tahun")) finalParams.set("tahun", activeYear)
 
   // Ambil data langsung dari backend Laravel — TANPA fallback data dummy.
   let res: Response
@@ -51,6 +51,11 @@ export async function POST(req: Request) {
   const session = await auth()
   if (!session?.user?.apiToken) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+  }
+
+  const role = (session.user.role || "").toLowerCase()
+  if (role !== "admin") {
+    return NextResponse.json({ error: "Akses ditolak. Fitur impor RKBMD hanya untuk Administrator." }, { status: 403 })
   }
 
   try {

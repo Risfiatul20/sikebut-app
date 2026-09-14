@@ -50,47 +50,44 @@ export function NotificationBell() {
     }
   }, [])
 
-  // Setup interval polling unread count (60s) + pause saat tab inactive
-  useEffect(() => {
-    let isCancelled = false
-
-    const poll = async () => {
-      if (document.hidden || isCancelled) return
-      try {
-        const countRes = await fetch("/api/notifications/unread-count", { cache: "no-store" })
-        if (countRes.ok && !isCancelled) {
-          const c = await countRes.json()
-          setUnread(c?.data?.unread_count ?? 0)
-          setError(false)
-        }
-      } catch {
-        if (!isCancelled) setError(true)
+  // Ambil unread count hanya 1x saat komponen dimuat (tanpa background polling loop)
+  const fetchUnreadCount = useCallback(async () => {
+    try {
+      const countRes = await fetch("/api/notifications/unread-count", { cache: "no-store" })
+      if (countRes.ok) {
+        const c = await countRes.json()
+        setUnread(c?.data?.unread_count ?? 0)
+        setError(false)
       }
-    }
-
-    void poll()
-    const t = setInterval(poll, 60000)
-
-    const handleVisibilityChange = () => {
-      if (!document.hidden) {
-        void poll()
-      }
-    }
-    document.addEventListener("visibilitychange", handleVisibilityChange)
-
-    return () => {
-      isCancelled = true
-      clearInterval(t)
-      document.removeEventListener("visibilitychange", handleVisibilityChange)
+    } catch {
+      // Abaikan error jaringan agar tidak mengganggu UI
     }
   }, [])
 
-  // Toggle & fetch daftar notifikasi hanya ketika panel dibuka
+  useEffect(() => {
+    let active = true
+    fetch("/api/notifications/unread-count", { cache: "no-store" })
+      .then((res) => (res.ok ? res.json() : null))
+      .then((c) => {
+        if (active && c?.data?.unread_count !== undefined) {
+          setUnread(c.data.unread_count)
+        }
+      })
+      .catch(() => {
+        // Abaikan error koneksi awal
+      })
+    return () => {
+      active = false
+    }
+  }, [])
+
+  // Toggle & fetch daftar notifikasi HANYA ketika user mengklik panel lonceng
   const handleToggle = () => {
     setOpen((prev) => {
       const next = !prev
       if (next) {
         void fetchNotificationList()
+        void fetchUnreadCount()
       }
       return next
     })

@@ -111,7 +111,7 @@ export async function GET(req: Request) {
           Accept: "application/json",
           Authorization: `Bearer ${session.user.apiToken}`,
         },
-        next: { revalidate: 3600, tags: ["sipd-penetapan-apbd"] },
+        cache: "no-store",
       }
     )
   } catch {
@@ -123,7 +123,13 @@ export async function GET(req: Request) {
 
   if (backendRes.ok) {
     const json = await backendRes.json()
-    const rows: RawSipdRow[] = json.data ?? []
+    const rows: RawSipdRow[] = Array.isArray(json?.data)
+      ? json.data
+      : Array.isArray(json?.data?.data)
+        ? json.data.data
+        : Array.isArray(json)
+          ? json
+          : []
     return NextResponse.json({ data: rows.map(normalizeRow) })
   }
 

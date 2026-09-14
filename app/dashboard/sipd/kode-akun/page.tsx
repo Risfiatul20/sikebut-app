@@ -101,7 +101,7 @@ export default function KodeAkunPage() {
             </h1>
           </div>
           <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-            Struktur rekening belanja dan indikator RKBMD dari API (<code className="font-mono text-[11px] text-blue-600 dark:text-blue-400">GET /api/v1/ref-akun</code>).
+            Struktur rekening belanja dan indikator RKBMD.
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -178,7 +178,6 @@ export default function KodeAkunPage() {
               <h2 className="text-sm font-semibold text-slate-800 dark:text-slate-100 leading-tight">
                 Daftar Kode Akun Berjenjang
               </h2>
-              <p className="text-[10px] text-slate-400 font-mono">dev.ref_akun &bull; dev.akun_indikator_rkbmd</p>
             </div>
           </div>
 

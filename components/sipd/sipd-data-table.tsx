@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useMemo } from "react"
+import { useYear } from "@/context/year-context"
 import { SipdItem, SipdVersionInfo } from "@/types/sipd"
 import { useSkpd } from "@/hooks/useSkpd"
 import { SearchableSelect, SearchableSelectOption } from "@/components/ui/searchable-select"
@@ -9,6 +10,7 @@ import { SipdDetailModal } from "./sipd-detail-modal"
 import {
   Search,
   Download,
+  FileSpreadsheet,
   Eye,
   ChevronLeft,
   ChevronRight,
@@ -22,6 +24,12 @@ interface SipdDataTableProps {
   activeYear: number
   onChangeVersion: (versi: number) => void
   onChangeYear: (tahun: number) => void
+  page?: number
+  pageSize?: number
+  totalItems?: number
+  isLoading?: boolean
+  onPageChange?: (page: number) => void
+  onPageSizeChange?: (pageSize: number) => void
 }
 
 export function SipdDataTable({
@@ -31,7 +39,18 @@ export function SipdDataTable({
   activeYear,
   onChangeVersion,
   onChangeYear,
+  page: controlledPage,
+  pageSize: controlledPageSize,
+  totalItems: controlledTotalItems,
+  isLoading = false,
+  onPageChange,
+  onPageSizeChange,
 }: SipdDataTableProps) {
+  const { availableYears } = useYear()
+  const yearOptions = useMemo(() => {
+    return Array.from(new Set([activeYear, ...(availableYears || [2025, 2026, 2027])])).sort((a, b) => b - a)
+  }, [activeYear, availableYears])
+
   const [search, setSearch] = useState("")
   const [selectedSkpd, setSelectedSkpd] = useState("ALL")
   const [selectedSumberDana, setSelectedSumberDana] = useState("ALL")
@@ -52,9 +71,30 @@ export function SipdDataTable({
 
   const [selectedItemForDetail, setSelectedItemForDetail] = useState<SipdItem | null>(null)
 
-  // Pagination state
-  const [currentPage, setCurrentPage] = useState(1)
-  const [pageSize, setPageSize] = useState(10)
+  // Pagination state (controlled or uncontrolled)
+  const [internalPage, setInternalPage] = useState(1)
+  const [internalPageSize, setInternalPageSize] = useState(10)
+
+  const isServerPaginated = controlledPage !== undefined && onPageChange !== undefined
+  const currentPage = isServerPaginated ? controlledPage : internalPage
+  const pageSize = controlledPageSize !== undefined ? controlledPageSize : internalPageSize
+
+  const handlePageChange = (p: number) => {
+    if (isServerPaginated) {
+      onPageChange(p)
+    } else {
+      setInternalPage(p)
+    }
+  }
+
+  const handlePageSizeChange = (size: number) => {
+    if (onPageSizeChange) {
+      onPageSizeChange(size)
+    } else {
+      setInternalPageSize(size)
+      setInternalPage(1)
+    }
+  }
 
   // Sorting state
   const [sortField, setSortField] = useState<string>("pagu")
@@ -211,17 +251,117 @@ export function SipdDataTable({
   }, [items, search, activeVersion, activeYear, selectedSkpd, selectedSumberDana, sortField, sortOrder])
 
   // Pagination calculation
-  const totalItems = filteredItems.length
+  const totalItems = controlledTotalItems !== undefined ? controlledTotalItems : filteredItems.length
   const totalPages = Math.max(1, Math.ceil(totalItems / pageSize))
   const paginatedItems = useMemo(() => {
+    if (isServerPaginated) {
+      return filteredItems
+    }
     const start = (currentPage - 1) * pageSize
     return filteredItems.slice(start, start + pageSize)
-  }, [filteredItems, currentPage, pageSize])
+  }, [filteredItems, currentPage, pageSize, isServerPaginated])
 
   // Total Pagu of filtered set
   const totalPaguFiltered = useMemo(() => {
     return filteredItems.reduce((acc, curr) => acc + curr.pagu, 0)
   }, [filteredItems])
+
+  // Export Excel (.xls HTML Spreadsheet mso-format)
+  const handleExportExcel = () => {
+    const headers = [
+      "ID",
+      "Tahun",
+      "Versi",
+      "Kode SKPD",
+      "Nama SKPD",
+      "Kode Urusan",
+      "Nama Urusan",
+      "Kode Bidang Urusan",
+      "Nama Bidang Urusan",
+      "Kode Program",
+      "Nama Program",
+      "Kode Kegiatan",
+      "Nama Kegiatan",
+      "Kode Sub Kegiatan",
+      "Nama Sub Kegiatan",
+      "Kode Sumber Dana",
+      "Nama Sumber Dana",
+      "Kode Rekening",
+      "Nama Rekening",
+      "Kode Standar Harga",
+      "Nama Standar Harga",
+      "Pagu Anggaran",
+    ]
+
+    const headerHtml = `<tr>${headers
+      .map(
+        (h) =>
+          `<th style="background-color: #1e40af; color: #ffffff; font-weight: bold; border: 1px solid #cbd5e1; padding: 6px 10px; font-size: 11px;">${h}</th>`
+      )
+      .join("")}</tr>`
+
+    const rowsHtml = filteredItems
+      .map((it) => {
+        return `<tr>
+          <td style="border: 1px solid #cbd5e1; text-align: center;">${it.id}</td>
+          <td style="border: 1px solid #cbd5e1; text-align: center;">${it.tahun}</td>
+          <td style="border: 1px solid #cbd5e1; text-align: center;">${it.versi}</td>
+          <td style="border: 1px solid #cbd5e1; mso-number-format:'\\@';">${it.kode_skpd}</td>
+          <td style="border: 1px solid #cbd5e1;">${it.nama_skpd || "-"}</td>
+          <td style="border: 1px solid #cbd5e1; mso-number-format:'\\@';">${it.kode_urusan || "-"}</td>
+          <td style="border: 1px solid #cbd5e1;">${it.nama_urusan || "-"}</td>
+          <td style="border: 1px solid #cbd5e1; mso-number-format:'\\@';">${it.kode_bidang_urusan || "-"}</td>
+          <td style="border: 1px solid #cbd5e1;">${it.nama_bidang_urusan || "-"}</td>
+          <td style="border: 1px solid #cbd5e1; mso-number-format:'\\@';">${it.kode_program || "-"}</td>
+          <td style="border: 1px solid #cbd5e1;">${it.nama_program || "-"}</td>
+          <td style="border: 1px solid #cbd5e1; mso-number-format:'\\@';">${it.kode_kegiatan || "-"}</td>
+          <td style="border: 1px solid #cbd5e1;">${it.nama_kegiatan || "-"}</td>
+          <td style="border: 1px solid #cbd5e1; mso-number-format:'\\@';">${it.kode_sub_kegiatan || "-"}</td>
+          <td style="border: 1px solid #cbd5e1;">${it.nama_sub_kegiatan || "-"}</td>
+          <td style="border: 1px solid #cbd5e1; mso-number-format:'\\@';">${it.kode_sumber_dana || "-"}</td>
+          <td style="border: 1px solid #cbd5e1;">${it.nama_sumber_dana || "-"}</td>
+          <td style="border: 1px solid #cbd5e1; mso-number-format:'\\@';">${it.kode_rekening || "-"}</td>
+          <td style="border: 1px solid #cbd5e1;">${it.nama_rekening || "-"}</td>
+          <td style="border: 1px solid #cbd5e1; mso-number-format:'\\@';">${it.kode_standar_harga || "-"}</td>
+          <td style="border: 1px solid #cbd5e1;">${it.nama_standar_harga || "-"}</td>
+          <td style="border: 1px solid #cbd5e1; text-align: right; mso-number-format:'#,##0';">${it.pagu || 0}</td>
+        </tr>`
+      })
+      .join("")
+
+    const template = `
+      <html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">
+      <head>
+        <!--[if gte mso 9]>
+        <xml>
+          <x:ExcelWorkbook>
+            <x:ExcelWorksheets>
+              <x:ExcelWorksheet>
+                <x:Name>SIPD Penetapan APBD</x:Name>
+                <x:WorksheetOptions><x:DisplayGridlines/></x:WorksheetOptions>
+              </x:ExcelWorksheet>
+            </x:ExcelWorksheets>
+          </x:ExcelWorkbook>
+        </xml>
+        <![endif]-->
+        <meta http-equiv="content-type" content="text/plain; charset=UTF-8"/>
+      </head>
+      <body>
+        <table>${headerHtml}${rowsHtml}</table>
+      </body>
+      </html>
+    `
+
+    const blob = new Blob([template], { type: "application/vnd.ms-excel;charset=utf-8" })
+    const url = URL.createObjectURL(blob)
+    const link = document.createElement("a")
+    link.href = url
+    link.download = `data_sipd_penetapan_${activeYear}_v${activeVersion || "all"}.xls`
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+    URL.revokeObjectURL(url)
+  }
 
   // Export CSV
   const handleExportCsv = () => {
@@ -301,13 +441,15 @@ export function SipdDataTable({
                 value={activeYear}
                 onChange={(e) => {
                   onChangeYear(Number(e.target.value))
-                  setCurrentPage(1)
+                  handlePageChange(1)
                 }}
                 className="h-8 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 px-2.5 text-xs font-mono font-bold text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500/40"
               >
-                <option value={2026}>2026</option>
-                <option value={2025}>2025</option>
-                <option value={2027}>2027</option>
+                {yearOptions.map((y) => (
+                  <option key={y} value={y}>
+                    {y}
+                  </option>
+                ))}
               </select>
             </div>
 
@@ -318,7 +460,7 @@ export function SipdDataTable({
                 value={activeVersion}
                 onChange={(e) => {
                   onChangeVersion(Number(e.target.value))
-                  setCurrentPage(1)
+                  handlePageChange(1)
                 }}
                 className="h-8 max-w-[260px] truncate rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 px-2.5 text-xs font-medium text-blue-700 dark:text-blue-300 focus:outline-none focus:ring-2 focus:ring-blue-500/40"
               >
@@ -327,7 +469,7 @@ export function SipdDataTable({
                   .filter((v) => v.tahun === activeYear)
                   .map((v) => (
                     <option key={v.versi} value={v.versi}>
-                      Versi {v.versi} - {v.nama_versi}
+                      {v.nama_versi}
                     </option>
                   ))}
               </select>
@@ -364,7 +506,7 @@ export function SipdDataTable({
                 value={search}
                 onChange={(e) => {
                   setSearch(e.target.value)
-                  setCurrentPage(1)
+                  handlePageChange(1)
                 }}
                 className="w-56 sm:w-64 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-950/60 pl-8 pr-3 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500 transition-colors"
               />
@@ -374,7 +516,7 @@ export function SipdDataTable({
             <SearchableSelect
               options={skpdFilterOptions}
               value={selectedSkpd}
-              onChange={(val) => { setSelectedSkpd(val); setCurrentPage(1) }}
+              onChange={(val) => { setSelectedSkpd(val); handlePageChange(1) }}
               placeholder="Semua Perangkat Daerah"
               className="max-w-[200px]"
             />
@@ -383,7 +525,7 @@ export function SipdDataTable({
             <SearchableSelect
               options={sumberDanaFilterOptions}
               value={selectedSumberDana}
-              onChange={(val) => { setSelectedSumberDana(val); setCurrentPage(1) }}
+              onChange={(val) => { setSelectedSumberDana(val); handlePageChange(1) }}
               placeholder="Semua Sumber Dana"
             />
 
@@ -394,7 +536,7 @@ export function SipdDataTable({
                   setSearch("")
                   setSelectedSkpd("ALL")
                   setSelectedSumberDana("ALL")
-                  setCurrentPage(1)
+                  handlePageChange(1)
                 }}
                 className="text-[11px] text-blue-600 dark:text-blue-400 hover:underline px-1 py-1"
               >
@@ -412,7 +554,17 @@ export function SipdDataTable({
               onSelectAllColumns={handleSelectAllColumns}
             />
 
-            {/* Export CSV */}
+            {/* Export Actions */}
+            <button
+              type="button"
+              onClick={handleExportExcel}
+              className="h-8 px-2.5 inline-flex items-center gap-1.5 rounded-lg border border-emerald-600 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-medium shadow-xs transition-colors"
+              title="Export data SIPD ke file Excel (.xls)"
+            >
+              <FileSpreadsheet className="h-3.5 w-3.5" />
+              <span className="hidden sm:inline">Ekspor Excel</span>
+            </button>
+
             <button
               type="button"
               onClick={handleExportCsv}
@@ -427,7 +579,17 @@ export function SipdDataTable({
       </div>
 
       {/* Main Table Section */}
-      <section className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-2xs overflow-hidden">
+      <section className="relative bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-2xs overflow-hidden">
+        {/* Loading Overlay saat fetch data / ganti halaman */}
+        {isLoading && (
+          <div className="absolute inset-0 z-20 bg-white/70 dark:bg-slate-900/70 backdrop-blur-[1.5px] flex flex-col items-center justify-center gap-2.5 transition-opacity duration-200 animate-in fade-in">
+            <div className="h-8 w-8 rounded-full border-2 border-blue-600 border-t-transparent animate-spin" />
+            <span className="text-xs font-semibold text-slate-700 dark:text-slate-300">
+              Memuat data SIPD...
+            </span>
+          </div>
+        )}
+
         <div className="overflow-x-auto custom-scrollbar">
           <table className="w-full text-xs text-left">
             <thead>
@@ -729,7 +891,7 @@ export function SipdDataTable({
             <span>Baris per halaman:</span>
             <select
               value={pageSize}
-              onChange={(e) => setPageSize(Number(e.target.value))}
+              onChange={(e) => handlePageSizeChange(Number(e.target.value))}
               className="h-7 rounded border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-950 px-2 text-xs focus:outline-none focus:ring-1 focus:ring-blue-500"
             >
               <option value={5}>5</option>
@@ -750,7 +912,7 @@ export function SipdDataTable({
 
             <button
               type="button"
-              onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+              onClick={() => handlePageChange(Math.max(1, currentPage - 1))}
               disabled={currentPage <= 1}
               className="h-7 px-2.5 inline-flex items-center gap-1 rounded border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-xs font-medium text-slate-600 dark:text-slate-300 disabled:opacity-40 disabled:cursor-not-allowed hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
             >
@@ -760,7 +922,7 @@ export function SipdDataTable({
 
             <button
               type="button"
-              onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+              onClick={() => handlePageChange(Math.min(totalPages, currentPage + 1))}
               disabled={currentPage >= totalPages}
               className="h-7 px-2.5 inline-flex items-center gap-1 rounded border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-xs font-medium text-slate-600 dark:text-slate-300 disabled:opacity-40 disabled:cursor-not-allowed hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
             >
