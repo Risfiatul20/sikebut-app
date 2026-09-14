@@ -2,7 +2,7 @@ import { LaporanPenyediaTreeTable } from "@/components/laporan/laporan-penyedia-
 
 export const metadata = {
   title: "Laporan Penyedia — Sikebut PBJ",
-  description: "Rincian paket pengadaan melalui penyedia dalam format hierarki tree table.",
+  description: "Rincian identifikasi kebutuhan paket pengadaan melalui penyedia.",
 }
 
 export default function LaporanPenyediaPage() {

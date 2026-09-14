@@ -501,7 +501,7 @@ export function LaporanSwakelolaTreeTable() {
               <Layers className="h-4 w-4" />
             </span>
             <h1 className="font-display text-lg font-bold text-slate-900 dark:text-white">
-              Laporan Rencana Kebutuhan — Swakelola (Tree Table)
+              Laporan Rencana Kebutuhan — Swakelola
             </h1>
           </div>
           <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
@@ -582,7 +582,7 @@ export function LaporanSwakelolaTreeTable() {
       )}
 
       {/* Tree Table Container */}
-      <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden shadow-2xs relative min-h-[300px]">
+      <div className={`bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden shadow-2xs relative ${loading ? "min-h-[280px]" : ""}`}>
         {loading && (
           <div className="absolute inset-0 bg-white/70 dark:bg-slate-900/70 z-20 flex flex-col items-center justify-center gap-2">
             <Loader2 className="h-7 w-7 text-indigo-600 animate-spin" />

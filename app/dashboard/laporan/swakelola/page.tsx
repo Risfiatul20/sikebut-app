@@ -2,7 +2,7 @@ import { LaporanSwakelolaTreeTable } from "@/components/laporan/laporan-swakelol
 
 export const metadata = {
   title: "Laporan Swakelola — Sikebut PBJ",
-  description: "Rincian paket pengadaan swakelola dalam format hierarki tree table.",
+  description: "Rincian indentifikasi kebutuhan paket pengadaan swakelola.",
 }
 
 export default function LaporanSwakelolaPage() {
