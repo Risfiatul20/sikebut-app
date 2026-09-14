@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useCallback, useEffect, useMemo, useState } from "react"
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import {
   ChevronRight,
   Loader2,
@@ -62,6 +62,10 @@ interface TreeNode {
   jumlahPaket: number
   paket?: RincianPaketRow
   makKode?: string
+  /** Kode sub kegiatan — baris 1 kolom MAK. */
+  makSubKegiatan?: string
+  /** Kode standar harga — baris 3 kolom MAK. */
+  makStandar?: string
   makPagu?: number
   children: TreeNode[]
 }
@@ -178,18 +182,23 @@ function buildTree(rows: RincianPaketRow[]): TreeNode[] {
       children: [],
     }
 
-    // Pecah baris per rekening (MAK) — sesuai template Laporan.xlsx.
+    // Satu baris = satu KODE STANDAR HARGA (arahan atasan).
+    // Kolom MAK menampilkan berurutan: kode sub kegiatan -> kode rekening -> kode standar.
     const makList = Array.isArray(r.mak) && r.mak.length > 0 ? r.mak : []
     makList.forEach((m, i) => {
+      const kodeStandar = m.kode_standar || m.nama || ""
+      const label = m.nama_standar || kodeStandar || m.kode_rekening || "—"
       paket.children.push({
-        id: `rek-${r.id}-${i}`,
+        id: `standar-${r.id}-${i}`,
         level: 7,
         type: "rekening",
-        kode: m.kode_rekening || "—",
-        nama: m.kode_rekening || "—",
+        kode: kodeStandar || m.kode_rekening || "—",
+        nama: label,
         totalPagu: Number(m.pagu || 0),
         jumlahPaket: 0,
         makKode: m.kode_rekening || "",
+        makSubKegiatan: r.kode_sub_kegiatan || "",
+        makStandar: kodeStandar,
         makPagu: Number(m.pagu || 0),
         children: [],
       })
@@ -219,7 +228,6 @@ interface Props {
 
 export function LaporanPaketTree({ jenis, title, description }: Props) {
   const [data, setData] = useState<LaporanPaketResponse["data"] | null>(null)
-  const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [expanded, setExpanded] = useState<Set<string>>(new Set())
   const [search, setSearch] = useState("")
@@ -227,23 +235,39 @@ export function LaporanPaketTree({ jenis, title, description }: Props) {
   const { tahun } = useTahunAktif()
   const isPenyedia = jenis === "penyedia"
 
+  // Status memuat DITURUNKAN dari kombinasi jenis+tahun yang sudah selesai dimuat.
+  // Pola ini (derived state) membuat effect tidak perlu memanggil setState secara
+  // sinkron, sekaligus menjaga indikator memuat tetap muncul saat tahun diganti.
+  const kunciMuat = `${jenis}|${tahun}`
+  const [selesaiMuat, setSelesaiMuat] = useState<string | null>(null)
+  const loading = selesaiMuat !== kunciMuat
+
+  // Kunci permintaan terakhir — mencegah data tahun lama menimpa data tahun terpilih
+  // bila pengguna mengganti tahun dengan cepat (permintaan selesai tidak berurutan).
+  const kunciTerakhir = useRef(kunciMuat)
+
   const load = useCallback(async () => {
-    setLoading(true)
+    const kunciDiminta = `${jenis}|${tahun}`
+    kunciTerakhir.current = kunciDiminta
     try {
       const res = await fetch(`/api/laporan/${jenis}?tahun=${tahun}`, { cache: "no-store" })
       if (!res.ok) throw new Error(`HTTP ${res.status}`)
       const json = await res.json()
+      if (kunciTerakhir.current !== kunciDiminta) return
       setData(json?.data ?? null)
       setError(null)
     } catch (err) {
+      if (kunciTerakhir.current !== kunciDiminta) return
       setError(err instanceof Error ? err.message : "Gagal memuat data laporan")
     } finally {
-      setLoading(false)
+      if (kunciTerakhir.current === kunciDiminta) setSelesaiMuat(kunciDiminta)
     }
   }, [jenis, tahun])
 
   useEffect(() => {
-    load()
+    // Dijalankan lewat microtask: pemuatan data hanya memanggil setState SETELAH
+    // await (tidak ada setState sinkron), sehingga aman dari cascading render.
+    void Promise.resolve().then(() => load())
   }, [load])
 
   const rincian = useMemo(() => urutkan(data?.rincian ?? []), [data])
@@ -455,7 +479,10 @@ export function LaporanPaketTree({ jenis, title, description }: Props) {
                     <th rowSpan={2} className="px-2 py-2 border border-slate-200 dark:border-slate-700 font-bold text-center whitespace-nowrap">Tipe</th>
                   )}
                   <th rowSpan={2} className="px-2 py-2 border border-slate-200 dark:border-slate-700 font-bold text-center whitespace-nowrap">Sumber Dana</th>
-                  <th rowSpan={2} className="px-3 py-2 border border-slate-200 dark:border-slate-700 font-bold text-center whitespace-nowrap">MAK</th>
+                  <th rowSpan={2} className="px-3 py-2 border border-slate-200 dark:border-slate-700 font-bold text-center whitespace-nowrap">
+                    MAK
+                    <span className="block text-[9px] font-normal text-slate-400 dark:text-slate-500">Sub Kegiatan · Rekening · Standar</span>
+                  </th>
                   <th rowSpan={2} className="px-3 py-2 border border-slate-200 dark:border-slate-700 font-bold text-right whitespace-nowrap">Pagu</th>
                   <th rowSpan={2} className="px-3 py-2 border border-slate-200 dark:border-slate-700 font-bold text-right whitespace-nowrap">Total Pagu</th>
                   {isPenyedia && (
@@ -571,9 +598,17 @@ export function LaporanPaketTree({ jenis, title, description }: Props) {
                       {/* Sumber dana */}
                       <td className={`${td} whitespace-nowrap`}>{p ? p.sumber_dana || dash : dash}</td>
 
-                      {/* MAK & Pagu */}
-                      <td className={`${td} font-mono text-[10px] text-center whitespace-nowrap`}>
-                        {node.type === "rekening" ? node.makKode || dash : dash}
+                      {/* MAK & Pagu — MAK berisi 3 baris: sub kegiatan, rekening, standar harga */}
+                      <td className={`${td} font-mono text-[10px] whitespace-nowrap`}>
+                        {node.type === "rekening" ? (
+                          <span className="flex flex-col leading-tight">
+                            <span>{node.makSubKegiatan || dash}</span>
+                            <span>{node.makKode || dash}</span>
+                            <span>{node.makStandar || dash}</span>
+                          </span>
+                        ) : (
+                          dash
+                        )}
                       </td>
                       <td className={`${td} text-right font-mono whitespace-nowrap`}>
                         {node.type === "rekening" ? fmtRp(node.makPagu ?? 0) : dash}

@@ -55,7 +55,8 @@ export interface RincianPaketRow {
   waktu_pemilihan_akhir: string | null
   waktu_pelaksanaan_awal: string | null
   waktu_pelaksanaan_akhir: string | null
-  mak: { kode_rekening: string; nama: string; pagu: number }[]
+  /** Satu baris = satu KODE STANDAR HARGA. Kolom MAK = kode sub kegiatan -> kode rekening -> kode standar. */
+  mak: { kode_rekening: string; kode_standar?: string; nama_standar?: string; nama: string; pagu: number }[]
   total_pagu: number
   updated_at: string | null
 }
