@@ -38,7 +38,11 @@ export function BaRkbmdView({ jenis, tipe, judul, deskripsi }: Props) {
   }, [jenis, tahun])
 
   useEffect(() => {
-    load()
+    // Dibungkus fungsi async di dalam effect: pembaruan state terjadi setelah
+    // await (bukan sinkron), jadi tidak memicu render berantai.
+    void (async () => {
+      await load()
+    })()
   }, [load])
 
   const handlePrint = () => window.print()

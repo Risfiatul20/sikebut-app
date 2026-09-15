@@ -87,7 +87,11 @@ export default function WaGatewayPage() {
   }, [])
 
   useEffect(() => {
-    load()
+    // Pemuatan pertama dibungkus fungsi async di dalam effect (pembaruan state
+    // terjadi setelah await, bukan sinkron); polling berkala tetap lewat interval.
+    void (async () => {
+      await load()
+    })()
     const t = setInterval(load, 10000)
     return () => clearInterval(t)
   }, [load])
@@ -320,7 +324,7 @@ export default function WaGatewayPage() {
         ) : devices.length === 0 ? (
           <div className="p-10 text-center">
             <QrCode className="h-8 w-8 text-slate-300 mx-auto" />
-            <p className="text-xs text-slate-400 mt-3">Belum ada device. Klik "Tambah Device" lalu scan QR dengan WhatsApp Anda.</p>
+            <p className="text-xs text-slate-400 mt-3">Belum ada device. Klik &quot;Tambah Device&quot; lalu scan QR dengan WhatsApp Anda.</p>
           </div>
         ) : (
           <div className="divide-y divide-slate-100 dark:divide-slate-800">

@@ -2,7 +2,7 @@ import NextAuth from "next-auth"
 import Credentials from "next-auth/providers/credentials"
 import { sanctumLogin, sanctumLogout, SanctumUserData } from "@/lib/sanctum"
 import { getSessionRefs, invalidateSessionRefs } from "@/lib/session-refs"
-import { AuthProgram, AuthKegiatan, AuthSubKegiatan, AuthUserInfo } from "@/types/next-auth"
+import { AuthUserInfo } from "@/types/next-auth"
 
 /**
  * Backend mengirim role lowercase ("admin", "ppk", dst).

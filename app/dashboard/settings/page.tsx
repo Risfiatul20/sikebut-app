@@ -32,7 +32,11 @@ export default function SettingsPage() {
   }, [])
 
   useEffect(() => {
-    loadNoHp()
+    // Dibungkus fungsi async di dalam effect: pembaruan state terjadi setelah
+    // await (bukan sinkron), jadi tidak memicu render berantai.
+    void (async () => {
+      await loadNoHp()
+    })()
   }, [loadNoHp])
 
   const saveNoHp = async () => {

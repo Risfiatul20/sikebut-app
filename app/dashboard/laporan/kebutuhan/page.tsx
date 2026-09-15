@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { PieChart, BarChart3, TrendingUp, Download, FileText, Layers } from "lucide-react"
+import { PieChart, BarChart3, TrendingUp, Download, FileText, Layers, Loader2 } from "lucide-react"
 import { LaporanKebutuhanResponse } from "@/types/laporan"
 import { useYear } from "@/context/year-context"
 
@@ -80,6 +80,18 @@ export default function LaporanKebutuhanPage() {
           </a>
         </div>
       </div>
+
+      {error && (
+        <div className="rounded-lg border border-red-200 dark:border-red-500/30 bg-red-50 dark:bg-red-500/10 px-3.5 py-2.5 text-xs font-medium text-red-700 dark:text-red-300">
+          {error}
+        </div>
+      )}
+      {isLoading && !error && (
+        <div className="flex items-center gap-2 text-xs text-slate-500 dark:text-slate-400">
+          <Loader2 className="h-3.5 w-3.5 animate-spin" />
+          Memuat data laporan…
+        </div>
+      )}
 
       {/* Controls */}
       <div className="flex flex-wrap items-center gap-3">

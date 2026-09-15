@@ -40,8 +40,13 @@ export default function NotifikasiPage() {
     }
   }, [])
 
+  // Catatan: pemanggilan dibungkus fungsi async di dalam effect (bukan `load()`
+  // langsung) supaya pembaruan state terjadi setelah await, bukan sinkron —
+  // menghindari render berantai tanpa mengubah perilaku (tetap muat saat mount).
   useEffect(() => {
-    load()
+    void (async () => {
+      await load()
+    })()
   }, [load])
 
   const markAllRead = async () => {

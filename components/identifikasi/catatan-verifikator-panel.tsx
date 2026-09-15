@@ -1,7 +1,7 @@
 "use client"
 
 import { statusLabel } from "@/lib/status-paket"
-import { MessageCircle, RefreshCw, XCircle, AlertCircle } from "lucide-react"
+import { RefreshCw, XCircle, AlertCircle } from "lucide-react"
 
 interface CatatanVerifikatorPanelProps {
   catatanReviewer?: string | null

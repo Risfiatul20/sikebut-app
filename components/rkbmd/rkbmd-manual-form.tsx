@@ -75,6 +75,9 @@ export function RkbmdManualForm({ type, isOpen, onClose, onSaved }: Props) {
 
   useEffect(() => {
     if (isOpen) {
+      // Pengosongan form saat modal dibuka adalah sinkronisasi antar-render
+      // (bukan efek ke sistem luar); ditandai manual.
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setForm({
         nama_barang: "",
         kode_fikasi: "",

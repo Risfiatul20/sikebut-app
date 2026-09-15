@@ -193,44 +193,45 @@ function IdentifikasiPageContent() {
     [anggaran]
   )
 
-  // Helper normalisasi tanggal: konversi "YYYY-MM", "MM/YYYY", "MM-YYYY" → "YYYY-MM-DD"
-  // (browser tertentu mengirim format MM/YYYY; backend hanya menerima tanggal standar)
-  const parseMonthYear = (str: string): { year: number; month: number } | null => {
-    let m = str.match(/^(\d{4})[-/](\d{1,2})$/) // YYYY-MM / YYYY/MM
-    if (m) return { year: Number(m[1]), month: Number(m[2]) }
-    m = str.match(/^(\d{1,2})[-/](\d{4})$/) // MM/YYYY / MM-YYYY
-    if (m) return { year: Number(m[2]), month: Number(m[1]) }
-    return null
-  }
-
-  const normalizeStartDate = (val?: unknown): string | null => {
-    if (!val || typeof val !== "string" || !val.trim()) return null
-    const str = val.trim()
-    if (/^\d{4}-\d{2}$/.test(str)) return `${str}-01` // YYYY-MM → awal bulan
-    const p = parseMonthYear(str)
-    if (p && p.month >= 1 && p.month <= 12) {
-      return `${p.year}-${String(p.month).padStart(2, "0")}-01`
-    }
-    return str
-  }
-
-  const normalizeEndDate = (val?: unknown): string | null => {
-    if (!val || typeof val !== "string" || !val.trim()) return null
-    const str = val.trim()
-    if (/^\d{4}-\d{2}$/.test(str)) {
-      const [year, month] = str.split("-").map(Number)
-      return `${str}-${String(new Date(year, month, 0).getDate()).padStart(2, "0")}`
-    }
-    const p = parseMonthYear(str)
-    if (p && p.month >= 1 && p.month <= 12) {
-      const lastDay = new Date(p.year, p.month, 0).getDate()
-      return `${p.year}-${String(p.month).padStart(2, "0")}-${String(lastDay).padStart(2, "0")}`
-    }
-    return str
-  }
-
   // Payload yang disesuaikan persis dengan Store/Update IdentifikasiKebutuhanRequest (docs/api-identifikasi.md)
   const payload = useMemo(() => {
+    // Helper normalisasi tanggal: konversi "YYYY-MM", "MM/YYYY", "MM-YYYY" → "YYYY-MM-DD"
+    // (browser tertentu mengirim format MM/YYYY; backend hanya menerima tanggal standar).
+    // Diletakkan di dalam useMemo supaya nilainya tetap dan tidak menjadi dependensi memo.
+    const parseMonthYear = (str: string): { year: number; month: number } | null => {
+      let m = str.match(/^(\d{4})[-/](\d{1,2})$/) // YYYY-MM / YYYY/MM
+      if (m) return { year: Number(m[1]), month: Number(m[2]) }
+      m = str.match(/^(\d{1,2})[-/](\d{4})$/) // MM/YYYY / MM-YYYY
+      if (m) return { year: Number(m[2]), month: Number(m[1]) }
+      return null
+    }
+
+    const normalizeStartDate = (val?: unknown): string | null => {
+      if (!val || typeof val !== "string" || !val.trim()) return null
+      const str = val.trim()
+      if (/^\d{4}-\d{2}$/.test(str)) return `${str}-01` // YYYY-MM → awal bulan
+      const p = parseMonthYear(str)
+      if (p && p.month >= 1 && p.month <= 12) {
+        return `${p.year}-${String(p.month).padStart(2, "0")}-01`
+      }
+      return str
+    }
+
+    const normalizeEndDate = (val?: unknown): string | null => {
+      if (!val || typeof val !== "string" || !val.trim()) return null
+      const str = val.trim()
+      if (/^\d{4}-\d{2}$/.test(str)) {
+        const [year, month] = str.split("-").map(Number)
+        return `${str}-${String(new Date(year, month, 0).getDate()).padStart(2, "0")}`
+      }
+      const p = parseMonthYear(str)
+      if (p && p.month >= 1 && p.month <= 12) {
+        const lastDay = new Date(p.year, p.month, 0).getDate()
+        return `${p.year}-${String(p.month).padStart(2, "0")}-${String(lastDay).padStart(2, "0")}`
+      }
+      return str
+    }
+
     const isSwakelola = effectiveIdentitas.cara_pengadaan === "Swakelola"
     const fd = (formData || {}) as Record<string, unknown>
 
@@ -323,6 +324,9 @@ function IdentifikasiPageContent() {
     if (missing.length > 0) {
       const patched: Record<string, unknown> = { ...fresh }
       for (const k of Object.keys(fd)) patched[k] = fd[k]
+      // Penambalan field dasar saat langkah/tipe form berubah adalah sinkronisasi
+      // antar-render (bukan efek ke sistem luar); ditandai manual.
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setFormData(patched)
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps

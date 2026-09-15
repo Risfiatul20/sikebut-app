@@ -37,7 +37,7 @@ const formatNumber = (val: number): string => {
 }
 
 // Badge level style & icon helper (hitam-putih)
-const getLevelBadge = (type: LaporanLevelType, level: number) => {
+const getLevelBadge = (type: LaporanLevelType) => {
   const bg = "bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300 border-slate-300 dark:border-slate-600"
   switch (type) {
     case "opd":
@@ -77,7 +77,7 @@ const getRowShadingClass = (level: number): string => {
 }
 
 // Keterisian Badge Style (hitam-putih)
-const getKeterisianBadge = (persen: number) => {
+const getKeterisianBadge = () => {
   return "bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300 border-slate-300 dark:border-slate-600"
 }
 
@@ -142,7 +142,7 @@ export function LaporanTreeTable({ data, tahun = 2026 }: LaporanTreeTableProps) 
       ],
     ]
 
-    const traverse = (nodes: LaporanRekapNode[], prefix = "") => {
+    const traverse = (nodes: LaporanRekapNode[]) => {
       nodes.forEach((n) => {
         rows.push([
           `"${n.no || ""}"`,
@@ -216,7 +216,7 @@ export function LaporanTreeTable({ data, tahun = 2026 }: LaporanTreeTableProps) 
     return nodes.map((node) => {
       const hasChildren = Boolean(node.children && node.children.length > 0)
       const isExpanded = expandedIds.has(node.id)
-      const badge = getLevelBadge(node.type, node.level)
+      const badge = getLevelBadge(node.type)
       const BadgeIcon = badge.icon
       const shadingClass = getRowShadingClass(node.level)
 
@@ -342,9 +342,7 @@ export function LaporanTreeTable({ data, tahun = 2026 }: LaporanTreeTableProps) 
             {/* 12. Keterisian (%) */}
             <td className="px-3 py-2.5 text-center align-middle whitespace-nowrap">
               <span
-                className={`inline-flex items-center justify-center px-2 py-0.5 rounded-full text-[10px] font-mono font-bold border ${getKeterisianBadge(
-                  node.keterisian
-                )}`}
+                className={`inline-flex items-center justify-center px-2 py-0.5 rounded-full text-[10px] font-mono font-bold border ${getKeterisianBadge()}`}
               >
                 {node.keterisian.toFixed(1)}%
               </span>

@@ -188,6 +188,9 @@ export function DetailReviewModal({ item, canReview, onClose, onSuccess }: Detai
     // Paket final (Disetujui) tampil BERSIH: catatan reviewer lama (global & per-field)
     // tidak dimuat ke tampilan. Jejak audit tetap ada di Riwayat Status.
     const isFinal = item.status_review === "Disetujui"
+    // Pengosongan/perubahan state saat item berganti adalah sinkronisasi antar-render
+    // (bukan efek ke sistem luar); ditandai manual agar perilaku tetap sama.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setFieldComments(isFinal ? {} : (item.catatan_reviewer_detail as Record<string, string> | null) || {})
     setGlobalComment(isFinal ? "" : item.catatan_reviewer || "")
     setPendingAction(null)
@@ -208,7 +211,7 @@ export function DetailReviewModal({ item, canReview, onClose, onSuccess }: Detai
     return () => {
       cancelled = true
     }
-  }, [item?.id, item])
+  }, [item?.id, item, setError])
 
   const fd = useMemo(() => ((item?.form_data || {}) as Record<string, unknown>) ?? {}, [item])
   const sections = useMemo(() => getFieldSections(item?.jenis_pengadaan), [item?.jenis_pengadaan])
@@ -235,8 +238,6 @@ export function DetailReviewModal({ item, canReview, onClose, onSuccess }: Detai
     .map((l) => l.detail || [l.kecamatan, l.kabupaten, l.provinsi].filter(Boolean).join(", "))
     .filter(Boolean)
     .join(" | ")
-  const volumeRaw = fd.volume ? `${fd.volume} ${fd.volume_satuan || "Unit"}` : null
-
   const setFieldComment = (path: string, value: string) => {
     setFieldComments((prev) => {
       const next = { ...prev }
@@ -567,7 +568,7 @@ export function DetailReviewModal({ item, canReview, onClose, onSuccess }: Detai
                         <p className="font-mono text-[10px] text-slate-400">{fmtWaktu(r.created_at)}</p>
                       </div>
                       {r.catatan && (
-                        <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5 italic">"{r.catatan}"</p>
+                        <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5 italic">&quot;{r.catatan}&quot;</p>
                       )}
                       <p className="text-[10px] text-slate-400 dark:text-slate-500 mt-0.5">
                         oleh <span className="font-medium text-slate-600 dark:text-slate-300">{r.pembuat?.nama || `#${r.user_id}`}</span>

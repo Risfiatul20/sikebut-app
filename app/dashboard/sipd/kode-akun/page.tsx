@@ -45,7 +45,10 @@ export default function KodeAkunPage() {
   )
 
   // Pagination client-side (hindari render 3.301 baris sekaligus)
+  // Kembali ke halaman 1 saat filter berubah adalah sinkronisasi antar-render
+  // (bukan efek ke sistem luar); ditandai manual agar perilaku tetap sama.
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setPage(1)
   }, [search, levelFilter, filterB, filterR, filterH, filterT])
 

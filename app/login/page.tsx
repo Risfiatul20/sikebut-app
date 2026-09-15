@@ -1,8 +1,9 @@
 import { redirect } from "next/navigation"
+import Link from "next/link"
 import { auth } from "@/auth"
 import { LoginForm } from "@/components/login-form"
 import { ThemeToggle } from "@/components/theme-toggle"
-import { Landmark, ShieldCheck } from "lucide-react"
+import { Landmark } from "lucide-react"
 
 export default async function LoginPage() {
   const session = await auth()
@@ -21,12 +22,12 @@ export default async function LoginPage() {
 
       {/* bar atas */}
       <div className="relative z-10 flex items-center justify-between px-6 sm:px-10 h-16 shrink-0">
-        <a
+        <Link
           href="/"
           className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 transition-colors"
         >
           ← Beranda
-        </a>
+        </Link>
         <ThemeToggle />
       </div>
 

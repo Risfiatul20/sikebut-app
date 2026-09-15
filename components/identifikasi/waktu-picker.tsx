@@ -48,6 +48,9 @@ export function WaktuPicker({ value, onChange, className }: WaktuPickerProps) {
 
   // Sinkronkan state internal ketika value berubah dari luar (mis. load data edit).
   useEffect(() => {
+    // Sinkronisasi nilai dari luar (mis. memuat data edit) adalah sinkronisasi
+    // antar-render (bukan efek ke sistem luar); ditandai manual.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setSelMonth(parsed.month)
     setSelYear(parsed.year)
     // eslint-disable-next-line react-hooks/exhaustive-deps

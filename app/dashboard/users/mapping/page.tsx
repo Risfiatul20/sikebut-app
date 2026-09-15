@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react"
 import { useSession } from "next-auth/react"
-import { Link2, Plus, Search, Trash2, Loader2, Users, Layers } from "lucide-react"
+import { Link2, Plus, Trash2, Loader2, Users, Layers } from "lucide-react"
 import { Button } from "@/components/ui/button"
 
 interface MappingRow {
@@ -82,13 +82,16 @@ export default function UserMappingPage() {
     } catch {
       setSubOptions([])
     }
-  }, [session?.user?.kodeSkpd])
+  }, [session])
 
   useEffect(() => {
-    loadMappings()
-    loadPpkUsers()
-    loadSubOptions()
-    setLoading(false)
+    // Dibungkus fungsi async di dalam effect: pembaruan state terjadi setelah
+    // await (bukan sinkron), jadi tidak memicu render berantai. Indikator memuat
+    // baru dimatikan setelah ketiga data benar-benar selesai diambil.
+    void (async () => {
+      await Promise.all([loadMappings(), loadPpkUsers(), loadSubOptions()])
+      setLoading(false)
+    })()
   }, [loadMappings, loadPpkUsers, loadSubOptions])
 
   const filteredSubOptions = useMemo(() => {

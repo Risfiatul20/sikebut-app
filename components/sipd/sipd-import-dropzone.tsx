@@ -2,7 +2,7 @@
 
 import { useState, useRef } from "react"
 import { SipdVersionInfo } from "@/types/sipd"
-import { UploadCloud, FileSpreadsheet, Download, CheckCircle2, Loader2, ArrowRight, AlertCircle, XCircle } from "lucide-react"
+import { UploadCloud, FileSpreadsheet, Download, CheckCircle2, Loader2, ArrowRight, XCircle } from "lucide-react"
 
 interface SipdImportDropzoneProps {
   onImportSuccess: (version: SipdVersionInfo, count: number) => void

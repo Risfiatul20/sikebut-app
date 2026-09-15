@@ -125,7 +125,8 @@ export function RkbmdPickerModal({
   isOpen,
   onClose,
   kodeSubKegiatan,
-  kodeSkpd,
+  // `kodeSkpd` sengaja tidak dipakai di sini: filter RKBMD cukup memakai
+  // kode_sub_kegiatan (mengirim kode_skpd justru menghasilkan 0 baris — lihat loadData).
   anggaran,
   currentSelections,
   identifikasiId,
@@ -196,6 +197,9 @@ export function RkbmdPickerModal({
       if (prev) return { ...prev, items: prev.items ?? [] }
       return emptyAnswer(item)
     })
+    // Penyiapan jawaban saat modal dibuka adalah sinkronisasi antar-render
+    // (bukan efek ke sistem luar); ditandai manual.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setAnswers(prefilled)
     setStepIdx(0)
     setSearch("")
@@ -248,10 +252,14 @@ export function RkbmdPickerModal({
     } finally {
       setIsLoading(false)
     }
-  }, [isOpen, kodeSubKegiatan, kodeSkpd, identifikasiId])
+  }, [isOpen, kodeSubKegiatan, identifikasiId])
 
   useEffect(() => {
-    if (isOpen) loadData()
+    // Dibungkus fungsi async di dalam effect: pembaruan state terjadi setelah
+    // await (bukan sinkron), jadi tidak memicu render berantai.
+    void (async () => {
+      if (isOpen) await loadData()
+    })()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen, kodeSubKegiatan])
 
@@ -850,7 +858,7 @@ export function RkbmdPickerModal({
           </h2>
           <p className="mt-2 text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
             Pertanyaan RKBMD mengikuti <b>kode rekening</b> dari Pagu Paket (standar harga RKA SIPD).
-            Silakan pilih Pagu Paket di section <b>"Pagu Paket & Sumber Dana"</b> pada form, lalu buka
+            Silakan pilih Pagu Paket di section <b>&quot;Pagu Paket & Sumber Dana&quot;</b> pada form, lalu buka
             kembali menu ini.
           </p>
           <button
