@@ -13,7 +13,7 @@ type ImportPhase = "idle" | "uploading" | "processing" | "done" | "error"
 
 export function SipdImportDropzone({ onImportSuccess, existingVersions }: SipdImportDropzoneProps) {
   const [selectedYear, setSelectedYear] = useState<number>(2026)
-  const [versionName, setVersionName] = useState<string>("Penetapan Perubahan APBD 2026")
+  const [versionName, setVersionName] = useState<string>("")
   const [isDragging, setIsDragging] = useState<boolean>(false)
   const [selectedFile, setSelectedFile] = useState<File | null>(null)
   const [phase, setPhase] = useState<ImportPhase>("idle")
@@ -156,7 +156,7 @@ export function SipdImportDropzone({ onImportSuccess, existingVersions }: SipdIm
           const nextVersi = existingVersions.filter((v) => v.tahun === selectedYear).length + 1
           const count = 0 // jumlah baris dihitung dari reload tabel (backend)
           const version: SipdVersionInfo = {
-            versi: nextVersi,
+            versi: String(nextVersi),
             nama_versi: versionName.trim() || `Versi ${nextVersi} - Penetapan APBD ${selectedYear}`,
             tahun: selectedYear,
             total_pagu: 0,

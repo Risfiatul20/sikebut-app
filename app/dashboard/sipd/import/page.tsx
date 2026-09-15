@@ -31,7 +31,7 @@ export default function SipdImportPage() {
   // Year override lokal jika user memilih tahun lain di tabel SIPD
   const [selectedYearOverride, setSelectedYearOverride] = useState<number | null>(null)
   const activeYear = selectedYearOverride ?? year
-  const [activeVersion, setActiveVersion] = useState<number>(0) // 0 = semua versi
+  const [activeVersion, setActiveVersion] = useState<string>("") // "" = semua versi
   const [page, setPage] = useState<number>(1)
   const [pageSize, setPageSize] = useState<number>(10)
   const [isImportPanelOpen, setIsImportPanelOpen] = useState<boolean>(false)
@@ -85,7 +85,7 @@ export default function SipdImportPage() {
     // Data sudah tersimpan di database oleh backend — muat ulang dari API
     await Promise.all([loadVersions(), reloadItems()])
     setSelectedYearOverride(null)
-    setActiveVersion(0)
+    setActiveVersion("")
     setPage(1)
     setIsImportPanelOpen(false) // collapse form after success to show table immediately
     showToast(
@@ -96,7 +96,7 @@ export default function SipdImportPage() {
   // Summary Calculations for active year
   const yearItems = items.filter((it) => it.tahun === activeYear)
   const currentVersionItems =
-    activeVersion > 0
+    activeVersion
       ? items.filter((it) => it.tahun === activeYear && it.versi === activeVersion)
       : yearItems
 
@@ -168,7 +168,9 @@ export default function SipdImportPage() {
             {formatRupiah(totalPaguYear)}
           </p>
           <p className="text-[10px] text-slate-400 mt-1">
-            {activeVersion > 0 ? `Versi ${activeVersion}` : "Semua versi"}
+            {activeVersion
+              ? versions.find((v) => v.versi === activeVersion)?.nama_versi ?? activeVersion
+              : "Semua versi"}
           </p>
         </div>
 
@@ -260,7 +262,7 @@ export default function SipdImportPage() {
           }}
           onChangeYear={(y) => {
             setSelectedYearOverride(y)
-            setActiveVersion(0) // reset to all versions on year switch
+            setActiveVersion("") // reset to all versions on year switch
             setPage(1)
           }}
           page={page}

@@ -5,7 +5,7 @@ import { SipdItem } from "@/types/sipd"
 
 export interface UseSipdListOptions {
   tahun?: number
-  versi?: number
+  versi?: string
   search?: string
   page?: number
   per_page?: number
@@ -46,7 +46,7 @@ export function useSipdList(options?: UseSipdListOptions) {
       try {
         const params = new URLSearchParams()
         if (tahun) params.set("tahun", String(tahun))
-        if (versi && versi > 0) params.set("versi", String(versi))
+        if (versi) params.set("versi", versi)
         if (search) params.set("search", search)
         params.set("page", String(page))
         params.set("per_page", String(per_page))

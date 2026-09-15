@@ -20,9 +20,9 @@ import {
 interface SipdDataTableProps {
   items: SipdItem[]
   versions: SipdVersionInfo[]
-  activeVersion: number
+  activeVersion: string
   activeYear: number
-  onChangeVersion: (versi: number) => void
+  onChangeVersion: (versi: string) => void
   onChangeYear: (tahun: number) => void
   page?: number
   pageSize?: number
@@ -195,7 +195,7 @@ export function SipdDataTable({
 
     const result = items.filter((it) => {
       // Version filter (0 = all versions)
-      if (activeVersion > 0 && it.versi !== activeVersion) return false
+      if (activeVersion && it.versi !== activeVersion) return false
       // Year filter
       if (activeYear > 0 && it.tahun !== activeYear) return false
       // SKPD filter
@@ -459,12 +459,12 @@ export function SipdDataTable({
               <select
                 value={activeVersion}
                 onChange={(e) => {
-                  onChangeVersion(Number(e.target.value))
+                  onChangeVersion(e.target.value)
                   handlePageChange(1)
                 }}
                 className="h-8 max-w-[260px] truncate rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 px-2.5 text-xs font-medium text-blue-700 dark:text-blue-300 focus:outline-none focus:ring-2 focus:ring-blue-500/40"
               >
-                <option value={0}>Semua Versi APBD ({activeYear})</option>
+                <option value="">Semua Versi APBD ({activeYear})</option>
                 {versions
                   .filter((v) => v.tahun === activeYear)
                   .map((v) => (

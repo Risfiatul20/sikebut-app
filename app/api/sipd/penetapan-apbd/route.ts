@@ -39,18 +39,19 @@ interface RawSipdRow {
 
 /**
  * Normalisasi response /api/v1/sipd-penetapan-apbd ke bentuk SipdItem.
- * - pagu & versi dikirim backend sebagai string -> dikonversi ke number
+ * - pagu dikirim backend sebagai string -> dikonversi ke number
+ * - versi dipertahankan sebagai STRING (boleh berupa label, mis. "Penetapan Perubahan APBD 2026")
  * - nama/kode SKPD dipetakan dari kode_opd/nama_opd
  * - pagu string "15000000.00" -> 15000000
  */
 function normalizeRow(r: RawSipdRow): SipdItem {
-  const versiNum = Number(r.versi ?? 0)
+  const versiStr = r.versi === null || r.versi === undefined ? "" : String(r.versi)
   return {
     id: Number(r.id),
     kode_daerah: r.kode_daerah ?? "",
     nama_daerah: r.nama_daerah ?? "",
     tahun: Number(r.tahun ?? 0),
-    versi: Number.isFinite(versiNum) ? versiNum : 0,
+    versi: versiStr,
     nama_versi: r.nama_versi ?? `Versi ${r.versi ?? "-"}`,
     kode_skpd: r.kode_skpd ?? r.kode_opd ?? "",
     nama_skpd: r.nama_skpd ?? r.nama_opd ?? "",

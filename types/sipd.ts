@@ -3,7 +3,7 @@ export interface SipdItem {
   kode_daerah: string
   nama_daerah: string
   tahun: number
-  versi: number
+  versi: string
   nama_versi: string
   
   // SKPD & Sub Unit
@@ -51,7 +51,7 @@ export interface SipdItem {
 }
 
 export interface SipdVersionInfo {
-  versi: number
+  versi: string
   nama_versi: string
   tahun: number
   total_pagu: number
