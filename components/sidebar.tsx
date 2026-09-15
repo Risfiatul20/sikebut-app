@@ -187,9 +187,14 @@ export function Sidebar() {
                   if (item.title === "WhatsApp Gateway" && role !== "Admin") {
                     return null
                   }
-                  const visibleSubItems = item.subItems?.filter(
-                    (sub) => sub.title !== "Buat Usulan Baru" || can("paket:create")
-                  )
+                  const visibleSubItems = item.subItems?.filter((sub) => {
+                    // "Buat Usulan Baru" hanya untuk yang boleh membuat paket (Admin/PPK).
+                    if (sub.title === "Buat Usulan Baru") return can("paket:create")
+                    // "Data SIPD" (impor) hanya Administrator — sejalan dengan penjaga
+                    // halaman serta pembatasan `role:Admin` di backend & proxy impor.
+                    if (sub.title === "Data SIPD") return role === "Admin"
+                    return true
+                  })
                   const isActive = item.href === pathname || visibleSubItems?.some(sub => sub.href === pathname)
                   const isExpanded = expandedMenus.includes(item.title)
 
