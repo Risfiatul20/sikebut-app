@@ -25,36 +25,73 @@ export function NotificationBell() {
   const [items, setItems] = useState<NotificationItem[] | null>(null)
   const [open, setOpen] = useState(false)
   const [error, setError] = useState(false)
+  const [isLoadingList, setIsLoadingList] = useState(false)
   const [pos, setPos] = useState<{ top: number; right: number } | null>(null)
   const bellRef = useRef<HTMLButtonElement>(null)
   const panelRef = useRef<HTMLDivElement>(null)
   const router = useRouter()
 
-  const refresh = useCallback(async () => {
+  // Mengambil daftar notifikasi: HANYA saat panel lonceng dibuka
+  const fetchNotificationList = useCallback(async () => {
+    setIsLoadingList(true)
     try {
-      const [countRes, listRes] = await Promise.all([
-        fetch("/api/notifications/unread-count", { cache: "no-store" }),
-        fetch("/api/notifications?limit=8", { cache: "no-store" }),
-      ])
-      if (countRes.ok) {
-        const c = await countRes.json()
-        setUnread(c?.data?.unread_count ?? 0)
-      }
+      const listRes = await fetch("/api/notifications?limit=8", { cache: "no-store" })
       if (listRes.ok) {
         const l = await listRes.json()
         setItems(l?.data ?? [])
+        setError(false)
+      } else {
+        setError(true)
       }
-      setError(false)
     } catch {
       setError(true)
+    } finally {
+      setIsLoadingList(false)
+    }
+  }, [])
+
+  // Ambil unread count hanya 1x saat komponen dimuat (tanpa background polling loop)
+  const fetchUnreadCount = useCallback(async () => {
+    try {
+      const countRes = await fetch("/api/notifications/unread-count", { cache: "no-store" })
+      if (countRes.ok) {
+        const c = await countRes.json()
+        setUnread(c?.data?.unread_count ?? 0)
+        setError(false)
+      }
+    } catch {
+      // Abaikan error jaringan agar tidak mengganggu UI
     }
   }, [])
 
   useEffect(() => {
-    refresh()
-    const t = setInterval(refresh, 30000)
-    return () => clearInterval(t)
-  }, [refresh])
+    let active = true
+    fetch("/api/notifications/unread-count", { cache: "no-store" })
+      .then((res) => (res.ok ? res.json() : null))
+      .then((c) => {
+        if (active && c?.data?.unread_count !== undefined) {
+          setUnread(c.data.unread_count)
+        }
+      })
+      .catch(() => {
+        // Abaikan error koneksi awal
+      })
+    return () => {
+      active = false
+    }
+  }, [])
+
+  // Toggle & fetch daftar notifikasi HANYA ketika user mengklik panel lonceng
+  const handleToggle = () => {
+    setOpen((prev) => {
+      const next = !prev
+      if (next) {
+        void fetchNotificationList()
+        void fetchUnreadCount()
+      }
+      return next
+    })
+  }
 
   // Hitung posisi panel dari tombol bell (portal di document.body → selalu di atas konten)
   useEffect(() => {
@@ -112,11 +149,11 @@ export function NotificationBell() {
         className="flex-1 overflow-y-auto min-h-0 custom-scrollbar divide-y divide-slate-100 dark:divide-slate-800"
         style={{ overflowY: "auto" }}
       >
-        {items === null && !error ? (
+        {isLoadingList && !items ? (
           <div className="p-6 flex items-center justify-center text-slate-400">
             <Loader2 className="h-4 w-4 animate-spin" />
           </div>
-        ) : error ? (
+        ) : error && !items ? (
           <div className="p-4 text-xs text-rose-600 dark:text-rose-400">Gagal memuat notifikasi.</div>
         ) : items && items.length > 0 ? (
           items.map((n) => (
@@ -161,10 +198,7 @@ export function NotificationBell() {
         <button
           ref={bellRef}
           type="button"
-          onClick={() => {
-            setOpen((v) => !v)
-            if (!open) refresh()
-          }}
+          onClick={handleToggle}
           className="relative h-8 w-8 flex items-center justify-center rounded-md text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
           aria-label="Notifikasi"
         >

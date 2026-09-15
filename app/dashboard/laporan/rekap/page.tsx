@@ -1,6 +1,7 @@
 import { auth } from "@/auth"
 import { redirect } from "next/navigation"
 import { getApi } from "@/lib/api"
+import { getSelectedYear } from "@/lib/year"
 import { LaporanRekapResponse } from "@/types/laporan"
 import { LaporanTreeTable } from "@/components/laporan/laporan-tree-table"
 import { PieChart, Calendar, Database, Layers, FileSpreadsheet } from "lucide-react"
@@ -10,21 +11,16 @@ export const metadata = {
   description: "Tabel laporan berjenjang (Hierarchical Tree Table) rekapitulasi identifikasi kebutuhan OPD s/d Sub Kegiatan.",
 }
 
-export default async function LaporanRekapPage({
-  searchParams,
-}: {
-  searchParams?: { tahun?: string }
-}) {
+export default async function LaporanRekapPage() {
   const session = await auth()
 
   if (!session) {
     redirect("/login")
   }
 
-  // Tahun anggaran dari URL (?tahun=) — di-set oleh pemilih tahun di navbar
-  const tahunUrl = searchParams?.tahun
-  const tahunAnggaran =
-    tahunUrl && /^\d{4}$/.test(tahunUrl) ? parseInt(tahunUrl, 10) : new Date().getFullYear()
+  // Tahun anggaran aktif diambil dari cookie — satu sumber dengan pemilih tahun di navbar.
+  const tahunStr = await getSelectedYear()
+  const tahunAnggaran = parseInt(tahunStr, 10) || new Date().getFullYear()
 
   // Data diambil dari API backend (Laravel) — rekap berjenjang 5 level dari pagu RKA SIPD.
   let dataRekap: LaporanRekapResponse["data"]["tree"] = []
@@ -93,7 +89,7 @@ export default async function LaporanRekapPage({
             </h1>
           </div>
           <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-            Laporan berjenjang perbandingan pagu RKA SIPD-RI dengan hasil entri identifikasi kebutuhan paket (Penyedia &amp; Swakelola).
+            Laporan perbandingan pagu RKA SIPD-RI dengan hasil entri identifikasi kebutuhan paket (Penyedia &amp; Swakelola).
           </p>
         </div>
 
@@ -114,10 +110,6 @@ export default async function LaporanRekapPage({
             <span>T.A. {tahunAnggaran}</span>
           </div>
 
-          <div className="hidden sm:flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-200 dark:border-emerald-500/20 text-[11px] font-semibold text-emerald-700 dark:text-emerald-300">
-            <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
-            SIPD-RI Sinkron
-          </div>
         </div>
       </div>
 

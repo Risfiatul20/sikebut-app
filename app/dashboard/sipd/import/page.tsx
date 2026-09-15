@@ -1,6 +1,8 @@
 "use client"
 
 import { useEffect, useState } from "react"
+import { useSession } from "next-auth/react"
+import { useYear } from "@/context/year-context"
 import { SipdVersionInfo } from "@/types/sipd"
 import { useSipdList } from "@/hooks/useSipdList"
 import { SipdImportDropzone } from "@/components/sipd/sipd-import-dropzone"
@@ -20,11 +22,19 @@ import {
 } from "lucide-react"
 
 export default function SipdImportPage() {
+  const { data: session } = useSession()
+  const { year } = useYear()
+  const isAdmin = (session?.user?.role || "").toLowerCase() === "admin"
+
   // Daftar versi Penetapan APBD dari DATABASE (backend: GET /api/v1/sipd-versions)
   const [versions, setVersions] = useState<SipdVersionInfo[]>([])
-  const [activeYear, setActiveYear] = useState<number>(2026)
+  // Year override lokal jika user memilih tahun lain di tabel SIPD
+  const [selectedYearOverride, setSelectedYearOverride] = useState<number | null>(null)
+  const activeYear = selectedYearOverride ?? year
   const [activeVersion, setActiveVersion] = useState<number>(0) // 0 = semua versi
-  const [isImportPanelOpen, setIsImportPanelOpen] = useState<boolean>(true)
+  const [page, setPage] = useState<number>(1)
+  const [pageSize, setPageSize] = useState<number>(10)
+  const [isImportPanelOpen, setIsImportPanelOpen] = useState<boolean>(false)
   const [toastMessage, setToastMessage] = useState<string | null>(null)
 
   // Muat daftar versi dari database saat halaman dibuka & setelah impor
@@ -40,12 +50,25 @@ export default function SipdImportPage() {
   }
 
   useEffect(() => {
-    loadVersions()
+    let active = true
+    fetch("/api/sipd/versions", { cache: "no-store" })
+      .then((res) => (res.ok ? res.json() : null))
+      .then((json) => {
+        if (active && json?.data) {
+          setVersions(json.data)
+        }
+      })
+      .catch(() => {})
+    return () => {
+      active = false
+    }
   }, [])
 
-  const { data: apiItems, isLoading: isLoadingItems, reload: reloadItems } = useSipdList({
+  const { data: apiItems, meta, isLoading: isLoadingItems, reload: reloadItems } = useSipdList({
     tahun: activeYear,
     versi: activeVersion,
+    page,
+    per_page: pageSize,
   })
 
   // Semua item berasal dari DATABASE (backend), bukan memori lokal
@@ -61,8 +84,9 @@ export default function SipdImportPage() {
   const handleImportSuccess = async (_version: SipdVersionInfo, count: number) => {
     // Data sudah tersimpan di database oleh backend — muat ulang dari API
     await Promise.all([loadVersions(), reloadItems()])
-    setActiveYear(2026)
+    setSelectedYearOverride(null)
     setActiveVersion(0)
+    setPage(1)
     setIsImportPanelOpen(false) // collapse form after success to show table immediately
     showToast(
       `Impor berhasil diproses dan tersimpan di database (${count > 0 ? count + " rincian" : "versi baru"}). Data dimuat ulang.`
@@ -111,31 +135,27 @@ export default function SipdImportPage() {
             </h1>
           </div>
           <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-            Sinkronisasi rincian anggaran, rekening belanja, dan standar harga dari SIPD-RI (<code className="font-mono text-[11px] text-blue-600 dark:text-blue-400">dev.sipd_penetapan_apbd</code>).
+            Sinkronisasi rincian anggaran, rekening belanja, dan standar harga dari SIPD-RI.
           </p>
         </div>
 
-        <div className="flex items-center gap-2 self-start sm:self-auto">
-          {/* SIPD Online Badge */}
-          <div className="hidden sm:flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-200 dark:border-emerald-500/20 text-[10px] font-semibold text-emerald-700 dark:text-emerald-300">
-            <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
-            SIPD-RI Terhubung
+        {isAdmin && (
+          <div className="flex items-center gap-2 self-start sm:self-auto">
+            <button
+              type="button"
+              onClick={() => setIsImportPanelOpen(!isImportPanelOpen)}
+              className={`h-8 px-3 inline-flex items-center gap-1.5 rounded-lg border text-xs font-semibold shadow-xs transition-colors ${
+                isImportPanelOpen
+                  ? "border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800"
+                  : "border-blue-600 bg-blue-600 hover:bg-blue-700 text-white"
+              }`}
+            >
+              <UploadCloud className="h-3.5 w-3.5" />
+              <span>{isImportPanelOpen ? "Tutup Form Impor" : "Form Impor Berkas SIPD"}</span>
+              {isImportPanelOpen ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
+            </button>
           </div>
-
-          <button
-            type="button"
-            onClick={() => setIsImportPanelOpen(!isImportPanelOpen)}
-            className={`h-8 px-3 inline-flex items-center gap-1.5 rounded-lg border text-xs font-semibold shadow-xs transition-colors ${
-              isImportPanelOpen
-                ? "border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800"
-                : "border-blue-600 bg-blue-600 hover:bg-blue-700 text-white"
-            }`}
-          >
-            <UploadCloud className="h-3.5 w-3.5" />
-            <span>{isImportPanelOpen ? "Tutup Form Impor" : "Form Impor Berkas SIPD"}</span>
-            {isImportPanelOpen ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
-          </button>
-        </div>
+        )}
       </div>
 
       {/* Summary Statistics */}
@@ -189,8 +209,8 @@ export default function SipdImportPage() {
         </div>
       </div>
 
-      {/* Import Section (Collapsible) */}
-      {isImportPanelOpen && (
+      {/* Import Section (Collapsible - Hanya Admin) */}
+      {isAdmin && isImportPanelOpen && (
         <div className="space-y-2 animate-in fade-in zoom-in-95 duration-200">
           <div className="flex items-center justify-between px-1">
             <p className="text-xs font-bold text-slate-800 dark:text-slate-200 flex items-center gap-1.5">
@@ -208,9 +228,6 @@ export default function SipdImportPage() {
       {/* Data Table Section (Displayed after import & for all versions) */}
       <div className="space-y-2">
         <div className="flex items-center justify-between px-1">
-          <p className="text-xs font-bold text-slate-800 dark:text-slate-200">
-            Daftar Penetapan APBD (Tabel dev.sipd_penetapan_apbd)
-          </p>
           <button
             type="button"
             onClick={() => {
@@ -237,10 +254,23 @@ export default function SipdImportPage() {
           versions={versions}
           activeVersion={activeVersion}
           activeYear={activeYear}
-          onChangeVersion={(v) => setActiveVersion(v)}
+          onChangeVersion={(v) => {
+            setActiveVersion(v)
+            setPage(1)
+          }}
           onChangeYear={(y) => {
-            setActiveYear(y)
+            setSelectedYearOverride(y)
             setActiveVersion(0) // reset to all versions on year switch
+            setPage(1)
+          }}
+          page={page}
+          pageSize={pageSize}
+          totalItems={meta?.total ?? items.length}
+          isLoading={isLoadingItems}
+          onPageChange={(newPage) => setPage(newPage)}
+          onPageSizeChange={(newSize) => {
+            setPageSize(newSize)
+            setPage(1)
           }}
         />
       </div>

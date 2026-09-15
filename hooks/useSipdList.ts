@@ -7,6 +7,17 @@ export interface UseSipdListOptions {
   tahun?: number
   versi?: number
   search?: string
+  page?: number
+  per_page?: number
+}
+
+export interface SipdPaginationMeta {
+  current_page?: number
+  last_page?: number
+  per_page?: number
+  total?: number
+  from?: number
+  to?: number
 }
 
 /**
@@ -15,6 +26,7 @@ export interface UseSipdListOptions {
  */
 export function useSipdList(options?: UseSipdListOptions) {
   const [data, setData] = useState<SipdItem[]>([])
+  const [meta, setMeta] = useState<SipdPaginationMeta | null>(null)
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [refreshTrigger, setRefreshTrigger] = useState(0)
@@ -22,6 +34,8 @@ export function useSipdList(options?: UseSipdListOptions) {
   const tahun = options?.tahun
   const versi = options?.versi
   const search = options?.search
+  const page = options?.page ?? 1
+  const per_page = options?.per_page ?? 10
 
   useEffect(() => {
     let cancel = false
@@ -34,7 +48,8 @@ export function useSipdList(options?: UseSipdListOptions) {
         if (tahun) params.set("tahun", String(tahun))
         if (versi && versi > 0) params.set("versi", String(versi))
         if (search) params.set("search", search)
-        params.set("per_page", "0")
+        params.set("page", String(page))
+        params.set("per_page", String(per_page))
 
         const res = await fetch(`/api/sipd/list?${params.toString()}`)
         if (!res.ok) throw new Error(`Gagal memuat data SIPD: ${res.status}`)
@@ -42,6 +57,7 @@ export function useSipdList(options?: UseSipdListOptions) {
         const json = await res.json()
         if (!cancel) {
           setData(json.data ?? [])
+          setMeta(json.meta ?? null)
         }
       } catch (err) {
         if (!cancel) setError(err instanceof Error ? err.message : "Terjadi kesalahan")
@@ -54,9 +70,9 @@ export function useSipdList(options?: UseSipdListOptions) {
     return () => {
       cancel = true
     }
-  }, [tahun, versi, search, refreshTrigger])
+  }, [tahun, versi, search, page, per_page, refreshTrigger])
 
   const reload = () => setRefreshTrigger((prev) => prev + 1)
 
-  return { data, isLoading, error, reload }
+  return { data, meta, isLoading, error, reload }
 }

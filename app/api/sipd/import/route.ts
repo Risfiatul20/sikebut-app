@@ -7,6 +7,11 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
   }
 
+  const role = (session.user.role || "").toLowerCase()
+  if (role !== "admin") {
+    return NextResponse.json({ error: "Akses ditolak. Fitur impor SIPD hanya untuk Administrator." }, { status: 403 })
+  }
+
   const formData = await req.formData()
   const file = formData.get("file")
 

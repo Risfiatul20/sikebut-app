@@ -57,7 +57,7 @@ export default async function LoginPage() {
 
             <LoginForm />
 
-            <div className="flex items-center gap-3 my-6">
+            {/*<div className="flex items-center gap-3 my-6">
               <div className="h-px flex-1 bg-slate-200 dark:bg-slate-800" />
               <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">atau</span>
               <div className="h-px flex-1 bg-slate-200 dark:bg-slate-800" />
@@ -68,7 +68,7 @@ export default async function LoginPage() {
               className="w-full flex items-center justify-center gap-2 rounded-xl border border-amber-300/60 dark:border-amber-500/30 bg-amber-50 dark:bg-amber-500/10 text-amber-700 dark:text-amber-300 hover:bg-amber-100 dark:hover:bg-amber-500/15 text-sm font-bold py-2.5 transition-colors"
             >
               <ShieldCheck className="h-4 w-4" /> Masuk dengan SIPD-RI
-            </button>
+            </button>*/}
           </div>
 
           <p className="mt-6 text-center text-xs text-slate-400 leading-relaxed">

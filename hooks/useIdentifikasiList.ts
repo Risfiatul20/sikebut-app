@@ -12,7 +12,7 @@ export interface UseIdentifikasiListOptions {
   kodeKegiatan?: string
   kodeSubKegiatan?: string
   kodeSkpd?: string
-  tahun?: number
+  tahun?: number | string
   sortBy?: string
   sortDirection?: "asc" | "desc"
   page?: number

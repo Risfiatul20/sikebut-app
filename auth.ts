@@ -52,11 +52,9 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
           const kodeSkpd = String(user.kode_skpd || user.skpd?.kode_skpd || "")
           const namaSkpd = String(user.skpd?.nama_skpd || user.nama_skpd || "-")
 
-          // Ambil data programs & subkegiatans dari response login (terutama saat role PPK)
-          const subkegiatanData = (user.sub_kegiatan || []) as AuthSubKegiatan[]
-          const kegiatanData = (user.kegiatans || []) as AuthKegiatan[]
-          const programsData = (user.programs || []) as AuthProgram[]
-
+          // Sesi hanya menyimpan data user dan SKPD esensial.
+          // Data program, kegiatan, dan subkegiatan TIDAK disimpan di JWT cookie
+          // agar ukuran cookie tetap sangat kecil dan mencegah error Nginx 494.
           return {
             id: String(user.id ?? ""),
             username: user.username || usernameStr,
@@ -67,9 +65,6 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
             kodeSkpd: kodeSkpd || "",
             namaSkpd: namaSkpd || "-",
             info: (user.info || {}) as AuthUserInfo,
-            subKegiatan: subkegiatanData,
-            kegiatans: kegiatanData,
-            programs: programsData,
           }
         } catch (error) {
           console.error("Backend login error:", error)

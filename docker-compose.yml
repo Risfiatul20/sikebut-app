@@ -1,0 +1,41 @@
+services:
+  sikebut-app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: sikebut-app:1.0.0
+    container_name: sikebut-app
+    restart: unless-stopped
+    env_file:
+      - .env.production
+    environment:
+      NODE_ENV: production
+      PORT: 3000
+      HOSTNAME: 0.0.0.0
+      AUTH_SECRET: ${AUTH_SECRET}
+      API_URL: ${API_URL}
+      NEXT_PUBLIC_APP_ENV: ${NEXT_PUBLIC_APP_ENV:-production}
+      AUTH_URL: ${AUTH_URL:-http://localhost:3000}
+      NEXTAUTH_URL: ${NEXTAUTH_URL:-http://localhost:3000}
+    expose:
+      - "3000"
+    networks:
+      - app-network
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:3000/ >/dev/null 2>&1 || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 45s
+    deploy:
+      resources:
+        limits:
+          cpus: "2.0"
+          memory: 1024M
+        reservations:
+          cpus: "0.25"
+          memory: 256M
+
+networks:
+  app-network:
+    external: true

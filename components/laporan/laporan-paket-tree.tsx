@@ -19,7 +19,7 @@ import {
   Inbox,
 } from "lucide-react"
 import { LaporanPaketResponse, RincianPaketRow } from "@/types/laporan-paket"
-import { useTahunAktif } from "@/components/tahun-provider"
+import { useYear } from "@/context/year-context"
 
 /* ------------------------------------------------------------------ */
 /* Format helper                                                       */
@@ -232,7 +232,7 @@ export function LaporanPaketTree({ jenis, title, description }: Props) {
   const [expanded, setExpanded] = useState<Set<string>>(new Set())
   const [search, setSearch] = useState("")
 
-  const { tahun } = useTahunAktif()
+  const { year: tahun } = useYear()
   const isPenyedia = jenis === "penyedia"
 
   // Status memuat DITURUNKAN dari kombinasi jenis+tahun yang sudah selesai dimuat.

@@ -4,8 +4,8 @@ import { useState } from "react"
 import Link from "next/link"
 import { AuthSubKegiatan } from "@/types/next-auth"
 import { usePermission } from "@/hooks/usePermission"
-import { useTahunAktif } from "@/components/tahun-provider"
 import { useIdentifikasiList } from "@/hooks/useIdentifikasiList"
+import { useYear } from "@/context/year-context"
 import { IdentifikasiKebutuhan } from "@/types/identifikasi"
 import { statusLabel, statusBadgeClass } from "@/lib/status-paket"
 import { DetailReviewModal } from "@/components/identifikasi/detail-review-modal"
@@ -48,7 +48,6 @@ export interface IdentifikasiDataClientSession {
 
 export function IdentifikasiDataClient({ session }: { session: IdentifikasiDataClientSession }) {
     const { can } = usePermission()
-  const { tahun } = useTahunAktif()
 
   const userRole = (session?.user?.role || "").toLowerCase()
   const isUserPpk = userRole === "ppk"
@@ -72,6 +71,7 @@ export function IdentifikasiDataClient({ session }: { session: IdentifikasiDataC
   const [selectedItem, setSelectedItem] = useState<IdentifikasiKebutuhan | null>(null)
   const [isActionLoading, setIsActionLoading] = useState<number | null>(null)
   const [toastMsg, setToastMsg] = useState<{ type: "success" | "error"; text: string } | null>(null)
+  const { year } = useYear()
 
   const showToast = (text: string, type: "success" | "error" = "success") => {
     setToastMsg({ text, type })
@@ -84,7 +84,7 @@ export function IdentifikasiDataClient({ session }: { session: IdentifikasiDataC
     statusReview,
     caraPengadaan,
     jenisPengadaan,
-    tahun,
+    tahun: year,
     sortBy,
     sortDirection,
     page,

@@ -1,5 +1,6 @@
 import { auth } from "@/auth"
 import { NextResponse } from "next/server"
+import { getSelectedYear } from "@/lib/year"
 
 // Catatan: route ini TIDAK punya data cadangan (mock). Data modal RKA SIPD harus
 // selalu dari backend Laravel (database). Kalau backend tidak terjangkau → error
@@ -29,7 +30,9 @@ export async function GET(req: Request) {
     if (!params.get("kode_skpd") && !params.get("kode_sub_unit") && session.user.kodeSkpd) {
       params.set("kode_skpd", session.user.kodeSkpd)
     }
-    if (!params.get("tahun")) params.set("tahun", "2026")
+    if (!params.get("tahun")) {
+      params.set("tahun", await getSelectedYear())
+    }
 
     backendRes = await fetch(
       `${process.env.API_URL || "http://127.0.0.1:8000"}/api/v1/sipd-penetapan-apbd/modal?${params.toString()}`,
@@ -38,7 +41,7 @@ export async function GET(req: Request) {
           Accept: "application/json",
           Authorization: `Bearer ${session.user.apiToken}`,
         },
-        next: { revalidate: 300, tags: ["sipd-modal"] },
+        cache: "no-store",
       }
     )
   } catch {

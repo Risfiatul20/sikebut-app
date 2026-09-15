@@ -2,7 +2,7 @@ import { LaporanPaketTree } from "@/components/laporan/laporan-paket-tree"
 
 export const metadata = {
   title: "Laporan Penyedia — Sikebut PBJ",
-  description: "Rincian paket pengadaan melalui penyedia sesuai template laporan.",
+  description: "Rincian identifikasi kebutuhan paket pengadaan melalui penyedia.",
 }
 
 export default function LaporanPenyediaPage() {

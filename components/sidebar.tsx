@@ -8,13 +8,13 @@ import { useState } from "react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { motion, AnimatePresence } from "framer-motion"
-import { 
-  ChevronLeft, 
-  ChevronRight, 
-  LayoutDashboard, 
-  Settings, 
-  Users, 
-  FileText, 
+import {
+  ChevronLeft,
+  ChevronRight,
+  LayoutDashboard,
+  Settings,
+  Users,
+  FileText,
   ChevronDown,
   Database,
   PieChart,
@@ -62,7 +62,7 @@ const menuCategories: MenuCategory[] = [
         title: "Referensi SIPD",
         icon: Database,
         subItems: [
-          { title: "Import Data", href: "/dashboard/sipd/import" },
+          { title: "Data SIPD", href: "/dashboard/sipd/import" },
           { title: "Kode Akun", href: "/dashboard/sipd/kode-akun" },
         ],
       },
@@ -130,7 +130,7 @@ export function Sidebar() {
       setExpandedMenus([title])
       return
     }
-    setExpandedMenus(prev => 
+    setExpandedMenus(prev =>
       prev.includes(title) ? prev.filter(item => item !== title) : [...prev, title]
     )
   }
@@ -178,7 +178,7 @@ export function Sidebar() {
               ) : (
                 catIndex > 0 && <div className="h-px bg-slate-200 dark:bg-slate-800 mx-2 my-2" />
               )}
-              
+
               <div className="space-y-1">
                 {category.items.map((item) => {
                   if (item.title === "Manajemen Pengguna" && !can("user:manage")) {
@@ -192,7 +192,7 @@ export function Sidebar() {
                   )
                   const isActive = item.href === pathname || visibleSubItems?.some(sub => sub.href === pathname)
                   const isExpanded = expandedMenus.includes(item.title)
-                  
+
                   return (
                     <div key={item.title}>
                       {item.href ? (
@@ -200,8 +200,8 @@ export function Sidebar() {
                           href={item.href}
                           className={cn(
                             "flex items-center gap-3 px-2 py-2 rounded-md transition-colors text-xs font-medium group",
-                            isActive 
-                              ? "bg-blue-50 text-blue-700 dark:bg-blue-500/10 dark:text-blue-400" 
+                            isActive
+                              ? "bg-blue-50 text-blue-700 dark:bg-blue-500/10 dark:text-blue-400"
                               : "text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-slate-200"
                           )}
                           title={isCollapsed ? item.title : undefined}
@@ -216,7 +216,7 @@ export function Sidebar() {
                             className={cn(
                               "w-full flex items-center justify-between px-2 py-2 rounded-md transition-colors text-xs font-medium group",
                               isActive && !isExpanded
-                                ? "bg-slate-50 text-slate-900 dark:bg-slate-800/50 dark:text-slate-200" 
+                                ? "bg-slate-50 text-slate-900 dark:bg-slate-800/50 dark:text-slate-200"
                                 : "text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-slate-200"
                             )}
                             title={isCollapsed ? item.title : undefined}
@@ -229,7 +229,7 @@ export function Sidebar() {
                               <ChevronDown className={cn("h-3.5 w-3.5 text-slate-400 shrink-0 transition-transform duration-200", isExpanded && "rotate-180")} />
                             )}
                           </button>
-                          
+
                           <AnimatePresence initial={false}>
                             {isExpanded && !isCollapsed && visibleSubItems && visibleSubItems.length > 0 && (
                               <motion.div
@@ -248,8 +248,8 @@ export function Sidebar() {
                                         href={sub.href}
                                         className={cn(
                                           "block px-2 py-1.5 rounded-md text-[11px] whitespace-nowrap transition-colors relative before:absolute before:left-[-11px] before:top-1/2 before:-translate-y-1/2 before:w-1 before:h-1 before:rounded-full",
-                                          isSubActive 
-                                            ? "text-blue-700 dark:text-blue-400 font-semibold bg-blue-50/50 dark:bg-blue-500/10 before:bg-blue-600 dark:before:bg-blue-400" 
+                                          isSubActive
+                                            ? "text-blue-700 dark:text-blue-400 font-semibold bg-blue-50/50 dark:bg-blue-500/10 before:bg-blue-600 dark:before:bg-blue-400"
                                             : "text-slate-500 dark:text-slate-400 font-medium hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800 before:bg-transparent"
                                         )}
                                       >

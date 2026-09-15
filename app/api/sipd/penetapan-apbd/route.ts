@@ -1,6 +1,7 @@
 import { auth } from "@/auth"
 import { NextResponse } from "next/server"
 import { SipdItem } from "@/types/sipd"
+import { getSelectedYear } from "@/lib/year"
 
 interface RawSipdRow {
   id: number | string
@@ -97,7 +98,12 @@ export async function GET(req: Request) {
   // Teruskan ke backend Laravel: /api/v1/sipd-penetapan-apbd — TANPA fallback mock.
   let backendRes: Response
   try {
-    const params = new URLSearchParams({ per_page: "0", kode_sub_kegiatan: kodeSubKegiatan })
+    const tahun = searchParams.get("tahun") || (await getSelectedYear())
+    const params = new URLSearchParams({
+      per_page: "0",
+      kode_sub_kegiatan: kodeSubKegiatan,
+      tahun,
+    })
     backendRes = await fetch(
       `${process.env.API_URL || "http://127.0.0.1:8000"}/api/v1/sipd-penetapan-apbd?${params.toString()}`,
       {
@@ -105,7 +111,7 @@ export async function GET(req: Request) {
           Accept: "application/json",
           Authorization: `Bearer ${session.user.apiToken}`,
         },
-        next: { revalidate: 3600, tags: ["sipd-penetapan-apbd"] },
+        cache: "no-store",
       }
     )
   } catch {
@@ -117,7 +123,13 @@ export async function GET(req: Request) {
 
   if (backendRes.ok) {
     const json = await backendRes.json()
-    const rows: RawSipdRow[] = json.data ?? []
+    const rows: RawSipdRow[] = Array.isArray(json?.data)
+      ? json.data
+      : Array.isArray(json?.data?.data)
+        ? json.data.data
+        : Array.isArray(json)
+          ? json
+          : []
     return NextResponse.json({ data: rows.map(normalizeRow) })
   }
 

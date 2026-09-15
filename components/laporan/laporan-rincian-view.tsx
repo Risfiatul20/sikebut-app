@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState, type ReactNode } from "react"
 import { Loader2, RefreshCw, Inbox, Wallet, Building2, Layers, FileSpreadsheet, Printer, MapPin, Package, BadgeCheck, Coins, CalendarRange, GitBranch } from "lucide-react"
 import { LaporanPaketResponse, RincianPaketRow } from "@/types/laporan-paket"
-import { useTahunAktif } from "@/components/tahun-provider"
+import { useYear } from "@/context/year-context"
 
 const fmtRp = (v: number | string) =>
   new Intl.NumberFormat("id-ID", {
@@ -47,7 +47,7 @@ export function LaporanRincianView({ jenis, title, description }: Props) {
   const [error, setError] = useState<string | null>(null)
 
   // Tahun mengikuti pemilih tahun di navbar
-  const { tahun } = useTahunAktif()
+  const { year: tahun } = useYear()
 
   const load = useCallback(async () => {
     setLoading(true)

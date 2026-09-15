@@ -1,6 +1,7 @@
 import { auth } from "@/auth"
 import { NextResponse } from "next/server"
 import { IdentifikasiListResponse } from "@/types/identifikasi"
+import { getSelectedYear } from "@/lib/year"
 
 // Catatan: route ini TIDAK punya data cadangan (mock). Semua data harus dari
 // backend Laravel (database). Kalau backend tidak terjangkau → error ditampilkan
@@ -42,8 +43,13 @@ export async function GET(req: Request) {
   // Ambil data langsung dari backend Laravel — TANPA fallback data dummy.
   let backendRes: Response
   try {
+    const params = new URLSearchParams(searchParams)
+    if (!params.get("tahun")) {
+      params.set("tahun", await getSelectedYear())
+    }
+
     backendRes = await fetch(
-      `${process.env.API_URL || "http://127.0.0.1:8000"}/api/v1/identifikasi-kebutuhan?${searchParams.toString()}`,
+      `${process.env.API_URL || "http://127.0.0.1:8000"}/api/v1/identifikasi-kebutuhan?${params.toString()}`,
       {
         headers: {
           Accept: "application/json",
@@ -78,6 +84,11 @@ export async function POST(req: Request) {
   try {
     const body = await req.json()
 
+    // Jika tahun tidak dikirim dari form payload, isi otomatis dari sesi cookie tahun aktif
+    if (!body.tahun) {
+      body.tahun = Number(await getSelectedYear())
+    }
+
     // Validasi SKPD: hanya Admin yang boleh memilih SKPD selain miliknya
     const isAdmin = (session.user.role || "").toLowerCase() === "admin"
     if (!isAdmin && session.user.kodeSkpd) {
@@ -85,7 +96,7 @@ export async function POST(req: Request) {
     }
 
     // Mencoba kirim langsung ke backend Laravel (POST /api/v1/identifikasi-kebutuhan)
-    try {
+   try {
       const backendUrl = `${process.env.API_URL || "http://127.0.0.1:8000"}/api/v1/identifikasi-kebutuhan`
       const backendRes = await fetch(backendUrl, {
         method: "POST",

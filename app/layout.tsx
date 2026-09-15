@@ -4,6 +4,7 @@ import "./globals.css";
 
 import { SessionProvider } from "@/components/session-provider";
 import { ThemeProvider } from "@/components/theme-provider";
+import { YearProvider } from "@/context/year-context";
 
 const inter = Inter({
   variable: "--font-inter",
@@ -38,7 +39,9 @@ export default function RootLayout({
     >
       <body className="min-h-full flex flex-col font-sans bg-slate-100 dark:bg-slate-950 text-slate-900 dark:text-slate-100 transition-colors duration-200">
         <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
-          <SessionProvider>{children}</SessionProvider>
+          <SessionProvider>
+            <YearProvider>{children}</YearProvider>
+          </SessionProvider>
         </ThemeProvider>
       </body>
     </html>

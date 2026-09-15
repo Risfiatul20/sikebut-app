@@ -1,5 +1,6 @@
 import { auth } from "@/auth"
 import { NextResponse } from "next/server"
+import { getSelectedYear } from "@/lib/year"
 
 // Catatan: route ini TIDAK punya data cadangan (mock). Semua data RKBMD harus
 // dari backend Laravel (database). Kalau backend tidak terjangkau → error
@@ -12,12 +13,16 @@ export async function GET(req: Request) {
   }
 
   const { searchParams } = new URL(req.url)
+  const finalParams = new URLSearchParams(searchParams)
+  const activeYear = finalParams.get("periode") || finalParams.get("tahun") || (await getSelectedYear())
+  if (!finalParams.get("periode")) finalParams.set("periode", activeYear)
+  if (!finalParams.get("tahun")) finalParams.set("tahun", activeYear)
 
   // Ambil data langsung dari backend Laravel — TANPA fallback data dummy.
   let res: Response
   try {
     res = await fetch(
-      `${process.env.API_URL || "http://127.0.0.1:8000"}/api/v1/rkbmd-pengadaan?${searchParams.toString()}`,
+      `${process.env.API_URL || "http://127.0.0.1:8000"}/api/v1/rkbmd-pengadaan?${finalParams.toString()}`,
       {
         headers: {
           Accept: "application/json",
@@ -46,6 +51,11 @@ export async function POST(req: Request) {
   const session = await auth()
   if (!session?.user?.apiToken) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+  }
+
+  const role = (session.user.role || "").toLowerCase()
+  if (role !== "admin") {
+    return NextResponse.json({ error: "Akses ditolak. Fitur impor RKBMD hanya untuk Administrator." }, { status: 403 })
   }
 
   try {
@@ -86,4 +96,4 @@ export async function POST(req: Request) {
   } catch {
     return NextResponse.json({ error: "Gagal memproses impor berkas" }, { status: 400 })
   }
-}
+}

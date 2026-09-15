@@ -12,7 +12,7 @@ import { StepFormJasaLainnya } from "@/components/identifikasi/step-form-jasa-la
 import { StepFormKonsultansi } from "@/components/identifikasi/step-form-konsultansi"
 import { StepFormSwakelola } from "@/components/identifikasi/step-form-swakelola"
 import { ModalPagu } from "@/components/identifikasi/modal-pagu"
-import { useTahunAktif } from "@/components/tahun-provider"
+import { useYear } from "@/context/year-context"
 import { StepReview } from "@/components/identifikasi/step-review"
 import { CatatanVerifikatorPanel } from "@/components/identifikasi/catatan-verifikator-panel"
 import { PayloadPreviewModal } from "@/components/identifikasi/payload-preview-modal"
@@ -38,7 +38,7 @@ function IdentifikasiPageContent() {
   const isEditMode = Boolean(editIdStr)
 
   // Tahun anggaran aktif dari navbar — disimpan ke paket saat simpan/ajukan
-  const { tahun: tahunAktif } = useTahunAktif()
+  const { year: tahunAktif } = useYear()
 
   const [currentStep, setCurrentStep] = useState(0)
   const [identitas, setIdentitas] = useState<FormIdentitas>(() => ({

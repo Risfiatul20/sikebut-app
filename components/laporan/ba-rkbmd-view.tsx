@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState } from "react"
 import { Loader2, RefreshCw, Printer, FileText, FileSpreadsheet } from "lucide-react"
 import { BaRkbmdResponse } from "@/types/laporan-paket"
-import { useTahunAktif } from "@/components/tahun-provider"
+import { useYear } from "@/context/year-context"
 
 interface Props {
   jenis: "ba-rkbmd-pengadaan" | "ba-rkbmd-pemeliharaan"
@@ -20,7 +20,7 @@ export function BaRkbmdView({ jenis, tipe, judul, deskripsi }: Props) {
   const [tanggal, setTanggal] = useState(() => new Date().toISOString().slice(0, 10))
 
   // Tahun mengikuti pemilih tahun di navbar
-  const { tahun } = useTahunAktif()
+  const { year: tahun } = useYear()
 
   const load = useCallback(async () => {
     setLoading(true)

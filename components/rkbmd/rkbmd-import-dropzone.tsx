@@ -169,7 +169,7 @@ export function RkbmdImportDropzone({ type, title, onImportSuccess }: RkbmdImpor
         <div>
           <h3 className="font-semibold text-xs text-slate-900 dark:text-white">Formulir Impor Berkas {title}</h3>
           <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
-            Unggah file Excel/CSV RKBMD ({type === "pengadaan" ? "POST /api/v1/import/rkbmd-pengadaan" : "POST /api/v1/import/rkbmd-pemeliharaan"}). Max 20MB.
+            Unggah file Excel/CSV RKBMD ({type === "pengadaan" ? "Pengadaan" : "Pemeliharaan"}). Max 20MB.
           </p>
         </div>
         <button

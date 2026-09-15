@@ -3,13 +3,13 @@
 import { useState, useEffect } from "react"
 import { PieChart, BarChart3, TrendingUp, Download, FileText, Layers } from "lucide-react"
 import { LaporanKebutuhanResponse } from "@/types/laporan"
-import { useTahunAktif } from "@/components/tahun-provider"
+import { useYear } from "@/context/year-context"
 
 type ViewMode = "ringkasan" | "per-program" | "per-sumber-dana"
 
 export default function LaporanKebutuhanPage() {
   // Tahun mengikuti pemilih tahun di navbar (sticky, default tahun berjalan)
-  const { tahun: selectedYear, setTahun: setSelectedYear, tahunOptions } = useTahunAktif()
+  const { year: selectedYear, setYear: setSelectedYear, availableYears: tahunOptions } = useYear()
   const [viewMode, setViewMode] = useState<ViewMode>("ringkasan")
 
   // Data agregat diambil dari backend (Laravel) melalui route proxy Next.js.

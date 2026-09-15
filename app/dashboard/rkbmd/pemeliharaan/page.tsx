@@ -1,9 +1,10 @@
 "use client"
 
 import { useState } from "react"
+import { useSession } from "next-auth/react"
+import { useYear } from "@/context/year-context"
 import { RkbmdPemeliharaanItem } from "@/types/rkbmd"
 import { RkbmdImportDropzone } from "@/components/rkbmd/rkbmd-import-dropzone"
-import { RkbmdManualForm } from "@/components/rkbmd/rkbmd-manual-form"
 import { useRkbmdList } from "@/hooks/useRkbmdList"
 import { useSkpd } from "@/hooks/useSkpd"
 import {
@@ -19,20 +20,20 @@ import {
   ChevronDown,
   ChevronUp,
   X,
-  PackagePlus,
 } from "lucide-react"
 
 export default function RkbmdPemeliharaanPage() {
+  const { data: session } = useSession()
+  const { year } = useYear()
+  const isAdmin = (session?.user?.role || "").toLowerCase() === "admin"
   const { skpdList } = useSkpd()
 
   const [isImportOpen, setIsImportOpen] = useState(false)
-  const [isManualOpen, setIsManualOpen] = useState(false)
   const [selectedItem, setSelectedItem] = useState<RkbmdPemeliharaanItem | null>(null)
 
   // Filters
   const [search, setSearch] = useState("")
   const [selectedSkpd, setSelectedSkpd] = useState("ALL")
-  const [selectedPeriode, setSelectedPeriode] = useState<number>(2026)
   const [page, setPage] = useState(1)
   const [perPage, setPerPage] = useState(10)
   const [sortBy, setSortBy] = useState("id_pemeliharaan")
@@ -43,7 +44,7 @@ export default function RkbmdPemeliharaanPage() {
     endpoint: "pemeliharaan",
     search,
     kode_skpd: selectedSkpd,
-    periode: selectedPeriode,
+    periode: year,
     page,
     perPage,
     sortBy,
@@ -66,11 +67,10 @@ export default function RkbmdPemeliharaanPage() {
   const handleResetFilters = () => {
     setSearch("")
     setSelectedSkpd("ALL")
-    setSelectedPeriode(2026)
     setPage(1)
   }
 
-  const hasActiveFilters = Boolean(search || selectedSkpd !== "ALL" || selectedPeriode !== 2026)
+  const hasActiveFilters = Boolean(search || selectedSkpd !== "ALL")
 
   const getStatusBadge = (status: string) => {
     switch (status) {
@@ -99,7 +99,7 @@ export default function RkbmdPemeliharaanPage() {
             </h1>
           </div>
           <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-            Data Rencana Pemeliharaan Barang Milik Daerah dari tabel <code className="font-mono text-[11px] text-emerald-600 dark:text-emerald-400">dev.rkbmd_pemeliharaan</code>.
+            Data Rencana Pemeliharaan Barang Milik Daerah.
           </p>
         </div>
 
@@ -113,33 +113,26 @@ export default function RkbmdPemeliharaanPage() {
             <span>Sinkronkan</span>
           </button>
 
-          <button
-            type="button"
-            onClick={() => setIsManualOpen(true)}
-            className="h-8 px-3 inline-flex items-center gap-1.5 rounded-lg border border-emerald-600 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold shadow-xs transition-colors"
-          >
-            <PackagePlus className="h-3.5 w-3.5" />
-            <span>Tambah Manual</span>
-          </button>
-
-          <button
-            type="button"
-            onClick={() => setIsImportOpen((prev) => !prev)}
-            className={`h-8 px-3 inline-flex items-center gap-1.5 rounded-lg border text-xs font-semibold shadow-xs transition-colors ${
-              isImportOpen
-                ? "border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800"
-                : "border-emerald-600 bg-emerald-600 hover:bg-emerald-700 text-white"
-            }`}
-          >
-            <UploadCloud className="h-3.5 w-3.5" />
-            <span>{isImportOpen ? "Tutup Form Impor" : "Form Impor RKBMD Pemeliharaan"}</span>
-            {isImportOpen ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
-          </button>
+          {isAdmin && (
+            <button
+              type="button"
+              onClick={() => setIsImportOpen((prev) => !prev)}
+              className={`h-8 px-3 inline-flex items-center gap-1.5 rounded-lg border text-xs font-semibold shadow-xs transition-colors ${
+                isImportOpen
+                  ? "border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800"
+                  : "border-emerald-600 bg-emerald-600 hover:bg-emerald-700 text-white"
+              }`}
+            >
+              <UploadCloud className="h-3.5 w-3.5" />
+              <span>{isImportOpen ? "Tutup Form Impor" : "Form Impor RKBMD Pemeliharaan"}</span>
+              {isImportOpen ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
+            </button>
+          )}
         </div>
       </div>
 
-      {/* Import Section Dropzone */}
-      {isImportOpen && (
+      {/* Import Section Dropzone (Hanya Admin) */}
+      {isAdmin && isImportOpen && (
         <RkbmdImportDropzone
           type="pemeliharaan"
           title="RKBMD Pemeliharaan"
@@ -182,19 +175,6 @@ export default function RkbmdPemeliharaanPage() {
               ))}
             </select>
 
-            <select
-              value={selectedPeriode}
-              onChange={(e) => {
-                setSelectedPeriode(Number(e.target.value))
-                setPage(1)
-              }}
-              className="h-8 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-950/60 px-2.5 text-xs font-mono font-medium text-slate-700 dark:text-slate-300 focus:outline-none focus:ring-2 focus:ring-emerald-500/40"
-            >
-              <option value={2027}>Periode 2027</option>
-              <option value={2026}>Periode 2026</option>
-              <option value={2025}>Periode 2025</option>
-            </select>
-
             {hasActiveFilters && (
               <button
                 type="button"
@@ -228,9 +208,6 @@ export default function RkbmdPemeliharaanPage() {
         {/* Database Schema Tag */}
         <div className="px-4 py-2 border-b border-slate-100 dark:border-slate-800 bg-slate-50/60 dark:bg-slate-800/30 flex items-center justify-between text-[11px] text-slate-500 dark:text-slate-400">
           <div className="flex items-center gap-2">
-            <span className="font-mono text-[10px] bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 px-1.5 py-0.5 rounded font-semibold">
-              dev.rkbmd_pemeliharaan
-            </span>
             <span>Rencana pemeliharaan barang & status kondisi fisik (B/RR/RB).</span>
           </div>
           <div className="text-[10px] font-mono text-slate-400 hidden sm:block">
@@ -401,14 +378,7 @@ export default function RkbmdPemeliharaanPage() {
         </div>
       </section>
 
-      {/* Modal Tambah Manual */}
-      <RkbmdManualForm
-        type="pemeliharaan"
-        isOpen={isManualOpen}
-        onClose={() => setIsManualOpen(false)}
-        onSaved={() => reload()}
-      />
-
+      {/* Modal Detail Barang */}
       {/* Detail Modal */}
       {selectedItem && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-xs animate-in fade-in duration-150">
