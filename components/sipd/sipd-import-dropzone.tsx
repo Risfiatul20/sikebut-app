@@ -207,6 +207,10 @@ export function SipdImportDropzone({ onImportSuccess, existingVersions }: SipdIm
             <option value={2025}>Tahun 2025 (Historis)</option>
             <option value={2027}>Tahun 2027 (Rencana)</option>
           </select>
+          <p className="mt-1 text-[10px] leading-snug text-amber-600 dark:text-amber-400">
+            Tahun data diambil dari kolom <code className="font-mono">TAHUN</code> di dalam berkas.
+            Bila isinya bukan {selectedYear}, impor ditolak supaya data tidak masuk ke tahun yang salah.
+          </p>
         </div>
 
         <div className="sm:col-span-2">
@@ -295,8 +299,8 @@ export function SipdImportDropzone({ onImportSuccess, existingVersions }: SipdIm
       )}
 
       {phase === "error" && (
-        <div className="p-3.5 rounded-xl border border-red-200 dark:border-red-800/50 bg-red-50/50 dark:bg-red-950/20 flex items-center gap-2.5 animate-in fade-in duration-200">
-          <XCircle className="h-4 w-4 text-red-600 dark:text-red-400 shrink-0" />
+        <div className="p-3.5 rounded-xl border border-red-200 dark:border-red-800/50 bg-red-50/50 dark:bg-red-950/20 flex items-start gap-2.5 animate-in fade-in duration-200">
+          <XCircle className="h-4 w-4 mt-0.5 text-red-600 dark:text-red-400 shrink-0" />
           <p className="text-xs font-semibold text-red-800 dark:text-red-300 break-words">{statusMessage}</p>
         </div>
       )}
