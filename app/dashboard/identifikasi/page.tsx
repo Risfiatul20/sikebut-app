@@ -473,6 +473,7 @@ function IdentifikasiPageContent() {
             userData={userData}
             isAdmin={isAdmin}
             missing={missingKeysIdentitas}
+            statusPaket={statusReview}
           />
         )
       case 1:

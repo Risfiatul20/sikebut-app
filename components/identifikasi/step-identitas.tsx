@@ -16,9 +16,28 @@ interface Props {
   isAdmin?: boolean
   /** Key field identitas yang kosong (highlight merah + pesan wajib diisi). */
   missing?: string[]
+  /**
+   * Status paket yang sedang dibuka (mode edit). Kosong = usulan baru.
+   * Dipakai supaya kartu "Status" menampilkan keadaan sebenarnya — sebelumnya
+   * selalu tertulis "Draft Baru", sehingga paket yang dikembalikan verifikator
+   * (Perlu Perbaikan) pun tampak seperti draft baru.
+   */
+  statusPaket?: string | null
 }
 
-export function StepIdentitas({ data, onChange, userData, isAdmin = false, missing = [] }: Props) {
+export function StepIdentitas({ data, onChange, userData, isAdmin = false, missing = [], statusPaket = null }: Props) {
+  // Label + keterangan status yang mengikuti status paket sebenarnya.
+  const statusTampil = statusPaket || "Draft Baru"
+  const statusKet =
+    statusPaket === "Perlu Perbaikan"
+      ? "Dikembalikan verifikator — perbaiki lalu ajukan ulang"
+      : statusPaket === "Diajukan"
+        ? "Menunggu review verifikator"
+        : statusPaket === "Disetujui"
+          ? "Usulan final & disetujui"
+          : statusPaket === "Draft"
+            ? "Masih tersimpan sebagai draft"
+            : "Menunggu pengisian"
   const isMiss = (k: string) => missing.includes(k)
   const errRing = (k: string) =>
     isMiss(k)
@@ -219,8 +238,8 @@ export function StepIdentitas({ data, onChange, userData, isAdmin = false, missi
             <ChevronRight className="h-3.5 w-3.5 text-blue-500" />
             <span className="text-[10px] font-semibold uppercase tracking-wider text-blue-500">Status</span>
           </div>
-          <p className="text-xs font-semibold text-blue-700 dark:text-blue-300">Draft Baru</p>
-          <p className="text-[10px] text-blue-400 mt-0.5">Menunggu pengisian</p>
+          <p className="text-xs font-semibold text-blue-700 dark:text-blue-300">{statusTampil}</p>
+          <p className="text-[10px] text-blue-400 mt-0.5">{statusKet}</p>
         </div>
       </div>
 
