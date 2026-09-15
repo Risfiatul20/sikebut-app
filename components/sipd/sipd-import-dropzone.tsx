@@ -140,9 +140,12 @@ export function SipdImportDropzone({ onImportSuccess, existingVersions }: SipdIm
       setStatusMessage("Berkas diterima, memproses & menyimpan rincian ke database...")
 
       // Polling status impor (backend queue) sampai selesai/gagal
-      const maxAttempts = 60 // 60 x 2.5s ≈ 2.5 menit
+      // Impor dikerjakan di latar belakang oleh worker, dan berkas SIPD asli
+      // (~39 ribu baris) bisa berjalan sekitar 8 menit. Jendela pantau dibuat
+      // longgar: 400 x 3 detik ≈ 20 menit (sebelumnya hanya 2,5 menit).
+      const maxAttempts = 400
       for (let attempt = 0; attempt < maxAttempts; attempt++) {
-        await new Promise((r) => setTimeout(r, 2500))
+        await new Promise((r) => setTimeout(r, 3000))
         const statusRes = await fetch(`/api/sipd/import-status/${importId}`, { cache: "no-store" })
         if (!statusRes.ok) {
           setPhase("error")
