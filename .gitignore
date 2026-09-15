@@ -37,6 +37,10 @@ yarn-error.log*
 
 # env files (can opt-in for committing if needed)
 .env*
+# PENGECUALIAN: template env WAJIB ikut ter-commit supaya bisa dipakai saat deploy
+# (tanpa ini, .env.production tidak bisa dibuat di server).
+!.env.example
+!.env.production.example
 
 # vercel
 .vercel

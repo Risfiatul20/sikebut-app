@@ -8,15 +8,18 @@ services:
     restart: unless-stopped
     env_file:
       - .env.production
+    # CATATAN: seluruh nilai rahasia & alamat HANYA diambil dari .env.production.
+    # Jangan diduplikasi di sini memakai `${VAR}` — bila variabel itu tidak ada di
+    # shell, Compose justru menimpanya dengan string KOSONG (AUTH_SECRET kosong =
+    # login gagal) sekaligus mengalahkan isi .env.production.
     environment:
       NODE_ENV: production
       PORT: 3000
       HOSTNAME: 0.0.0.0
-      AUTH_SECRET: ${AUTH_SECRET}
-      API_URL: ${API_URL}
-      NEXT_PUBLIC_APP_ENV: ${NEXT_PUBLIC_APP_ENV:-production}
-      AUTH_URL: ${AUTH_URL:-http://localhost:3000}
-      NEXTAUTH_URL: ${NEXTAUTH_URL:-http://localhost:3000}
+    ports:
+      # Perlu dipublikasikan supaya bisa dijangkau reverse proxy di host
+      # (nginx AA Panel). Ganti ke "127.0.0.1:8087:3000" bila hanya untuk proxy.
+      - "8087:3000"
     expose:
       - "3000"
     networks:
@@ -38,4 +41,9 @@ services:
 
 networks:
   app-network:
+    # WAJIB sama dengan network yang dibuat backend/WA:
+    #   docker network create app-network
+    # `name` ditulis eksplisit supaya Compose TIDAK mencari nama ber-prefix
+    # project (mis. sikebut-app_app-network) yang tidak pernah dibuat.
     external: true
+    name: app-network
