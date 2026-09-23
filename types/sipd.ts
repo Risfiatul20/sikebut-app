@@ -50,6 +50,21 @@ export interface SipdItem {
   indikator_rkbmd?: { b: boolean; r: boolean; h: boolean; t: boolean }
 }
 
+/**
+ * Ringkasan agregat SELURUH data SIPD terfilter (dari backend), bukan hanya
+ * halaman yang sedang tampil. Backend: GET /api/v1/sipd-penetapan-apbd/summary
+ */
+export interface SipdSummary {
+  total_baris: number
+  total_pagu: number
+  total_sub_kegiatan: number
+  total_kegiatan: number
+  total_program: number
+  total_rekening: number
+  total_standar_harga: number
+  total_sumber_dana: number
+}
+
 export interface SipdVersionInfo {
   versi: string
   nama_versi: string

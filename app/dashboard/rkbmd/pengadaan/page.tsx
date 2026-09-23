@@ -210,8 +210,13 @@ export default function RkbmdPengadaanPage() {
           <div className="flex items-center gap-2">
             <span>Rencana kebutuhan barang hasil impor & penelaahan RKBMD.</span>
           </div>
+          {/* Angka ini = SELURUH baris hasil filter (meta.total dari server), bukan hanya baris di halaman aktif */}
           <div className="text-[10px] font-mono text-slate-400 hidden sm:block">
-            {total} data ditemukan
+            {isLoading && !meta
+              ? "Menghitung…"
+              : `${total.toLocaleString("id-ID")} baris · seluruh data${
+                  hasActiveFilters ? " (filter aktif)" : ` periode ${year}`
+                }`}
           </div>
         </div>
 

@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react"
 import { useSession } from "next-auth/react"
 import { useYear } from "@/context/year-context"
-import { SipdVersionInfo } from "@/types/sipd"
+import { SipdSummary, SipdVersionInfo } from "@/types/sipd"
 import { useSipdList } from "@/hooks/useSipdList"
 import { SipdImportDropzone } from "@/components/sipd/sipd-import-dropzone"
 import { SipdDataTable } from "@/components/sipd/sipd-data-table"
@@ -36,6 +36,11 @@ export default function SipdImportPage() {
   const [pageSize, setPageSize] = useState<number>(10)
   const [isImportPanelOpen, setIsImportPanelOpen] = useState<boolean>(false)
   const [toastMessage, setToastMessage] = useState<string | null>(null)
+
+  // Ringkasan agregat SELURUH data (dari backend) — bukan hanya 1 halaman tabel
+  const [summary, setSummary] = useState<SipdSummary | null>(null)
+  const [isLoadingSummary, setIsLoadingSummary] = useState<boolean>(false)
+  const [summaryNonce, setSummaryNonce] = useState<number>(0)
 
   // Muat daftar versi dari database saat halaman dibuka & setelah impor
   const loadVersions = async () => {
@@ -87,22 +92,45 @@ export default function SipdImportPage() {
     setSelectedYearOverride(null)
     setActiveVersion("")
     setPage(1)
+    setSummaryNonce((n) => n + 1)
     setIsImportPanelOpen(false) // collapse form after success to show table immediately
     showToast(
       `Impor berhasil diproses dan tersimpan di database (${count > 0 ? count + " rincian" : "versi baru"}). Data dimuat ulang.`
     )
   }
 
-  // Summary Calculations for active year
-  const yearItems = items.filter((it) => it.tahun === activeYear)
-  const currentVersionItems =
-    activeVersion
-      ? items.filter((it) => it.tahun === activeYear && it.versi === activeVersion)
-      : yearItems
+  // Ringkasan agregat: diambil dari backend memakai filter yang sama dengan tabel,
+  // sehingga mencakup SELURUH data (bukan hanya 10 baris halaman aktif).
+  useEffect(() => {
+    let active = true
+    const params = new URLSearchParams()
+    params.set("tahun", String(activeYear))
+    if (activeVersion) params.set("versi", activeVersion)
 
-  const totalPaguYear = currentVersionItems.reduce((acc, curr) => acc + curr.pagu, 0)
-  const uniqueSubKegiatan = new Set(currentVersionItems.map((it) => it.kode_sub_kegiatan)).size
-  const uniquePrograms = new Set(currentVersionItems.map((it) => it.kode_program)).size
+    async function loadSummary() {
+      setIsLoadingSummary(true)
+      try {
+        const res = await fetch(`/api/sipd/summary?${params.toString()}`, { cache: "no-store" })
+        const json = res.ok ? await res.json() : null
+        if (active) setSummary(json?.data ?? null)
+      } catch {
+        if (active) setSummary(null)
+      } finally {
+        if (active) setIsLoadingSummary(false)
+      }
+    }
+
+    loadSummary()
+
+    return () => {
+      active = false
+    }
+  }, [activeYear, activeVersion, summaryNonce])
+
+  const totalPaguYear = summary?.total_pagu ?? 0
+  const uniqueSubKegiatan = summary?.total_sub_kegiatan ?? 0
+  const uniquePrograms = summary?.total_program ?? 0
+  const totalRincian = meta?.total ?? summary?.total_baris ?? items.length
 
   const formatRupiah = (val: number) => {
     return new Intl.NumberFormat("id-ID", {
@@ -158,19 +186,27 @@ export default function SipdImportPage() {
         )}
       </div>
 
-      {/* Summary Statistics */}
+      {/* Summary Statistics — angka agregat SELURUH data (bukan hanya 1 halaman) */}
       <div className="grid grid-cols-2 xl:grid-cols-4 gap-3">
         <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg p-3.5 shadow-2xs">
           <p className="text-[10px] font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wide flex items-center gap-1.5">
             <DollarSign className="h-3.5 w-3.5 text-blue-500" /> Total Pagu APBD {activeYear}
           </p>
           <p className="font-display text-xl font-bold text-slate-900 dark:text-white mt-1.5 font-mono">
-            {formatRupiah(totalPaguYear)}
+            {isLoadingSummary ? (
+              <span className="text-slate-400">Memuat…</span>
+            ) : summary ? (
+              formatRupiah(totalPaguYear)
+            ) : (
+              <span className="text-slate-400">—</span>
+            )}
           </p>
           <p className="text-[10px] text-slate-400 mt-1">
+            Seluruh data ·{" "}
             {activeVersion
               ? versions.find((v) => v.versi === activeVersion)?.nama_versi ?? activeVersion
               : "Semua versi"}
+            {summary ? ` · ${summary.total_baris.toLocaleString("id-ID")} baris` : ""}
           </p>
         </div>
 
@@ -179,10 +215,16 @@ export default function SipdImportPage() {
             <Layers className="h-3.5 w-3.5 text-amber-500" /> Sub Kegiatan Aktif
           </p>
           <p className="font-display text-2xl font-semibold text-amber-600 dark:text-amber-400 mt-1.5 font-mono">
-            {uniqueSubKegiatan}
+            {isLoadingSummary ? (
+              <span className="text-slate-400">…</span>
+            ) : summary ? (
+              uniqueSubKegiatan.toLocaleString("id-ID")
+            ) : (
+              <span className="text-slate-400">—</span>
+            )}
           </p>
           <p className="text-[10px] text-slate-400 mt-1">
-            Dari {uniquePrograms} Program Kerja
+            {summary ? `Dari ${uniquePrograms.toLocaleString("id-ID")} Program Kerja` : "Seluruh sub kegiatan"}
           </p>
         </div>
 
@@ -191,10 +233,14 @@ export default function SipdImportPage() {
             <FileCheck2 className="h-3.5 w-3.5 text-emerald-500" /> Rincian Rekening RKA
           </p>
           <p className="font-display text-2xl font-semibold text-emerald-600 dark:text-emerald-400 mt-1.5 font-mono">
-            {currentVersionItems.length}
+            {isLoadingSummary ? (
+              <span className="text-slate-400">…</span>
+            ) : (
+              totalRincian.toLocaleString("id-ID")
+            )}
           </p>
           <p className="text-[10px] text-slate-400 mt-1">
-            Item belanja siap identifikasi
+            Item belanja siap identifikasi (seluruh versi)
           </p>
         </div>
 
@@ -235,6 +281,7 @@ export default function SipdImportPage() {
             onClick={() => {
               reloadItems()
               loadVersions()
+              setSummaryNonce((n) => n + 1)
               showToast("Data disinkronkan ulang dari API SIPD-RI")
             }}
             className="h-7 px-2.5 inline-flex items-center gap-1 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-[11px] font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
