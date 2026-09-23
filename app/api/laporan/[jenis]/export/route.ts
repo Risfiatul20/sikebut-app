@@ -11,6 +11,9 @@ const VALID = [
   "ba-pembahasan-swakelola",
   "ba-rkbmd-pengadaan",
   "ba-rkbmd-pemeliharaan",
+  "ba-hasil-identifikasi",
+  "ba-hasil-verifikasi",
+  "ba-penetapan",
 ] as const
 
 /**

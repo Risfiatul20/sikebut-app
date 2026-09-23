@@ -162,3 +162,43 @@ export interface BaRkbmdResponse {
     paket: BaRkbmdPaketRow[]
   }
 }
+
+/** Baris paket pada BA hasil alur identifikasi (Identifikasi / Verifikasi / Penetapan). */
+export interface BaHasilPaketRow {
+  id: number
+  nama_paket: string
+  cara_pengadaan: string
+  jenis_pengadaan: string | null
+  status_review: string
+  kode_skpd: string
+  nama_skpd: string
+  kode_program: string
+  nama_program: string
+  kode_kegiatan: string
+  nama_kegiatan: string
+  kode_sub_kegiatan: string
+  nama_sub_kegiatan: string
+  nama_user: string
+  pagu: number
+  belanja_pengadaan: number
+  belanja_non_pengadaan: number
+  /** Sisa = Belanja Pengadaan − Pagu Paket (Tabel 14 penjelasan.docx: kolom 6 = 4 − 5). */
+  sisa: number
+  catatan_pembahasan: string
+  updated_at: string | null
+}
+
+/** Response BA Hasil Identifikasi / Verifikasi / Penetapan (satu tulang punggung). */
+export interface BaHasilResponse {
+  data: {
+    jenis_ba: "hasil-identifikasi" | "hasil-verifikasi" | "penetapan"
+    cara_pengadaan: string
+    /** true = tampilkan kolom keputusan verifikasi (hanya BA Verifikasi). */
+    kolom_status: boolean
+    summary: {
+      total_paket: number
+      total_pagu: number
+    }
+    paket: BaHasilPaketRow[]
+  }
+}

@@ -91,6 +91,9 @@ const menuCategories: MenuCategory[] = [
       { title: "BA Pembahasan Swakelola", href: "/dashboard/laporan/ba-pembahasan-swakelola", icon: FileText },
       { title: "BA Catatan RKBMD Pengadaan", href: "/dashboard/laporan/ba-rkbmd-pengadaan", icon: FileText },
       { title: "BA Catatan RKBMD Pemeliharaan", href: "/dashboard/laporan/ba-rkbmd-pemeliharaan", icon: FileText },
+      { title: "BA Hasil Identifikasi", href: "/dashboard/laporan/ba-hasil-identifikasi", icon: FileText },
+      { title: "BA Hasil Verifikasi", href: "/dashboard/laporan/ba-hasil-verifikasi", icon: FileText },
+      { title: "BA Penetapan Kebutuhan", href: "/dashboard/laporan/ba-penetapan", icon: FileText },
     ],
   },
   {
