@@ -150,16 +150,18 @@ export function BaRkbmdView({ jenis, tipe, judul, deskripsi }: Props) {
               Daftar rincian terlampir pada tabel berikut:
             </p>
 
-            {/* Tabel Paket — sesuai template BA Catatan RKBMD (table-fixed, muat 100%, tidak keluar tabel) */}
-            <div className="border border-slate-300 dark:border-slate-700 rounded-lg overflow-hidden">
-              <table className="w-full text-xs table-fixed border-collapse">
+            {/* Tabel Paket — sesuai template BA Catatan RKBMD. Lebar minimal (min-w)
+                agar isi tidak terpotong/berhimpitan; kontainer scroll horizontal,
+                dan saat cetak tabel kembali memuat lebar halaman. */}
+            <div className="border border-slate-300 dark:border-slate-700 rounded-lg overflow-x-auto print:overflow-visible">
+              <table className="w-full min-w-[1150px] text-xs border-collapse print:min-w-0">
                 <colgroup>
-                  <col className="w-[6%]" />
-                  <col className="w-[30%]" />
-                  <col className="w-[8%]" />
-                  <col className="w-[10%]" />
-                  <col className="w-[26%]" />
-                  <col className="w-[20%]" />
+                  <col className="w-[44px]" />
+                  <col className="w-[330px]" />
+                  <col className="w-[90px]" />
+                  <col className="w-[110px]" />
+                  <col className="w-[330px]" />
+                  <col className="w-[250px]" />
                 </colgroup>
                 <thead>
                   <tr className="bg-slate-100 dark:bg-slate-800 text-left">

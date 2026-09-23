@@ -287,30 +287,31 @@ export function BaHasilView({ jenis, jenisLabel, judul, deskripsi }: Props) {
 
             {/* Tabel Paket — konsep sama dengan BA Pembahasan (satu baris = satu paket;
                 kolom uang berasal dari SIPD yang dipisah lewat penanda pada KODE REKENING).
-                Lebar kolom WAJIB menjumlah tepat 100%: tanpa keputusan 5+28+15+15+13+12+12,
-                dengan keputusan 4+26+9+14+14+12+10+11. */}
-            <div className="border border-slate-300 dark:border-slate-700 rounded-lg overflow-hidden">
-              <table className="w-full text-xs table-fixed border-collapse">
+                Tabel memakai lebar minimal (min-w) sehingga kolom uang TIDAK pernah
+                terpotong/berhimpitan — kontainer menyediakan scroll horizontal,
+                dan saat cetak tabel kembali memuat lebar halaman. */}
+            <div className="border border-slate-300 dark:border-slate-700 rounded-lg overflow-x-auto print:overflow-visible">
+              <table className="w-full min-w-[1250px] text-xs border-collapse print:min-w-0">
                 <colgroup>
-                  <col className="w-[5%]" />
-                  <col className="w-[28%]" />
-                  {kolomStatus && <col className="w-[9%]" />}
-                  <col className={kolomStatus ? "w-[14%]" : "w-[15%]"} />
-                  <col className={kolomStatus ? "w-[14%]" : "w-[15%]"} />
-                  <col className="w-[13%]" />
-                  <col className={kolomStatus ? "w-[10%]" : "w-[12%]"} />
-                  <col className={kolomStatus ? "w-[11%]" : "w-[12%]"} />
+                  <col className="w-[44px]" />
+                  <col className="w-[340px]" />
+                  {kolomStatus && <col className="w-[100px]" />}
+                  <col className="w-[150px]" />
+                  <col className="w-[150px]" />
+                  <col className="w-[130px]" />
+                  <col className="w-[140px]" />
+                  <col className="w-[210px]" />
                 </colgroup>
                 <thead>
                   <tr className="bg-slate-100 dark:bg-slate-800 text-left">
-                    <th className="font-semibold px-2 py-2.5">No</th>
-                    <th className="font-semibold px-2 py-2.5">OPD / Program / Kegiatan / Sub Kegiatan / Paket</th>
-                    {kolomStatus && <th className="font-semibold px-2 py-2.5">Keputusan</th>}
-                    <th className="font-semibold px-2 py-2.5 text-right">Belanja Non Pengadaan</th>
-                    <th className="font-semibold px-2 py-2.5 text-right">Belanja Pengadaan</th>
-                    <th className="font-semibold px-2 py-2.5 text-right">Pagu Paket</th>
-                    <th className="font-semibold px-2 py-2.5 text-right">Sisa</th>
-                    <th className="font-semibold px-2 py-2.5">Catatan</th>
+                    <th className="font-semibold px-3 py-2.5">No</th>
+                    <th className="font-semibold px-3 py-2.5">OPD / Program / Kegiatan / Sub Kegiatan / Paket</th>
+                    {kolomStatus && <th className="font-semibold px-3 py-2.5">Keputusan</th>}
+                    <th className="font-semibold px-3 py-2.5 text-right">Belanja Non Pengadaan</th>
+                    <th className="font-semibold px-3 py-2.5 text-right">Belanja Pengadaan</th>
+                    <th className="font-semibold px-3 py-2.5 text-right">Pagu Paket</th>
+                    <th className="font-semibold px-3 py-2.5 text-right">Sisa</th>
+                    <th className="font-semibold px-3 py-2.5">Catatan</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-200 dark:divide-slate-700">
@@ -323,7 +324,7 @@ export function BaHasilView({ jenis, jenisLabel, judul, deskripsi }: Props) {
                   ) : (
                     data.paket.map((p, i) => (
                       <tr key={p.id} className="align-top">
-                        <td className="px-2 py-2">{i + 1}</td>
+                        <td className="px-3 py-2.5">{i + 1}</td>
                         <td className="px-2 py-2 min-w-0 break-words">
                           <p className="font-semibold break-words">{p.nama_paket}</p>
                           <p className="text-[10px] text-slate-500 mt-0.5 leading-snug break-words">
@@ -337,7 +338,7 @@ export function BaHasilView({ jenis, jenisLabel, judul, deskripsi }: Props) {
                           </p>
                         </td>
                         {kolomStatus && (
-                          <td className="px-2 py-2">
+                          <td className="px-3 py-2.5">
                             <span className={statusBadge(p.status_review)}>{p.status_review}</span>
                           </td>
                         )}
@@ -355,8 +356,8 @@ export function BaHasilView({ jenis, jenisLabel, judul, deskripsi }: Props) {
                     <tr className="bg-slate-100 dark:bg-slate-800 font-semibold">
                       {/* colSpan WAJIB menjumlah persis = jumlah kolom tabel
                           (tanpa keputusan: 4+1+2 = 7; dengan keputusan: 5+1+2 = 8). */}
-                      <td colSpan={kolomStatus ? 5 : 4} className="px-2 py-2.5 text-right">Total Pagu Paket</td>
-                      <td className="px-2 py-2.5 text-right text-[11px] font-mono whitespace-nowrap">{fmtRp(data.summary.total_pagu)}</td>
+                      <td colSpan={kolomStatus ? 5 : 4} className="px-3 py-2.5 text-right">Total Pagu Paket</td>
+                      <td className="px-3 py-2.5 text-right text-[11px] font-mono whitespace-nowrap">{fmtRp(data.summary.total_pagu)}</td>
                       <td colSpan={2} />
                     </tr>
                   </tfoot>
