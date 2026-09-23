@@ -272,51 +272,51 @@ export function BaHasilView({ jenis, jenisLabel, judul, deskripsi }: Props) {
           </div>
         ) : data ? (
           <div>
-            {/* Kop dokumen */}
+            {/* Kop dokumen — konsisten dengan BA Catatan RKBMD (Nomor + Tanggal di bawah judul) */}
             <div className="text-center border-b border-slate-200 dark:border-slate-700 pb-4 mb-4 print:pb-3">
               <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
                 Pemerintah Provinsi Sumatera Barat
               </p>
               <h2 className="font-display text-lg font-bold text-slate-900 dark:text-white mt-1">{judul}</h2>
               <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-                Nomor: {nomorBa || "...................."}
+                Nomor: {nomorBa || "...................."} · Tanggal: {fmtWaktu(tanggal)}
               </p>
             </div>
 
             {narasi()}
 
             {/* Tabel Paket — konsep sama dengan BA Pembahasan (satu baris = satu paket;
-                kolom uang berasal dari SIPD yang dipisah lewat penanda pada KODE REKENING). */}
+                kolom uang berasal dari SIPD yang dipisah lewat penanda pada KODE REKENING).
+                Lebar kolom WAJIB menjumlah tepat 100%: tanpa keputusan 5+28+15+15+13+12+12,
+                dengan keputusan 4+26+9+14+14+12+10+11. */}
             <div className="border border-slate-300 dark:border-slate-700 rounded-lg overflow-hidden">
               <table className="w-full text-xs table-fixed border-collapse">
                 <colgroup>
                   <col className="w-[5%]" />
                   <col className="w-[28%]" />
-                  <col className="w-[11%]" />
-                  <col className="w-[13%]" />
-                  <col className="w-[13%]" />
-                  <col className="w-[13%]" />
-                  <col className="w-[8%]" />
                   {kolomStatus && <col className="w-[9%]" />}
-                  {kolomStatus ? <col className="w-[10%]" /> : <col className="w-[19%]" />}
+                  <col className={kolomStatus ? "w-[14%]" : "w-[15%]"} />
+                  <col className={kolomStatus ? "w-[14%]" : "w-[15%]"} />
+                  <col className="w-[13%]" />
+                  <col className={kolomStatus ? "w-[10%]" : "w-[12%]"} />
+                  <col className={kolomStatus ? "w-[11%]" : "w-[12%]"} />
                 </colgroup>
                 <thead>
                   <tr className="bg-slate-100 dark:bg-slate-800 text-left">
                     <th className="font-semibold px-2 py-2.5">No</th>
                     <th className="font-semibold px-2 py-2.5">OPD / Program / Kegiatan / Sub Kegiatan / Paket</th>
-                    <th className="font-semibold px-2 py-2.5">Cara</th>
+                    {kolomStatus && <th className="font-semibold px-2 py-2.5">Keputusan</th>}
                     <th className="font-semibold px-2 py-2.5 text-right">Belanja Non Pengadaan</th>
                     <th className="font-semibold px-2 py-2.5 text-right">Belanja Pengadaan</th>
                     <th className="font-semibold px-2 py-2.5 text-right">Pagu Paket</th>
                     <th className="font-semibold px-2 py-2.5 text-right">Sisa</th>
-                    {kolomStatus && <th className="font-semibold px-2 py-2.5">Keputusan</th>}
                     <th className="font-semibold px-2 py-2.5">Catatan</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-200 dark:divide-slate-700">
                   {data.paket.length === 0 ? (
                     <tr>
-                      <td colSpan={kolomStatus ? 9 : 8} className="px-3 py-6 text-center text-slate-400">
+                      <td colSpan={kolomStatus ? 8 : 7} className="px-3 py-6 text-center text-slate-400">
                         Belum ada paket untuk dilaporkan{data.cara_pengadaan !== "Semua" ? ` (cara: ${data.cara_pengadaan})` : ""}.
                       </td>
                     </tr>
@@ -329,17 +329,22 @@ export function BaHasilView({ jenis, jenisLabel, judul, deskripsi }: Props) {
                           <p className="text-[10px] text-slate-500 mt-0.5 leading-snug break-words">
                             {[p.nama_skpd, p.nama_program, p.nama_kegiatan, p.nama_sub_kegiatan].filter(Boolean).join(" › ")}
                           </p>
+                          {/* Cara & jenis pengadaan sebagai badge — hemat lebar, tidak perlu kolom sendiri */}
+                          <p className="mt-1">
+                            <span className="inline-block rounded-full bg-slate-100 dark:bg-slate-800 px-2 py-0.5 text-[9px] font-semibold text-slate-600 dark:text-slate-300">
+                              {p.cara_pengadaan}{p.jenis_pengadaan ? ` · ${p.jenis_pengadaan}` : ""}
+                            </span>
+                          </p>
                         </td>
-                        <td className="px-2 py-2 whitespace-nowrap">{p.cara_pengadaan}</td>
-                        <td className="px-2 py-2 text-right font-mono whitespace-nowrap">{fmtRp(p.belanja_non_pengadaan)}</td>
-                        <td className="px-2 py-2 text-right font-mono whitespace-nowrap">{fmtRp(p.belanja_pengadaan)}</td>
-                        <td className="px-2 py-2 text-right font-mono font-semibold whitespace-nowrap">{fmtRp(p.pagu)}</td>
-                        <td className="px-2 py-2 text-right font-mono whitespace-nowrap">{fmtRp(p.sisa)}</td>
                         {kolomStatus && (
                           <td className="px-2 py-2">
                             <span className={statusBadge(p.status_review)}>{p.status_review}</span>
                           </td>
                         )}
+                        <td className="px-2 py-2 text-right text-[11px] font-mono whitespace-nowrap">{fmtRp(p.belanja_non_pengadaan)}</td>
+                        <td className="px-2 py-2 text-right text-[11px] font-mono whitespace-nowrap">{fmtRp(p.belanja_pengadaan)}</td>
+                        <td className="px-2 py-2 text-right text-[11px] font-mono font-semibold whitespace-nowrap">{fmtRp(p.pagu)}</td>
+                        <td className="px-2 py-2 text-right text-[11px] font-mono whitespace-nowrap">{fmtRp(p.sisa)}</td>
                         <td className="px-2 py-2 text-slate-700 dark:text-slate-300 leading-snug break-words min-w-0">{p.catatan_pembahasan || "—"}</td>
                       </tr>
                     ))
@@ -348,8 +353,11 @@ export function BaHasilView({ jenis, jenisLabel, judul, deskripsi }: Props) {
                 {data.paket.length > 0 && (
                   <tfoot>
                     <tr className="bg-slate-100 dark:bg-slate-800 font-semibold">
-                      <td colSpan={4} className="px-2 py-2.5 text-right">Total Pagu Paket</td>
-                      <td colSpan={kolomStatus ? 4 : 3} className="px-2 py-2.5 text-right font-mono whitespace-nowrap">{fmtRp(data.summary.total_pagu)}</td>
+                      {/* colSpan WAJIB menjumlah persis = jumlah kolom tabel
+                          (tanpa keputusan: 4+1+2 = 7; dengan keputusan: 5+1+2 = 8). */}
+                      <td colSpan={kolomStatus ? 5 : 4} className="px-2 py-2.5 text-right">Total Pagu Paket</td>
+                      <td className="px-2 py-2.5 text-right text-[11px] font-mono whitespace-nowrap">{fmtRp(data.summary.total_pagu)}</td>
+                      <td colSpan={2} />
                     </tr>
                   </tfoot>
                 )}
